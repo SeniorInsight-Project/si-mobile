@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Senior Insight Health Monitor",
+    "slug": "senior-insight-health-monitor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,6 +19,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:8080",
+      "postgres": {
+        "host": "localhost",
+        "port": 5432,
+        "database": "senior_insight_health"
+      }
     }
   }
 }
