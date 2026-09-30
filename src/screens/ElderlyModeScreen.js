@@ -27,7 +27,7 @@ export default function ElderlyModeScreen({ onNavigate }) {
               <View style={styles.redDotNotification} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.profileHeaderButton} onPress={() => onNavigate('Login')}>
+            <TouchableOpacity style={styles.profileHeaderButton} onPress={() => onNavigate('ElderlyProfile')}>
               <Image 
                 source={require('../../assets/logo.png')} 
                 style={styles.logoHeaderImg} 
@@ -177,6 +177,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    position: 'relative',
+    height: 42,
   },
   topIconButton: {
     width: 38,
@@ -187,29 +189,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    zIndex: 1,
   },
   heartIcon: {
     fontSize: 18,
     color: '#1E2E69',
   },
   topTitleContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   topSubtitle: {
     fontSize: 9,
     fontWeight: 'bold',
     color: '#64748B',
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   topMainTitle: {
     fontSize: 13,
     fontWeight: 'bold',
     color: '#1E2E69',
+    textAlign: 'center',
   },
   topRightIcons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    zIndex: 1,
   },
   notificationButton: {
     width: 38,
