@@ -32,7 +32,7 @@ export default function App() {
       case 'Medicines':
         return <MedicinesScreen onNavigate={setTelaAtual} />;
       case 'Family':
-        return <ElderlyProfileScreen onNavigate={setTelaAtual} />;
+        return <FamilyScreen onNavigate={setTelaAtual} />;
       default:
         return <OnboardingScreen onNavigate={setTelaAtual} />;
     }
