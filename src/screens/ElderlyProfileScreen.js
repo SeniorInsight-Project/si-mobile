@@ -11,9 +11,25 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
+import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
+import {
+  Camera,
+  Activity,
+  Plus,
+  FileText,
+  User,
+  Calendar,
+  Droplet,
+  Stethoscope,
+  ShieldCheck,
+  Siren,
+  ChevronRight,
+  Check,
+  ClipboardList,
+} from 'lucide-react-native';
 import {
   listarComorbidades,
   adicionarComorbidades,
@@ -114,45 +130,13 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
 
   return (
     <ScreenWrapper>
+      {/* HEADER PADRONIZADO GLOBAL */}
+      <AppHeader title="Perfil do Idoso" onNavigate={onNavigate} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* HEADER SUPERIOR IDÊNTICO AO FIGMA */}
-        <View style={styles.topHeader}>
-          <TouchableOpacity
-            style={styles.topIconButton}
-            onPress={() => onNavigate('ElderlyMode')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.heartIcon}>♡</Text>
-          </TouchableOpacity>
-
-          <View style={styles.topTitleContainer}>
-            <Text style={styles.topSubtitle}>CUIDADO ATIVO</Text>
-            <Text style={styles.topMainTitle}>Família Perfil</Text>
-          </View>
-
-          <View style={styles.topRightIcons}>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <Text style={styles.bellIcon}>🔔</Text>
-              <View style={styles.redDotNotification} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.profileHeaderButton}
-              onPress={() => onNavigate('ElderlyMode')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={require('../../assets/logo.png')}
-                style={styles.logoHeaderImg}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* CARD PRINCIPAL DO IDOSO COM STATS */}
         <View style={styles.elderlyCard}>
           <View style={styles.avatarWrapper}>
@@ -165,7 +149,7 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               onPress={() => Alert.alert('Alterar Foto', 'Funcionalidade de câmera em desenvolvimento.')}
               activeOpacity={0.85}
             >
-              <Text style={styles.cameraIcon}>📷</Text>
+              <Camera size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -197,8 +181,8 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleWithIcon}>
-              <Text style={styles.pulseIcon}>〰️</Text>
-              <Text style={styles.sectionTitle}>Comorbidades & Alertas</Text>
+              <Activity size={18} color="#DC2626" style={{ marginRight: 8 }} />
+              <Text style={styles.sectionTitle}>Comorbidades &amp; Alertas</Text>
             </View>
 
             <TouchableOpacity
@@ -206,7 +190,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               onPress={() => setModalVisible(true)}
               activeOpacity={0.8}
             >
-              <Text style={styles.addPillText}>+ Adicionar</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Plus size={13} color="#031753" style={{ marginRight: 4 }} />
+                <Text style={styles.addPillText}>Adicionar</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -230,7 +217,7 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               {comorbidades.length === 0 && (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateText}>
-                    Nenhuma comorbidade registrada. Clique em "+ Adicionar" para incluir patologias ou alergias.
+                    Nenhuma comorbidade registrada. Clique em "Adicionar" para incluir patologias ou alergias.
                   </Text>
                 </View>
               )}
@@ -241,12 +228,15 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
         {/* SEÇÃO 3: FICHA CADASTRAL DO IDOSO */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleWithIcon}>
-            <Text style={styles.clipboardIcon}>📑</Text>
+            <FileText size={18} color="#031753" style={{ marginRight: 8 }} />
             <Text style={styles.sectionTitle}>Ficha Cadastral do Idoso</Text>
           </View>
 
           {/* Campo: Nome Completo */}
-          <Text style={styles.fieldLabel}>👤 Nome Completo</Text>
+          <View style={styles.labelWithIconRow}>
+            <User size={13} color="#031753" style={{ marginRight: 6 }} />
+            <Text style={styles.fieldLabel}>Nome Completo</Text>
+          </View>
           <View style={styles.darkInputField}>
             <TextInput
               style={styles.darkInputText}
@@ -258,7 +248,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
           {/* Linha Dupla: Nascimento e Fator Sanguíneo */}
           <View style={styles.fieldsRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>📅 Nascimento</Text>
+              <View style={styles.labelWithIconRow}>
+                <Calendar size={13} color="#031753" style={{ marginRight: 6 }} />
+                <Text style={styles.fieldLabel}>Nascimento</Text>
+              </View>
               <View style={styles.lightInputField}>
                 <TextInput
                   style={styles.lightInputText}
@@ -270,7 +263,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>🩸 Fator Sanguíneo</Text>
+              <View style={styles.labelWithIconRow}>
+                <Droplet size={13} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={styles.fieldLabel}>Fator Sanguíneo</Text>
+              </View>
               <View style={styles.lightInputField}>
                 <TextInput
                   style={styles.lightInputText}
@@ -282,7 +278,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
           </View>
 
           {/* Campo: Médico de Referência */}
-          <Text style={styles.fieldLabel}>🩺 Médico(a) de Referência</Text>
+          <View style={styles.labelWithIconRow}>
+            <Stethoscope size={13} color="#031753" style={{ marginRight: 6 }} />
+            <Text style={styles.fieldLabel}>Médico(a) de Referência</Text>
+          </View>
           <View style={styles.doctorInputField}>
             <TextInput
               style={styles.doctorInputText}
@@ -295,7 +294,7 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
           {/* Banner de Sincronização com a Família */}
           <View style={styles.syncAlertCard}>
             <View style={styles.syncIconWrapper}>
-              <Text style={styles.syncShieldIcon}>🛡️</Text>
+              <ShieldCheck size={20} color="#16A34A" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.syncAlertTitle}>Ficha Sincronizada com a Família</Text>
@@ -304,6 +303,24 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               </Text>
             </View>
           </View>
+
+          {/* Acesso aos Contatos de Emergência (HU35) */}
+          <TouchableOpacity
+            style={styles.emergencyContactsShortcut}
+            onPress={() => onNavigate && onNavigate('EmergencyContacts')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.emergencyShortcutLeft}>
+              <View style={styles.emergencyShortcutIconBg}>
+                <Siren size={18} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.emergencyShortcutTitle}>Contatos de Emergência &amp; SOS</Text>
+                <Text style={styles.emergencyShortcutSub}>3 Cuidadores cadastrados na fila de socorro</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color="#991B1B" />
+          </TouchableOpacity>
         </View>
 
         {/* BOTÕES DE AÇÃO INFERIORES */}
@@ -313,7 +330,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
             onPress={handleSalvarAlteracoes}
             activeOpacity={0.85}
           >
-            <Text style={styles.primarySaveButtonText}>✓ Salvar Alterações</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Check size={16} color="#FFFFFF" strokeWidth={3} style={{ marginRight: 6 }} />
+              <Text style={styles.primarySaveButtonText}>Salvar Alterações</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -321,7 +341,10 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
             onPress={() => Alert.alert('Histórico Clínico', 'Visualização do prontuário histórico consolidado.')}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryHistoryButtonText}>📋 Histórico Clínico Completo</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ClipboardList size={16} color="#031753" style={{ marginRight: 6 }} />
+              <Text style={styles.secondaryHistoryButtonText}>Histórico Clínico Completo</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -344,115 +367,8 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
 const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 95,
-  },
-
-  /* HEADER SUPERIOR */
-  topHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    position: 'relative',
-    height: 42,
-  },
-  topIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-    zIndex: 1,
-  },
-  heartIcon: {
-    fontSize: 18,
-    color: '#031753',
-  },
-  topTitleContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  topSubtitle: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#64748B',
-    letterSpacing: 0.8,
-    textAlign: 'center',
-  },
-  topMainTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#031753',
-    textAlign: 'center',
-  },
-  topRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 1,
-  },
-  notificationButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  bellIcon: {
-    fontSize: 14,
-  },
-  redDotNotification: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E53E3E',
-  },
-  profileHeaderButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  logoHeaderImg: {
-    width: 22,
-    height: 22,
   },
 
   /* CARD PRINCIPAL DO IDOSO */
@@ -624,12 +540,16 @@ const styles = StyleSheet.create({
   },
 
   /* CAMPOS DA FICHA CADASTRAL */
+  labelWithIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: 8,
+  },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
     color: '#334155',
-    marginBottom: 6,
-    marginTop: 8,
   },
   darkInputField: {
     backgroundColor: '#0F1E36',
@@ -756,5 +676,48 @@ const styles = StyleSheet.create({
     color: '#031753',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  emergencyContactsShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  emergencyShortcutLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  emergencyShortcutIconBg: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emergencyShortcutIcon: {
+    fontSize: 16,
+  },
+  emergencyShortcutTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#991B1B',
+  },
+  emergencyShortcutSub: {
+    fontSize: 10,
+    color: '#7F1D1D',
+    marginTop: 2,
+  },
+  emergencyShortcutArrow: {
+    fontSize: 20,
+    color: '#991B1B',
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
 });

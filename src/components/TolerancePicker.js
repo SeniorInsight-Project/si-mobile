@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Sliders } from 'lucide-react-native';
 
 export default function TolerancePicker({
   selectedTolerance = 15,
@@ -11,7 +12,7 @@ export default function TolerancePicker({
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.iconContainer}>
-          <Text style={styles.tuneIcon}>🎚️</Text>
+          <Sliders size={20} color="#0284C7" />
         </View>
 
         <View style={styles.textContainer}>
@@ -83,9 +84,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  tuneIcon: {
-    fontSize: 18,
   },
   textContainer: {
     flex: 1,

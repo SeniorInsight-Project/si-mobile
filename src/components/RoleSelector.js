@@ -1,4 +1,6 @@
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { HelpCircle, Check } from 'lucide-react-native';
 
 export default function RoleSelector({ selectedRole, onSelectRole }) {
   const roles = [
@@ -26,7 +28,7 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.mainLabel}>Qual é o seu papel no cuidado?</Text>
-        <Text style={styles.helpIcon}>❓</Text>
+        <HelpCircle size={16} color="#64748B" />
       </View>
       
       <View style={styles.row}>
@@ -46,7 +48,7 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
               {/* O símbolo de OK (Check) flutuando no canto superior direito */}
               {isActive && (
                 <View style={styles.checkBadge}>
-                  <Text style={styles.checkText}>✓</Text>
+                  <Check size={12} color="#FFFFFF" strokeWidth={3} />
                 </View>
               )}
 
@@ -59,8 +61,7 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
               <Text style={[styles.cardText, isActive && styles.textActive]}>
                 {role.label}
               </Text>
-              
-              <Text style={[styles.subText, isActive && styles.textActive]}>
+              <Text style={[styles.subText, isActive && styles.subTextActive]}>
                 {role.subLabel}
               </Text>
             </TouchableOpacity>
@@ -83,72 +84,62 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   mainLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1E2E69', 
-  },
-  helpIcon: {
-    fontSize: 14,
-    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#031753',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8, 
+    gap: 10,
   },
   card: {
     flex: 1,
-    height: 124,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    // position relative para segurar o selo de check dentro do card
-    position: 'relative', 
+    position: 'relative',
   },
   cardActive: {
-    borderColor: '#1E2E69', 
-    backgroundColor: '#EBF5FF', 
+    borderColor: '#031753',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
   },
-  // --- ESTILOS DO NOVO SELO DE OK ---
   checkBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#1E2E69',
+    top: 6,
+    right: 6,
     width: 20,
     height: 20,
     borderRadius: 10,
+    backgroundColor: '#031753',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  // -----------------------------------
   imageIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     marginBottom: 8,
   },
   cardText: {
     fontSize: 13,
-    color: '#334155',
     fontWeight: '700',
-    marginBottom: 2,
-  },
-  subText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '400',
+    color: '#334155',
   },
   textActive: {
-    color: '#1E2E69', 
+    color: '#031753',
+  },
+  subText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  subTextActive: {
+    color: '#64748B',
+    fontWeight: '600',
   },
 });

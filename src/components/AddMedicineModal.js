@@ -12,13 +12,24 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import {
+  Pill,
+  Droplet,
+  Droplets,
+  Syringe,
+  Stethoscope,
+  X,
+  AlertTriangle,
+  Check,
+  Trash2,
+} from 'lucide-react-native';
 
 const FORMAT_OPTIONS = [
-  { id: 'comprimido', label: 'Comprimido', emoji: '💊' },
-  { id: 'gotas', label: 'Gotas', emoji: '💧' },
-  { id: 'xarope', label: 'Xarope', emoji: '🧴' },
-  { id: 'injecao', label: 'Injeção', emoji: '💉' },
-  { id: 'outro', label: 'Outro', emoji: '🩺' },
+  { id: 'comprimido', label: 'Comprimido', icon: Pill },
+  { id: 'gotas', label: 'Gotas', icon: Droplet },
+  { id: 'xarope', label: 'Xarope', icon: Droplets },
+  { id: 'injecao', label: 'Injeção', icon: Syringe },
+  { id: 'outro', label: 'Outro', icon: Stethoscope },
 ];
 
 const QUICK_TIMES = ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'];
@@ -156,7 +167,7 @@ export default function AddMedicineModal({
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <X size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -168,7 +179,8 @@ export default function AddMedicineModal({
             {/* Mensagem de Erro */}
             {Boolean(errorMessage) && (
               <View style={styles.errorBox}>
-                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                <AlertTriangle size={15} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
             )}
 
@@ -216,6 +228,7 @@ export default function AddMedicineModal({
               >
                 {FORMAT_OPTIONS.map((opt) => {
                   const isSelected = formato === opt.id;
+                  const IconComp = opt.icon;
                   return (
                     <TouchableOpacity
                       key={opt.id}
@@ -226,7 +239,11 @@ export default function AddMedicineModal({
                       onPress={() => setFormato(opt.id)}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.chipEmoji}>{opt.emoji}</Text>
+                      <IconComp
+                        size={16}
+                        color={isSelected ? '#031753' : '#64748B'}
+                        style={{ marginRight: 6 }}
+                      />
                       <Text
                         style={[
                           styles.chipLabel,
@@ -353,9 +370,12 @@ export default function AddMedicineModal({
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.saveButtonText}>
-                    {isEditing ? 'Atualizar Medicamento' : 'Salvar Medicamento'}
-                  </Text>
+                  <View style={styles.buttonInnerRow}>
+                    <Check size={16} color="#FFFFFF" strokeWidth={3} style={{ marginRight: 6 }} />
+                    <Text style={styles.saveButtonText}>
+                      {isEditing ? 'Atualizar Medicamento' : 'Salvar Medicamento'}
+                    </Text>
+                  </View>
                 )}
               </TouchableOpacity>
 
@@ -366,7 +386,10 @@ export default function AddMedicineModal({
                   disabled={loading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.deleteButtonText}>Excluir Medicamento</Text>
+                  <View style={styles.buttonInnerRow}>
+                    <Trash2 size={16} color="#DC2626" style={{ marginRight: 6 }} />
+                    <Text style={styles.deleteButtonText}>Excluir Medicamento</Text>
+                  </View>
                 </TouchableOpacity>
               )}
 
@@ -581,6 +604,11 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontSize: 14,
     fontWeight: '700',
+  },
+  buttonInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
     backgroundColor: '#F8FAFC',

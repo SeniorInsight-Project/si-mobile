@@ -3,6 +3,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import InputField from '../components/InputField';
 import PrimaryButton from '../components/PrimaryButton';
 import SocialButton from '../components/SocialButton';
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function LoginScreen({ onNavigate }) {
   return (
@@ -19,7 +20,7 @@ export default function LoginScreen({ onNavigate }) {
           {/* HEADER: Botão de Voltar e Logo */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => onNavigate('Onboarding')} style={styles.iconButton}>
-              <Text style={styles.iconButtonText}>←</Text>
+              <ArrowLeft size={18} color="#031753" />
             </TouchableOpacity>
             
             <Image 
@@ -49,8 +50,8 @@ export default function LoginScreen({ onNavigate }) {
             </View>
 
             {/* CAMPOS MANUAIS */}
-            <InputField label="E-mail" placeholder="seu@email.com" icon="✉️" />
-            <InputField label="Senha" placeholder="Sua senha" icon="🔒" isPassword={true} />
+            <InputField label="E-mail" placeholder="seu@email.com" icon="mail" />
+            <InputField label="Senha" placeholder="Sua senha" icon="lock" isPassword={true} />
 
             {/* ESQUECI MINHA SENHA */}
             <TouchableOpacity style={styles.forgotPasswordContainer} onPress={() => onNavigate      ('ForgotPassword')}>

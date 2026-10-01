@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, Image, ScrollView, KeyboardAv
 import ScreenWrapper from '../components/ScreenWrapper';
 import InputField from '../components/InputField';
 import PrimaryButton from '../components/PrimaryButton';
+import { ArrowLeft, Check } from 'lucide-react-native';
 
 export default function ForgotPasswordScreen({ onNavigate }) {
   // Estado para controlar se o e-mail já foi enviado (alterna entre o formulário e a tela de sucesso)
@@ -42,14 +43,14 @@ export default function ForgotPasswordScreen({ onNavigate }) {
           contentContainerStyle={styles.scrollContent}
         >
           
-          {/* HEADER: Botão de Voltar e Logo menor sem texto */}
+          {/* HEADER: Botão de Voltar e Logo */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => onNavigate('Login')} style={styles.iconButton}>
-              <Text style={styles.iconButtonText}>←</Text>
+              <ArrowLeft size={18} color="#031753" />
             </TouchableOpacity>
             
             <Image 
-              source={require('../../assets/logo.png')} // O logo.png sem texto que está na pasta assets
+              source={require('../../assets/logoComTexto.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -68,7 +69,7 @@ export default function ForgotPasswordScreen({ onNavigate }) {
               <InputField 
                 label="E-mail cadastrado" 
                 placeholder="exemplo@seniorinsight.com.br" 
-                icon="✉️" 
+                icon="mail" 
               />
 
               <View style={styles.buttonWrapper}>
@@ -85,7 +86,7 @@ export default function ForgotPasswordScreen({ onNavigate }) {
               {/* Alerta Verde do Figma */}
               <View style={styles.successAlert}>
                 <View style={styles.successIconCircle}>
-                  <Text style={styles.successCheck}>✓</Text>
+                  <Check size={14} color="#FFFFFF" strokeWidth={3} />
                 </View>
                 <View style={styles.successTextWrapper}>
                   <Text style={styles.successTitle}>Verifique sua caixa de entrada!</Text>
@@ -99,7 +100,7 @@ export default function ForgotPasswordScreen({ onNavigate }) {
               <InputField 
                 label="E-mail cadastrado" 
                 placeholder="exemplo@seniorinsight.com.br" 
-                icon="✉️" 
+                icon="mail" 
               />
 
               {/* Botão de reenviar com contagem regressiva dinâmica */}
@@ -159,8 +160,8 @@ const styles = StyleSheet.create({
     color: '#1E2E69',
   },
   logo: {
-    width: 36,
-    height: 36,
+    width: 140,
+    height: 40,
   },
   title: {
     fontSize: 26,

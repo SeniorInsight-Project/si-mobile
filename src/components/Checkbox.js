@@ -1,10 +1,12 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Check } from 'lucide-react-native';
 
 export default function Checkbox({ isChecked, onToggle, children }) {
   return (
     <TouchableOpacity style={styles.container} onPress={onToggle} activeOpacity={0.8}>
       <View style={[styles.box, isChecked && styles.boxChecked]}>
-        {isChecked && <Text style={styles.checkmark}>✓</Text>}
+        {isChecked && <Check size={14} color="#FFFFFF" strokeWidth={3.5} />}
       </View>
       <View style={styles.textContainer}>
         {children}
@@ -25,21 +27,16 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#CBD5E1', // Borda cinza quando desmarcado
+    borderColor: '#CBD5E1',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    marginTop: 2, // Alinha a caixinha com a primeira linha do texto
+    marginTop: 2,
   },
   boxChecked: {
-    backgroundColor: '#E5534B', // Fica vermelho quando marcado!
+    backgroundColor: '#E5534B',
     borderColor: '#E5534B',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   textContainer: {
     flex: 1,

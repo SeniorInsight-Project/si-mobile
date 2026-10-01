@@ -10,11 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
+import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import DayOfWeekSelector, { DIAS_DA_SEMANA_PADRAO } from '../components/DayOfWeekSelector';
 import TolerancePicker from '../components/TolerancePicker';
 import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
+import { Check, Pill, Plus } from 'lucide-react-native';
 import {
   listarRotinas,
   confirmarIngestao,
@@ -226,50 +228,14 @@ export default function MedicinesScreen({
 
   return (
     <ScreenWrapper>
+      {/* HEADER PADRONIZADO GLOBAL */}
+      <AppHeader title="Rotina de Remédios" onNavigate={onNavigate} />
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER SUPERIOR IDÊNTICO AO FIGMA */}
-        <View style={styles.topHeader}>
-          <TouchableOpacity
-            style={styles.topIconButton}
-            onPress={() => onNavigate && onNavigate('Home')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.heartIcon}>♡</Text>
-          </TouchableOpacity>
-
-          <View style={styles.topTitleContainer}>
-            <Text style={styles.topSubtitle}>CUIDADO ATIVO</Text>
-            <Text style={styles.topMainTitle}>Rotina De Remédios</Text>
-          </View>
-
-          <View style={styles.topRightIcons}>
-            <TouchableOpacity
-              style={styles.notificationButton}
-              activeOpacity={0.8}
-              onPress={() => Alert.alert('Notificações', 'Sem novos alertas de atraso.')}
-            >
-              <Text style={styles.bellIcon}>🔔</Text>
-              <View style={styles.redDotNotification} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.profileHeaderButton}
-              onPress={() => onNavigate && onNavigate('ElderlyProfile')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={require('../../assets/logo.png')}
-                style={styles.logoHeaderImg}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* CARD 1: ACOMPANHAMENTO DIÁRIO */}
         <View style={styles.dailyCard}>
           <View style={styles.dailyHeaderRow}>
@@ -281,7 +247,7 @@ export default function MedicinesScreen({
             </View>
 
             <View style={styles.progressBadge}>
-              <Text style={styles.progressCheckIcon}>✓</Text>
+              <Check size={12} color="#16A34A" strokeWidth={3} style={{ marginRight: 4 }} />
               <Text style={styles.progressBadgeText}>
                 {percentualConcluido}% Concluído
               </Text>
@@ -321,7 +287,7 @@ export default function MedicinesScreen({
             />
           ) : rotinas.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>💊</Text>
+              <Pill size={36} color="#94A3B8" style={{ marginBottom: 10 }} />
               <Text style={styles.emptyTitle}>Nenhum medicamento agendado</Text>
               <Text style={styles.emptySubtitle}>
                 Toque no botão abaixo para adicionar a primeira medicação da rotina.
@@ -348,7 +314,7 @@ export default function MedicinesScreen({
           onPress={handleOpenAddModal}
           activeOpacity={0.85}
         >
-          <Text style={styles.addMedPlus}>⊕</Text>
+          <Plus size={18} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 6 }} />
           <Text style={styles.addMedText}>Novo Medicamento</Text>
         </TouchableOpacity>
 
@@ -378,94 +344,10 @@ export default function MedicinesScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
     paddingBottom: 20,
-  },
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  topIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  heartIcon: {
-    fontSize: 20,
-    color: '#031753',
-  },
-  topTitleContainer: {
-    alignItems: 'center',
-  },
-  topSubtitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  topMainTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#031753',
-  },
-  topRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  notificationButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    position: 'relative',
-  },
-  bellIcon: {
-    fontSize: 16,
-  },
-  redDotNotification: {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#DC2626',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  profileHeaderButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  logoHeaderImg: {
-    width: 22,
-    height: 22,
   },
   dailyCard: {
     backgroundColor: '#FFFFFF',

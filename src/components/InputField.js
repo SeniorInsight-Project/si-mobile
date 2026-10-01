@@ -1,28 +1,51 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react-native';
 
-export default function InputField({ label, placeholder, icon, isPassword }) {
-  // Estado para controlar se a senha está oculta ou visível
+export default function InputField({ label, placeholder, icon, isPassword, ...rest }) {
   const [isPasswordHidden, setIsPasswordHidden] = useState(isPassword);
+
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) {
+      return <View style={styles.iconContainer}>{icon}</View>;
+    }
+    if (typeof icon === 'string') {
+      if (icon === 'mail' || icon.includes('mail')) return <Mail size={18} color="#94A3B8" style={styles.icon} />;
+      if (icon === 'lock' || icon.includes('lock')) return <Lock size={18} color="#94A3B8" style={styles.icon} />;
+      if (icon === 'user' || icon.includes('user')) return <User size={18} color="#94A3B8" style={styles.icon} />;
+      return null;
+    }
+    const IconComp = icon;
+    return <IconComp size={18} color="#94A3B8" style={styles.icon} />;
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      
+
       <View style={styles.inputArea}>
-        <Text style={styles.icon}>{icon}</Text>
-        
-        <TextInput 
-          style={styles.input} 
+        {renderIcon()}
+
+        <TextInput
+          style={styles.input}
           placeholder={placeholder}
           placeholderTextColor="#94A3B8"
-          secureTextEntry={isPasswordHidden} // Usa o estado atual para esconder ou mostrar
+          secureTextEntry={isPasswordHidden}
+          {...rest}
         />
 
-        {/* Se for um campo de senha, mostramos o botão do olhinho! */}
         {isPassword && (
-          <TouchableOpacity onPress={() => setIsPasswordHidden(!isPasswordHidden)}>
-            <Text style={styles.eyeIcon}>{isPasswordHidden ? '👁️' : '👁️‍🗨️'}</Text>
+          <TouchableOpacity
+            onPress={() => setIsPasswordHidden(!isPasswordHidden)}
+            style={styles.eyeButton}
+            activeOpacity={0.7}
+          >
+            {isPasswordHidden ? (
+              <EyeOff size={18} color="#94A3B8" />
+            ) : (
+              <Eye size={18} color="#031753" />
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -51,7 +74,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 50,
   },
+  iconContainer: {
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   icon: {
+    marginRight: 10,
+  },
+  iconText: {
     marginRight: 10,
     fontSize: 16,
   },
@@ -60,8 +91,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#334155',
   },
-  eyeIcon: {
-    fontSize: 16,
-    marginLeft: 10,
-  }
+  eyeButton: {
+    padding: 6,
+    marginLeft: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

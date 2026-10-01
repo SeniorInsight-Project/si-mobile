@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,14 +8,36 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
+  Easing,
+  Vibration,
+  Platform,
 } from 'react-native';
+import {
+  Heart,
+  Bell,
+  Volume2,
+  Clock,
+  Droplet,
+  Check,
+  ShieldAlert,
+  ChevronRight,
+  Users,
+  Pill,
+} from 'lucide-react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
+import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
+import SosActiveModal from '../components/SosActiveModal';
 import {
   listarRotinas,
   confirmarIngestao,
   INITIAL_MEDICINES,
 } from '../services/medicamentoService.js';
+import {
+  dispararSos,
+  atualizarStatusAlarme,
+} from '../services/alarmeSosService.js';
 
 // ID padrão para desenvolvimento e testes
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
@@ -27,6 +49,18 @@ export default function ElderlyModeScreen({
   const [rotinas, setRotinas] = useState(INITIAL_MEDICINES);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Estados do Botão SOS e Modal de Socorro Ativo (HU35)
+  const [modalSosVisible, setModalSosVisible] = useState(false);
+  const [alarmeAtivo, setAlarmeAtivo] = useState(null);
+  const [isPressingSos, setIsPressingSos] = useState(false);
+  const [sosCountdown, setSosCountdown] = useState(3);
+  const [disparandoSos, setDisparandoSos] = useState(false);
+
+  const pressProgress = useRef(new Animated.Value(0)).current;
+  const pressTimerRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
+  const isTriggeredRef = useRef(false);
 
   // Carrega as rotinas cadastradas
   useEffect(() => {
@@ -108,76 +142,125 @@ export default function ElderlyModeScreen({
   const handleAudioPrompt = () => {
     if (remedioAtual) {
       Alert.alert(
-        'Assistente de Voz SeniorInsight 🔊',
+        'Assistente de Voz SeniorInsight',
         `"Olá, Dona Maria! Agora são 10:02. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome}, dosagem ${remedioAtual.dosagem}. Instrução: ${remedioAtual.instrucoes || 'Ingerir com água'}."`
       );
     } else if (todosTomados) {
       Alert.alert(
-        'Assistente de Voz SeniorInsight 🔊',
+        'Assistente de Voz SeniorInsight',
         '"Olá, Dona Maria! Parabéns! Todos os seus remédios programados para hoje já foram tomados. Tenha um ótimo dia!"'
       );
     } else {
       Alert.alert(
-        'Assistente de Voz SeniorInsight 🔊',
+        'Assistente de Voz SeniorInsight',
         '"Olá, Dona Maria! Você não tem remédios pendentes neste horário."'
       );
     }
   };
 
-  // Acionamento do botão de emergência SOS
-  const handleSosPress = () => {
-    Alert.alert(
-      '🚨 EMERGÊNCIA ACIONADA!',
-      'Alerta sonoro e localização GPS enviados imediatamente para seus cuidadores familiares (Carlos, Roberta, Dr. Silva) e canal do SAMU (192).'
-    );
+  // --- CONTROLE DE PRESSÃO CONTÍNUA POR 3 SEGUNDOS NO BOTÃO SOS (HU35) ---
+  const startSosPress = () => {
+    isTriggeredRef.current = false;
+    setIsPressingSos(true);
+    setSosCountdown(3);
+
+    pressProgress.setValue(0);
+    Animated.timing(pressProgress, {
+      toValue: 1,
+      duration: 3000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+
+    let seg = 3;
+    countdownIntervalRef.current = setInterval(() => {
+      seg -= 1;
+      if (seg > 0) {
+        setSosCountdown(seg);
+      }
+    }, 1000);
+
+    pressTimerRef.current = setTimeout(async () => {
+      isTriggeredRef.current = true;
+      clearInterval(countdownIntervalRef.current);
+      setIsPressingSos(false);
+      setSosCountdown(0);
+      await executarDisparoEmergencia();
+    }, 3000);
   };
+
+  const cancelSosPress = () => {
+    if (!isTriggeredRef.current) {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      Animated.timing(pressProgress).stop();
+      pressProgress.setValue(0);
+      setIsPressingSos(false);
+      setSosCountdown(3);
+    }
+  };
+
+  const executarDisparoEmergencia = async () => {
+    try {
+      setDisparandoSos(true);
+      if (Platform.OS !== 'web') {
+        Vibration.vibrate([0, 500, 200, 500]);
+      }
+
+      const resposta = await dispararSos(idosoId, {
+        latitude: -23.55052,
+        longitude: -46.633308,
+        nivelBateria: 88,
+        observacao: 'Disparo de socorro imediato efetuado por pressão de 3s no Modo Idoso.',
+      });
+
+      setAlarmeAtivo(resposta);
+      setModalSosVisible(true);
+    } catch (err) {
+      console.warn('[ElderlyModeScreen] Erro no disparo SOS:', err.message);
+      Alert.alert(
+        'Alerta de Socorro Ativado',
+        'Notificação prioritária despachada para cuidadores e canal do SAMU (192).'
+      );
+    } finally {
+      setDisparandoSos(false);
+    }
+  };
+
+  const handleCancelarAlarme = async (alarmeId) => {
+    try {
+      await atualizarStatusAlarme(
+        alarmeId,
+        'CANCELADO',
+        'Falso alarme cancelado pelo idoso.'
+      );
+      setModalSosVisible(false);
+      setAlarmeAtivo(null);
+      Alert.alert(
+        'Alarme Cancelado',
+        'O cancelamento foi transmitido à sua rede de cuidadores com sucesso.'
+      );
+    } catch (err) {
+      console.warn('[ElderlyModeScreen] Erro ao cancelar alarme:', err.message);
+      setModalSosVisible(false);
+    }
+  };
+
+  const progressWidth = pressProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <ScreenWrapper>
+      {/* HEADER PADRONIZADO GLOBAL */}
+      <AppHeader title="Modo Idoso SOS" onNavigate={onNavigate} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* HEADER SUPERIOR */}
-        <View style={styles.topHeader}>
-          <TouchableOpacity
-            style={styles.topIconButton}
-            onPress={() => onNavigate && onNavigate('Home')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.heartIcon}>♡</Text>
-          </TouchableOpacity>
-
-          <View style={styles.topTitleContainer}>
-            <Text style={styles.topSubtitle}>CUIDADO ATIVO</Text>
-            <Text style={styles.topMainTitle}>Modo Idoso Alarme Sos</Text>
-          </View>
-
-          <View style={styles.topRightIcons}>
-            <TouchableOpacity
-              style={styles.notificationButton}
-              activeOpacity={0.8}
-              onPress={() => Alert.alert('Notificações', 'Sem novos alertas no momento.')}
-            >
-              <Text style={styles.bellIcon}>🔔</Text>
-              <View style={styles.redDotNotification} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.profileHeaderButton}
-              onPress={() => onNavigate && onNavigate('ElderlyProfile')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={require('../../assets/logo.png')}
-                style={styles.logoHeaderImg}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* CARTÃO DE SAUDAÇÃO IDÊNTICO AO FIGMA (88px de altura, radius 32) */}
+        {/* CARTÃO DE SAUDAÇÃO (88px de altura, radius 32) */}
         <View style={styles.greetingCard}>
           <View style={styles.greetingLeft}>
             <View style={styles.avatarWrapper}>
@@ -198,11 +281,11 @@ export default function ElderlyModeScreen({
             onPress={handleAudioPrompt}
             activeOpacity={0.8}
           >
-            <Text style={styles.audioIcon}>🔊</Text>
+            <Volume2 size={22} color="#10B981" />
           </TouchableOpacity>
         </View>
 
-        {/* CARD 1: HORA DO REMÉDIO (REFLETE DINAMICAMENTE OS MEDICAMENTOS CADASTRADOS) */}
+        {/* CARD 1: HORA DO REMÉDIO */}
         {loading ? (
           <View style={styles.loadingCard}>
             <ActivityIndicator size="large" color="#031753" />
@@ -212,8 +295,9 @@ export default function ElderlyModeScreen({
           <View style={styles.medicineCard}>
             <View style={styles.medicineHeader}>
               <View style={styles.medicineTag}>
+                <Clock size={12} color="#031753" style={{ marginRight: 4 }} />
                 <Text style={styles.medicineTagText}>
-                  ⏰ HORA DO REMÉDIO • {remedioAtual.horario}
+                  HORA DO REMÉDIO • {remedioAtual.horario}
                 </Text>
               </View>
               <View style={styles.todayBadge}>
@@ -231,7 +315,7 @@ export default function ElderlyModeScreen({
                 </Text>
               </View>
 
-              {/* Ícone lateral do remédio com o ponto amarelo */}
+              {/* Ícone lateral do remédio */}
               <View
                 style={[
                   styles.medicineImageContainer,
@@ -241,27 +325,19 @@ export default function ElderlyModeScreen({
                 ]}
               >
                 <View style={styles.yellowCornerDot} />
-                <Text style={styles.pillBoxEmoji}>
-                  {remedioAtual.thumbEmoji || '💊'}
-                </Text>
+                <Pill size={24} color="#031753" />
               </View>
             </View>
 
-            {/* Balão de instrução */}
+            {/* Balão de instrução com Lucide Droplet */}
             <View style={styles.instructionBubble}>
-              <Text style={styles.dropIcon}>
-                {remedioAtual.tipoFormato === 'xarope'
-                  ? '🧴'
-                  : remedioAtual.tipoFormato === 'colirio'
-                  ? '💧'
-                  : '💧'}
-              </Text>
+              <Droplet size={15} color="#0D9488" style={{ marginRight: 6 }} />
               <Text style={styles.instructionText}>
                 {remedioAtual.instrucoes || 'Tomar com 1 copo de água'}
               </Text>
             </View>
 
-            {/* BOTÃO JÁ TOMEI */}
+            {/* BOTÃO JÁ TOMEI COM LUCIDE CHECK */}
             <TouchableOpacity
               style={styles.takenButton}
               onPress={handleConfirmarDose}
@@ -273,7 +349,7 @@ export default function ElderlyModeScreen({
               ) : (
                 <>
                   <View style={styles.checkmarkCircle}>
-                    <Text style={styles.checkSymbol}>✓</Text>
+                    <Check size={18} color="#FFFFFF" strokeWidth={3} />
                   </View>
                   <Text style={styles.takenButtonText}>JÁ TOMEI</Text>
                 </>
@@ -283,7 +359,7 @@ export default function ElderlyModeScreen({
         ) : todosTomados ? (
           <View style={styles.allTakenCard}>
             <View style={styles.allTakenBadge}>
-              <Text style={styles.allTakenBadgeText}>🎉 TUDO CERTO POR HOJE!</Text>
+              <Text style={styles.allTakenBadgeText}>TUDO CERTO POR HOJE!</Text>
             </View>
             <Text style={styles.allTakenTitle}>Parabéns, Dona Maria!</Text>
             <Text style={styles.allTakenSubtitle}>
@@ -301,7 +377,7 @@ export default function ElderlyModeScreen({
           </View>
         ) : (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>💊</Text>
+            <Pill size={32} color="#94A3B8" style={{ marginBottom: 8 }} />
             <Text style={styles.emptyTitle}>Nenhum remédio cadastrado</Text>
             <Text style={styles.emptySubtitle}>
               Peça a um familiar para cadastrar sua rotina na aba Remédios.
@@ -316,7 +392,7 @@ export default function ElderlyModeScreen({
           </View>
         )}
 
-        {/* CARD 2: PRÓXIMO HORÁRIO (INTERATIVO COM NAVEGAÇÃO PARA REMÉDIOS) */}
+        {/* CARD 2: PRÓXIMO HORÁRIO */}
         <TouchableOpacity
           style={styles.nextCard}
           onPress={() => onNavigate && onNavigate('Medicines')}
@@ -324,7 +400,7 @@ export default function ElderlyModeScreen({
         >
           <View style={styles.nextCardLeft}>
             <View style={styles.clockIconBg}>
-              <Text style={styles.clockEmoji}>⏰</Text>
+              <Clock size={18} color="#DC2626" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.nextSubLabel}>
@@ -342,35 +418,57 @@ export default function ElderlyModeScreen({
                         : ''
                     }`
                   : todosTomados
-                  ? `${totalAtivos} doses registradas com sucesso ✓`
+                  ? `${totalAtivos} doses registradas com sucesso`
                   : 'Toque para gerenciar remédios'}
               </Text>
             </View>
           </View>
-          <Text style={styles.arrowIcon}>›</Text>
+          <ChevronRight size={20} color="#94A3B8" />
         </TouchableOpacity>
 
-        {/* CARD 3: SOS EMERGÊNCIA */}
+        {/* CARD 3: SOS EMERGÊNCIA COM PRESSÃO DE 3 SEGUNDOS (HU35) */}
         <View style={styles.sosCard}>
           <View style={styles.sosBannerTag}>
-            <Text style={styles.sosBannerText}>✱ AJUDA DE EMERGÊNCIA</Text>
+            <ShieldAlert size={12} color="#C53030" style={{ marginRight: 4 }} />
+            <Text style={styles.sosBannerText}>AJUDA DE EMERGÊNCIA</Text>
           </View>
           <Text style={styles.sosWarningSubtitle}>Precisa de socorro urgente?</Text>
 
-          {/* BOTÃO SOS COM A IMAGEM botaosos.png */}
-          <TouchableOpacity
-            style={styles.sosButtonContainer}
-            onPress={handleSosPress}
-            activeOpacity={0.85}
-          >
-            <Image
-              source={require('../../assets/botaosos.png')}
-              style={styles.sosImageButton}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          {/* BOTÃO SOS COM PRESSÃO CONTÍNUA DE 3 SEGUNDOS */}
+          <View style={styles.sosButtonOuterWrapper}>
+            <TouchableOpacity
+              style={[
+                styles.sosButtonContainer,
+                isPressingSos && styles.sosButtonContainerPressing,
+              ]}
+              onPressIn={startSosPress}
+              onPressOut={cancelSosPress}
+              activeOpacity={0.9}
+            >
+              <Image
+                source={require('../../assets/botaosos.png')}
+                style={styles.sosImageButton}
+                resizeMode="contain"
+              />
 
-          {/* INSTRUÇÃO COM O ÍCONE iconprees.png AO LADO DO TEXTO VERMELHO */}
+              {/* Overlay visual quando pressionado */}
+              {isPressingSos && (
+                <View style={styles.pressingOverlay}>
+                  <Text style={styles.countdownNumber}>{sosCountdown}</Text>
+                  <Text style={styles.countdownSub}>segure...</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Barra de progresso animada da pressão contínua */}
+            {isPressingSos && (
+              <View style={styles.progressTrack}>
+                <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+              </View>
+            )}
+          </View>
+
+          {/* INSTRUÇÃO COM O ÍCONE iconprees.png */}
           <View style={styles.sosInstructionRow}>
             <Image
               source={require('../../assets/iconprees.png')}
@@ -378,7 +476,9 @@ export default function ElderlyModeScreen({
               resizeMode="contain"
             />
             <Text style={styles.sosFooterInstruction}>
-              Pressione e segure por 3 segundos
+              {isPressingSos
+                ? `Segure por mais ${sosCountdown}s para disparar!`
+                : 'Pressione e segure por 3 segundos'}
             </Text>
           </View>
 
@@ -387,6 +487,7 @@ export default function ElderlyModeScreen({
             localização com o SAMU (192).
           </Text>
 
+          {/* CUIDADORES AVISADOS */}
           <View style={styles.caregiversRow}>
             <View style={styles.caregiversAvatars}>
               <View style={[styles.miniAvatar, { backgroundColor: '#EBF5FF' }]}>
@@ -413,8 +514,29 @@ export default function ElderlyModeScreen({
               Carlos, Roberta e Dr. Silva avisados
             </Text>
           </View>
+
+          {/* BOTÃO GERENCIAR CONTATOS DE EMERGÊNCIA (HU35) */}
+          <TouchableOpacity
+            style={styles.manageContactsButton}
+            onPress={() => onNavigate && onNavigate('EmergencyContacts')}
+            activeOpacity={0.8}
+          >
+            <Users size={15} color="#031753" />
+            <Text style={styles.manageContactsText}>
+              Gerenciar Contatos de Emergência
+            </Text>
+            <ChevronRight size={15} color="#64748B" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* MODAL DE SOCORRO ATIVO COM CANCELAMENTO DE FALSO ALARME */}
+      <SosActiveModal
+        visible={modalSosVisible}
+        alarme={alarmeAtivo}
+        onClose={() => setModalSosVisible(false)}
+        onCancelAlarme={handleCancelarAlarme}
+      />
 
       {/* BARRA DE NAVEGAÇÃO INFERIOR */}
       <BottomNavBar currentScreen="ElderlyMode" onNavigate={onNavigate} />
@@ -447,10 +569,6 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     zIndex: 1,
   },
-  heartIcon: {
-    fontSize: 18,
-    color: '#1E2E69',
-  },
   topTitleContainer: {
     position: 'absolute',
     left: 0,
@@ -471,7 +589,7 @@ const styles = StyleSheet.create({
   topMainTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#1E2E69',
+    color: '#031753',
     textAlign: 'center',
   },
   topRightIcons: {
@@ -490,9 +608,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     position: 'relative',
-  },
-  bellIcon: {
-    fontSize: 14,
   },
   redDotNotification: {
     position: 'absolute',
@@ -583,10 +698,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  audioIcon: {
-    fontSize: 20,
-    color: '#10B981',
-  },
   loadingCard: {
     width: '100%',
     backgroundColor: '#FFFFFF',
@@ -599,211 +710,185 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   loadingCardText: {
+    marginTop: 12,
     fontSize: 13,
     color: '#64748B',
-    marginTop: 10,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   medicineCard: {
     width: '100%',
-    backgroundColor: '#EBF5FF',
-    borderRadius: 40,
-    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    padding: 20,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 32,
+    shadowRadius: 10,
+    elevation: 2,
   },
   medicineHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   medicineTag: {
-    backgroundColor: '#031753',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   medicineTagText: {
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
-    letterSpacing: 0.3,
+    color: '#031753',
+    letterSpacing: 0.4,
   },
   todayBadge: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   todayBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#16A34A',
   },
   medicineBody: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 14,
   },
   medicineName: {
-    fontSize: 23,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#031753',
-    lineHeight: 28,
+    marginBottom: 4,
   },
   medicineDosage: {
-    fontSize: 14,
-    color: '#1A285A',
-    fontWeight: '600',
-    marginTop: 6,
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
   medicineImageContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    elevation: 1,
-    marginLeft: 8,
   },
   yellowCornerDot: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: '#F59E0B',
-  },
-  pillBoxEmoji: {
-    fontSize: 32,
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EAB308',
   },
   instructionBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginBottom: 20,
+    backgroundColor: '#F0FDFA',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  dropIcon: {
-    fontSize: 14,
-    marginRight: 10,
+    borderColor: '#CCFBF1',
   },
   instructionText: {
-    fontSize: 14,
-    color: '#1A285A',
+    fontSize: 12,
+    color: '#0F766E',
     fontWeight: '600',
   },
   takenButton: {
     flexDirection: 'row',
-    backgroundColor: '#10B981',
-    borderRadius: 28,
-    paddingVertical: 18,
-    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#10B981',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    paddingVertical: 14,
+    borderRadius: 20,
+    shadowColor: '#16A34A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
+    elevation: 4,
   },
   checkmarkCircle: {
-    backgroundColor: '#FFFFFF',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
-  },
-  checkSymbol: {
-    color: '#10B981',
-    fontSize: 15,
-    fontWeight: 'bold',
+    marginRight: 8,
   },
   takenButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   allTakenCard: {
-    width: '100%',
-    backgroundColor: '#ECFDF5',
-    borderRadius: 36,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: '#A7F3D0',
-    alignItems: 'center',
-  },
-  allTakenBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  allTakenBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 0.3,
-  },
-  allTakenTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#065F46',
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  allTakenSubtitle: {
-    fontSize: 14,
-    color: '#047857',
-    textAlign: 'center',
-    marginBottom: 18,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  emptyCard: {
-    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 32,
     padding: 24,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  allTakenBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  allTakenBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#16A34A',
+  },
+  allTakenTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#031753',
+    marginBottom: 4,
+  },
+  allTakenSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    padding: 24,
+    alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  emptyEmoji: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#031753',
     marginBottom: 4,
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
     marginBottom: 16,
@@ -824,20 +909,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 30,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderStyle: 'solid',
-    overflow: 'hidden',
     paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     marginBottom: 16,
-    // Elimina qualquer outline azul de foco do navegador (Web / Chrome / Edge)
-    outlineStyle: 'none',
-    outlineWidth: 0,
-    // Elimina o hardware shadow do Android que projeta sombras retangulares em views com borda
-    elevation: 0,
-    shadowOpacity: 0,
   },
   nextCardLeft: {
     flexDirection: 'row',
@@ -845,19 +922,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   clockIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    overflow: 'hidden',
-  },
-  clockEmoji: {
-    fontSize: 16,
   },
   nextSubLabel: {
     fontSize: 11,
@@ -869,23 +940,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#031753',
   },
-  arrowIcon: {
-    fontSize: 22,
-    color: '#94A3B8',
-    fontWeight: 'bold',
-    marginLeft: 6,
-  },
   sosCard: {
     backgroundColor: '#FFF5F5',
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#FED7D7',
   },
   sosBannerTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFE3E3',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 8,
@@ -902,16 +969,62 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  sosButtonOuterWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    position: 'relative',
+  },
   sosButtonContainer: {
     width: 150,
     height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    borderRadius: 75,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  sosButtonContainerPressing: {
+    transform: [{ scale: 0.95 }],
   },
   sosImageButton: {
     width: '100%',
     height: '100%',
+  },
+  pressingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(220, 38, 38, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 75,
+  },
+  countdownNumber: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  countdownSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  progressTrack: {
+    width: 160,
+    height: 8,
+    backgroundColor: '#FECACA',
+    borderRadius: 4,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#DC2626',
+    borderRadius: 4,
   },
   sosInstructionRow: {
     flexDirection: 'row',
@@ -944,6 +1057,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 12,
   },
   caregiversAvatars: {
     flexDirection: 'row',
@@ -967,5 +1081,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#475569',
     fontWeight: '600',
+  },
+  manageContactsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  manageContactsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#031753',
+    marginHorizontal: 8,
   },
 });

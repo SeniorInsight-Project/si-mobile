@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,18 +11,31 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import {
+  Heart,
+  Droplet,
+  UserCheck,
+  Brain,
+  Zap,
+  Activity,
+  AlertTriangle,
+  Eye,
+  Stethoscope,
+  X,
+  Check,
+} from 'lucide-react-native';
 
 const SUGGESTIONS = [
-  { name: 'Hipertensão Arterial', icon: '❤️' },
-  { name: 'Diabetes Tipo 2', icon: '💧' },
-  { name: 'Osteoporose Leve', icon: '🧍' },
-  { name: 'Doença de Alzheimer', icon: '🧠' },
-  { name: 'Doença de Parkinson', icon: '⚡' },
-  { name: 'Insuficiência Cardíaca', icon: '🫀' },
-  { name: 'Dislipidemia (Colesterol)', icon: '🧪' },
-  { name: 'Asma Crônica', icon: '🫁' },
-  { name: 'Alergia a Dipirona', icon: '⚠️' },
-  { name: 'Glaucoma', icon: '👁️' },
+  { name: 'Hipertensão Arterial', icon: Heart, color: '#DC2626' },
+  { name: 'Diabetes Tipo 2', icon: Droplet, color: '#0284C7' },
+  { name: 'Osteoporose Leve', icon: UserCheck, color: '#16A34A' },
+  { name: 'Doença de Alzheimer', icon: Brain, color: '#7C3AED' },
+  { name: 'Doença de Parkinson', icon: Zap, color: '#D97706' },
+  { name: 'Insuficiência Cardíaca', icon: Activity, color: '#DC2626' },
+  { name: 'Dislipidemia (Colesterol)', icon: Activity, color: '#4F46E5' },
+  { name: 'Asma Crônica', icon: Activity, color: '#0891B2' },
+  { name: 'Alergia a Dipirona', icon: AlertTriangle, color: '#9333EA' },
+  { name: 'Glaucoma', icon: Eye, color: '#2563EB' },
 ];
 
 export default function AddComorbidityModal({
@@ -93,14 +106,14 @@ export default function AddComorbidityModal({
               </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <X size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
           {/* Input manual */}
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🩺</Text>
+              <Stethoscope size={18} color="#94A3B8" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.input}
                 placeholder="Ex: Arritmia, Artrose..."
@@ -110,40 +123,42 @@ export default function AddComorbidityModal({
                   setInputText(text);
                   if (errorMessage) setErrorMessage('');
                 }}
-                autoCapitalize="words"
+                onSubmitEditing={() => handleAdd()}
                 returnKeyType="done"
-                onSubmitEditing={() => handleAdd(inputText)}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.addBtn, loading && styles.addBtnDisabled]}
-              onPress={() => handleAdd(inputText)}
+              style={[styles.addButton, loading && { opacity: 0.6 }]}
+              onPress={() => handleAdd()}
               disabled={loading}
               activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.addBtnText}>+ Adicionar</Text>
+                <Text style={styles.addButtonText}>Adicionar</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {errorMessage ? (
+          {errorMessage !== '' && (
             <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : null}
+          )}
 
-          {/* Sugestões Rápidas */}
-          <Text style={styles.suggestionsTitle}>SUGESTÕES FREQUENTES</Text>
+          {/* Sugestões rápidas */}
+          <Text style={styles.sectionLabel}>Sugestões Clínicas Frequentes</Text>
+
           <ScrollView
+            style={styles.suggestionsScroll}
+            contentContainerStyle={styles.suggestionsContent}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.suggestionsGrid}
           >
             {SUGGESTIONS.map((item) => {
               const isAlreadyAdded = existingComorbidities.some(
                 (c) => c.trim().toLowerCase() === item.name.toLowerCase()
               );
+              const IconComp = item.icon;
 
               return (
                 <TouchableOpacity
@@ -156,7 +171,9 @@ export default function AddComorbidityModal({
                   disabled={isAlreadyAdded || loading}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.suggestionIcon}>{item.icon}</Text>
+                  <View style={styles.suggestionIconWrapper}>
+                    <IconComp size={15} color={item.color} />
+                  </View>
                   <Text
                     style={[
                       styles.suggestionText,
@@ -166,7 +183,7 @@ export default function AddComorbidityModal({
                     {item.name}
                   </Text>
                   {isAlreadyAdded && (
-                    <Text style={styles.checkMark}>✓</Text>
+                    <Check size={14} color="#16A34A" strokeWidth={3} />
                   )}
                 </TouchableOpacity>
               );
@@ -198,141 +215,126 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
+    shadowRadius: 16,
+    elevation: 10,
   },
   dragIndicator: {
-    width: 44,
+    width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 18,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#031753',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
     color: '#64748B',
-    lineHeight: 16,
+    lineHeight: 17,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  closeBtnText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#64748B',
+    padding: 6,
+    marginLeft: 12,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
     paddingHorizontal: 12,
     height: 48,
-  },
-  inputIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: '#031753',
+    fontWeight: '500',
   },
-  addBtn: {
-    backgroundColor: '#E53E3E',
+  addButton: {
+    backgroundColor: '#031753',
+    borderRadius: 16,
+    paddingHorizontal: 18,
     height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addBtnDisabled: {
-    opacity: 0.6,
-  },
-  addBtnText: {
+  addButtonText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   errorText: {
-    fontSize: 12,
     color: '#DC2626',
-    marginBottom: 10,
-    marginTop: 2,
+    fontSize: 12,
+    marginBottom: 12,
+    fontWeight: '600',
   },
-  suggestionsTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#94A3B8',
-    letterSpacing: 0.6,
-    marginTop: 14,
-    marginBottom: 10,
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    marginTop: 8,
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
-  suggestionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingBottom: 16,
+  suggestionsScroll: {
+    maxHeight: 260,
+  },
+  suggestionsContent: {
+    paddingBottom: 20,
   },
   suggestionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   suggestionPillDisabled: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
     borderColor: '#E2E8F0',
-    opacity: 0.5,
+    opacity: 0.6,
   },
-  suggestionIcon: {
-    fontSize: 13,
-    marginRight: 6,
+  suggestionIconWrapper: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   suggestionText: {
-    fontSize: 12,
-    color: '#334155',
+    flex: 1,
+    fontSize: 13,
     fontWeight: '600',
+    color: '#1E293B',
   },
   suggestionTextDisabled: {
     color: '#94A3B8',
-  },
-  checkMark: {
-    fontSize: 11,
-    color: '#16A34A',
-    fontWeight: 'bold',
-    marginLeft: 5,
   },
 });

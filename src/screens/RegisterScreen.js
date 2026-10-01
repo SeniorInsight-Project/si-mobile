@@ -6,6 +6,7 @@ import Checkbox from '../components/Checkbox';
 import RoleSelector from '../components/RoleSelector';
 import PrimaryButton from '../components/PrimaryButton';
 import SocialButton from '../components/SocialButton';
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function RegisterScreen({ onNavigate }) {
   const [aceitouTermos, setAceitouTermos] = useState(false);
@@ -25,7 +26,7 @@ export default function RegisterScreen({ onNavigate }) {
           {/* HEADER: Botão de Voltar e Logo */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => onNavigate('Onboarding')} style={styles.iconButton}>
-              <Text style={styles.iconButtonText}>←</Text>
+              <ArrowLeft size={18} color="#031753" />
             </TouchableOpacity>
             
             <Image 
@@ -64,10 +65,10 @@ export default function RegisterScreen({ onNavigate }) {
             </View>
 
             {/* CAMPOS MANUAIS */}
-            <InputField label="Nome Completo" placeholder="Ex: Carlos Silva" icon="👤" />
-            <InputField label="E-mail" placeholder="seu@email.com" icon="✉️" />
-            <InputField label="Senha" placeholder="Mínimo 8 caracteres" icon="🔒" isPassword={true} />
-            <InputField label="Confirmar Senha" placeholder="Repita sua senha" icon="🔒" isPassword={true} />
+            <InputField label="Nome Completo" placeholder="Ex: Carlos Silva" icon="user" />
+            <InputField label="E-mail" placeholder="seu@email.com" icon="mail" />
+            <InputField label="Senha" placeholder="Mínimo 8 caracteres" icon="lock" isPassword={true} />
+            <InputField label="Confirmar Senha" placeholder="Repita sua senha" icon="lock" isPassword={true} />
 
             {/* CHECKBOX DE TERMOS */}
             <Checkbox 

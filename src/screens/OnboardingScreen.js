@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import PrimaryButton from '../components/PrimaryButton';
 import ScreenWrapper from '../components/ScreenWrapper';
+import { Pill, Siren, Users } from 'lucide-react-native';
 
 export default function OnboardingScreen({ onNavigate }) {
   return (
@@ -52,13 +53,16 @@ export default function OnboardingScreen({ onNavigate }) {
 
         <View style={styles.pillsRow}>
           <View style={styles.featurePill}>
-            <Text style={styles.featurePillText}>💊 Remédios no horário</Text>
+            <Pill size={13} color="#031753" style={{ marginRight: 5 }} />
+            <Text style={styles.featurePillText}>Remédios no horário</Text>
           </View>
           <View style={styles.featurePill}>
-            <Text style={styles.featurePillText}>🆘 SOS em 1 toque</Text>
+            <Siren size={13} color="#DC2626" style={{ marginRight: 5 }} />
+            <Text style={styles.featurePillText}>SOS em 1 toque</Text>
           </View>
           <View style={styles.featurePill}>
-            <Text style={styles.featurePillText}>👨‍👩‍👧 Família conectada</Text>
+            <Users size={13} color="#031753" style={{ marginRight: 5 }} />
+            <Text style={styles.featurePillText}>Família conectada</Text>
           </View>
         </View>
       </View>
@@ -177,6 +181,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingVertical: 6,
     paddingHorizontal: 12,
