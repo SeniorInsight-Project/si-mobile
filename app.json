@@ -20,11 +20,13 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "scheme": "seniorapp",
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-web-browser"
     ],
     "extra": {
-      "apiBaseUrl": "http://localhost:8080",
+      "apiBaseUrl": "https://seniorinsight-backend-br-73d00847a82b.herokuapp.com",
       "postgres": {
         "host": "localhost",
         "port": 5432,
