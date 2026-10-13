@@ -4,6 +4,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import TwoFactorAuthScreen from './src/screens/TwoFactorAuthScreen';
 import ElderlyModeScreen from './src/screens/ElderlyModeScreen';
 import ElderlyProfileScreen from './src/screens/ElderlyProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -24,6 +25,8 @@ export default function App() {
         return <LoginScreen onNavigate={setTelaAtual} />;
       case 'ForgotPassword':
         return <ForgotPasswordScreen onNavigate={setTelaAtual} />;
+      case 'TwoFactorAuth':
+        return <TwoFactorAuthScreen onNavigate={setTelaAtual} />;
       case 'ElderlyMode':
         return <ElderlyModeScreen onNavigate={setTelaAtual} />;
       case 'ElderlyProfile':
@@ -33,7 +36,7 @@ export default function App() {
       case 'Medicines':
         return <MedicinesScreen onNavigate={setTelaAtual} />;
       case 'Family':
-        return <ElderlyProfileScreen onNavigate={setTelaAtual} />;
+        return <FamilyScreen onNavigate={setTelaAtual} />;
       case 'EmergencyContacts':
         return <EmergencyContactsScreen onNavigate={setTelaAtual} />;
       default:

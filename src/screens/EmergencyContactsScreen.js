@@ -10,21 +10,11 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import {
-  Phone,
-  PhoneCall,
-  User,
-  Plus,
-  Trash2,
-  ShieldAlert,
-  Users,
-  CheckCircle2,
-  Clock,
-  MessageCircle,
-  ChevronRight,
-} from 'lucide-react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
+import BottomNavBar from '../components/BottomNavBar';
+import Icon from '../components/Icon';
+import { colors, typography, rounded, shadows } from '../theme';
 import {
   listarContatos,
   salvarContato,
@@ -145,12 +135,10 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
 
   return (
     <ScreenWrapper>
-      {/* HEADER PADRONIZADO COM BOTÃO VOLTAR */}
+      {/* HEADER PADRONIZADO */}
       <AppHeader
-        isBack
         title="Contatos de Emergência"
         subtitle="ESCALONAMENTO SOS"
-        onBack={handleVoltar}
         onNavigate={onNavigate}
       />
 
@@ -160,7 +148,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
       >
         {/* Banner Informativo de Escalonamento */}
         <View style={styles.infoBanner}>
-          <ShieldAlert size={22} color="#DC2626" style={styles.infoIcon} />
+          <Icon name="shield_alert" size={22} color={colors.coral} style={styles.infoIcon} />
           <View style={{ flex: 1 }}>
             <Text style={styles.infoTitle}>Protocolo de Escalonamento Automático</Text>
             <Text style={styles.infoDescription}>
@@ -177,8 +165,8 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
             {contatos.map((c, index) => (
               <React.Fragment key={c.id}>
                 <View style={styles.escalonamentoStep}>
-                  <View style={[styles.stepCircle, { backgroundColor: c.corAvatar || '#EBF5FF' }]}>
-                    <Text style={[styles.stepText, { color: c.corTexto || '#1E40AF' }]}>
+                  <View style={[styles.stepCircle, { backgroundColor: c.corAvatar || colors.skyBg }]}>
+                    <Text style={[styles.stepText, { color: c.corTexto || colors.skyText }]}>
                       {index + 1}º
                     </Text>
                   </View>
@@ -186,13 +174,13 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
                     {c.nome.split(' ')[0]}
                   </Text>
                 </View>
-                <ChevronRight size={14} color="#94A3B8" style={{ marginBottom: 16 }} />
+                <Icon name="chevron_right" size={14} color={colors.textMuted} style={{ marginBottom: 16 }} />
               </React.Fragment>
             ))}
 
             <View style={styles.escalonamentoStep}>
-              <View style={[styles.stepCircle, { backgroundColor: '#FEE2E2' }]}>
-                <Text style={[styles.stepText, { color: '#DC2626', fontWeight: '800' }]}>
+              <View style={[styles.stepCircle, { backgroundColor: colors.peachBg }]}>
+                <Text style={[styles.stepText, { color: colors.coral, fontWeight: '800' }]}>
                   192
                 </Text>
               </View>
@@ -208,13 +196,13 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
               Contatos Prioritários ({contatos.length})
             </Text>
             <View style={styles.badgeAtivos}>
-              <CheckCircle2 size={12} color="#16A34A" />
+              <Icon name="check_circle" size={12} color={colors.success} />
               <Text style={styles.badgeAtivosText}>Monitoramento Ativo</Text>
             </View>
           </View>
 
           {loading ? (
-            <ActivityIndicator size="small" color="#031753" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
           ) : (
             contatos.map((contato, index) => (
               <View key={contato.id} style={styles.contactCard}>
@@ -222,13 +210,13 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
                   <View
                     style={[
                       styles.contactAvatar,
-                      { backgroundColor: contato.corAvatar || '#EBF5FF' },
+                      { backgroundColor: contato.corAvatar || colors.skyBg },
                     ]}
                   >
                     <Text
                       style={[
                         styles.contactAvatarText,
-                        { color: contato.corTexto || '#1E40AF' },
+                        { color: contato.corTexto || colors.skyText },
                       ]}
                     >
                       {contato.iniciais || 'CO'}
@@ -254,7 +242,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
                     onPress={() => handleLigarContato(contato.telefone)}
                     activeOpacity={0.8}
                   >
-                    <PhoneCall size={16} color="#FFFFFF" />
+                    <Icon name="phone" size={16} color={colors.white} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -262,7 +250,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
                     onPress={() => handleRemoverContato(contato)}
                     activeOpacity={0.8}
                   >
-                    <Trash2 size={16} color="#94A3B8" />
+                    <Icon name="delete" size={16} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -273,7 +261,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
         {/* Card do SAMU 192 de Segurança */}
         <View style={styles.samuCard}>
           <View style={styles.samuIconBox}>
-            <ShieldAlert size={24} color="#FFFFFF" />
+            <Icon name="shield_alert" size={24} color={colors.white} />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.samuTitle}>SAMU — Atendimento Móvel 192</Text>
@@ -286,7 +274,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
             onPress={() => Linking.openURL('tel:192')}
             activeOpacity={0.85}
           >
-            <PhoneCall size={16} color="#FFFFFF" />
+            <Icon name="phone" size={16} color={colors.white} />
             <Text style={styles.samuCallText}>192</Text>
           </TouchableOpacity>
         </View>
@@ -295,7 +283,7 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
             <View style={styles.formIconWrapper}>
-              <Plus size={18} color="#031753" />
+              <Icon name="add" size={18} color={colors.navy} />
             </View>
             <Text style={styles.formTitle}>Novo Contato de Emergência</Text>
           </View>
@@ -304,11 +292,11 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Nome Completo *</Text>
             <View style={styles.inputBox}>
-              <User size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+              <Icon name="person" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.textInput}
                 placeholder="Ex: Mariana Silva"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={nome}
                 onChangeText={setNome}
               />
@@ -319,11 +307,11 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Telefone Celular / WhatsApp *</Text>
             <View style={styles.inputBox}>
-              <Phone size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+              <Icon name="phone" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.textInput}
                 placeholder="(11) 98765-4321"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 value={telefone}
                 onChangeText={handleTelefoneChange}
@@ -372,10 +360,10 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
             activeOpacity={0.85}
           >
             {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <>
-                <Plus size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Icon name="add" size={18} color={colors.white} style={{ marginRight: 8 }} />
                 <Text style={styles.submitButtonText}>
                   Adicionar Contato de Emergência
                 </Text>
@@ -384,6 +372,8 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <BottomNavBar currentScreen="ElderlyMode" onNavigate={onNavigate} />
     </ScreenWrapper>
   );
 }
@@ -391,15 +381,15 @@ export default function EmergencyContactsScreen({ onNavigate, idosoId = 'e3b0c44
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 18,
+    backgroundColor: colors.peachBg,
+    borderRadius: rounded.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.peachBorder,
     marginBottom: 20,
     alignItems: 'flex-start',
   },
@@ -409,27 +399,30 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#991B1B',
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
+    color: colors.peachText,
     marginBottom: 4,
   },
   infoDescription: {
     fontSize: 11,
-    color: '#7F1D1D',
+    color: colors.peachText,
     lineHeight: 16,
   },
   escalonamentoSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderLight,
+    ...shadows.tier1,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
+    color: colors.navy,
     marginBottom: 12,
   },
   escalonamentoFlow: {
@@ -456,14 +449,9 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 10,
-    color: '#475569',
+    color: colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  stepArrow: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginBottom: 16,
   },
   contactsListSection: {
     marginBottom: 20,
@@ -477,32 +465,30 @@ const styles = StyleSheet.create({
   badgeAtivos: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.mintBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: rounded.full,
+    borderWidth: 1,
+    borderColor: colors.mintBorder,
   },
   badgeAtivosText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: colors.mintText,
     marginLeft: 4,
   },
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.borderLight,
+    ...shadows.tier1,
   },
   contactLeft: {
     flexDirection: 'row',
@@ -519,7 +505,7 @@ const styles = StyleSheet.create({
   },
   contactAvatarText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   contactInfo: {
     flex: 1,
@@ -530,12 +516,12 @@ const styles = StyleSheet.create({
   },
   contactName: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
+    fontWeight: '700',
+    color: colors.navy,
     marginRight: 6,
   },
   ordemBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.skyBg,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -543,17 +529,17 @@ const styles = StyleSheet.create({
   ordemBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#2563EB',
+    color: colors.skyText,
   },
   contactRole: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   contactPhone: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginTop: 2,
   },
   contactActions: {
@@ -565,7 +551,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#16A34A',
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -574,58 +560,59 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.canvasBase,
     justifyContent: 'center',
     alignItems: 'center',
   },
   samuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 20,
+    backgroundColor: colors.peachBg,
+    borderRadius: rounded.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.peachBorder,
     marginBottom: 24,
   },
   samuIconBox: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',
   },
   samuTitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#991B1B',
+    fontWeight: '700',
+    color: colors.peachText,
   },
   samuDescription: {
     fontSize: 11,
-    color: '#7F1D1D',
+    color: colors.peachText,
     marginTop: 2,
   },
   samuCallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.coral,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: rounded.button,
   },
   samuCallText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+    color: colors.white,
+    fontWeight: '700',
     fontSize: 13,
     marginLeft: 6,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.borderLight,
+    ...shadows.tier1,
   },
   formHeaderRow: {
     flexDirection: 'row',
@@ -636,39 +623,40 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 10,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.skyBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
   formTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
+    color: colors.navy,
   },
   inputGroup: {
     marginBottom: 14,
   },
   inputLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
+    fontWeight: '600',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    backgroundColor: colors.canvasBase,
+    borderRadius: rounded.input,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    height: 44,
+    borderColor: colors.borderLight,
+    height: 52,
   },
   textInput: {
     flex: 1,
     fontSize: 13,
-    color: '#031753',
+    color: colors.textPrimary,
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -676,35 +664,39 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: rounded.full,
+    backgroundColor: colors.canvasBase,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   chipSelected: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
   },
   chipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.textSecondary,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontWeight: '700',
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#031753',
-    paddingVertical: 14,
-    borderRadius: 14,
+    backgroundColor: colors.navy,
+    height: 52,
+    borderRadius: rounded.button,
     marginTop: 8,
+    ...shadows.tier2,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: colors.white,
+    fontSize: 14,
     fontWeight: '700',
   },
 });

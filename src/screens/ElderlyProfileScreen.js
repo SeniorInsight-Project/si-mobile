@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,21 +15,8 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
-import {
-  Camera,
-  Activity,
-  Plus,
-  FileText,
-  User,
-  Calendar,
-  Droplet,
-  Stethoscope,
-  ShieldCheck,
-  Siren,
-  ChevronRight,
-  Check,
-  ClipboardList,
-} from 'lucide-react-native';
+import Icon from '../components/Icon';
+import { typography } from '../theme';
 import {
   listarComorbidades,
   adicionarComorbidades,
@@ -37,28 +24,35 @@ import {
   INITIAL_COMORBIDITIES,
 } from '../services/comorbidadeService';
 
-// ID padrão para desenvolvimento e testes locais (UUID v4 de exemplo)
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
-export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDOSO_ID }) {
+export default function ElderlyProfileScreen({
+  onNavigate,
+  idosoId = DEFAULT_IDOSO_ID,
+}) {
   const [comorbidades, setComorbidades] = useState(INITIAL_COMORBIDITIES);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Estados dos campos da ficha cadastral
+  // Estados dos campos da ficha cadastral conforme o .fig
   const [nomeCompleto, setNomeCompleto] = useState('Dona Maria Aparecida');
   const [dataNascimento, setDataNascimento] = useState('14/05/1948');
   const [fatorSanguineo, setFatorSanguineo] = useState('O+ Positivo');
-  const [medicoReferencia, setMedicoReferencia] = useState('Dr. Roberto Silva (Geriatra)');
+  const [medicoReferencia, setMedicoReferencia] = useState(
+    'Dr. Silva - Cardiologista'
+  );
 
-  // Busca inicial das comorbidades cadastradas no backend
   useEffect(() => {
     async function carregarDados() {
       try {
         setLoading(true);
         const data = await listarComorbidades(idosoId);
-        if (data && Array.isArray(data.comorbidades) && data.comorbidades.length > 0) {
+        if (
+          data &&
+          Array.isArray(data.comorbidades) &&
+          data.comorbidades.length > 0
+        ) {
           setComorbidades(data.comorbidades);
         }
       } catch (err) {
@@ -71,7 +65,6 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
     carregarDados();
   }, [idosoId]);
 
-  // Exclusão de comorbidade
   const handleRemove = (nome) => {
     Alert.alert(
       'Remover Comorbidade',
@@ -82,7 +75,6 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
           text: 'Remover',
           style: 'destructive',
           onPress: async () => {
-            // Atualização otimista na interface
             const listaAnterior = [...comorbidades];
             setComorbidades((prev) => prev.filter((item) => item !== nome));
 
@@ -91,9 +83,11 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               await removerComorbidade(idosoId, nome);
             } catch (err) {
               console.warn('Falha na API ao remover, revertendo:', err.message);
-              // Reverte se a API falhar
               setComorbidades(listaAnterior);
-              Alert.alert('Aviso', 'Não foi possível sincronizar a remoção com o servidor no momento.');
+              Alert.alert(
+                'Aviso',
+                'Não foi possível sincronizar a remoção com o servidor no momento.'
+              );
             } finally {
               setActionLoading(false);
             }
@@ -103,19 +97,22 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
     );
   };
 
-  // Adição de nova comorbidade
   const handleAdd = async (novaComorbidade) => {
     try {
       setActionLoading(true);
-      // Adiciona localmente de forma imediata
       setComorbidades((prev) => [...prev, novaComorbidade]);
       setModalVisible(false);
 
-      // Sincroniza com o backend via POST
       await adicionarComorbidades(idosoId, [novaComorbidade]);
     } catch (err) {
-      console.warn('Erro ao sincronizar nova comorbidade com o backend:', err.message);
-      Alert.alert('Sincronização', 'Comorbidade salva localmente. O servidor será atualizado assim que conectado.');
+      console.warn(
+        'Erro ao sincronizar nova comorbidade com o backend:',
+        err.message
+      );
+      Alert.alert(
+        'Sincronização',
+        'Comorbidade salva localmente. O servidor será atualizado assim que conectado.'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -131,57 +128,69 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
   return (
     <ScreenWrapper>
       {/* HEADER PADRONIZADO GLOBAL */}
-      <AppHeader title="Perfil do Idoso" onNavigate={onNavigate} />
+      <AppHeader
+        title="Família Perfil"
+        subtitle="CUIDADO ATIVO"
+        onNavigate={onNavigate}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* CARD PRINCIPAL DO IDOSO COM STATS */}
+        {/* CARD 1: IDENTIDADE E MÉTRICAS RÁPIDAS (rx=32, #FFFFFF) */}
         <View style={styles.elderlyCard}>
+          <View style={styles.cardTopGlow} />
+
           <View style={styles.avatarWrapper}>
-            <Image
-              source={require('../../assets/idoso.png')}
-              style={styles.avatarImage}
-            />
-            <TouchableOpacity
-              style={styles.cameraBadge}
-              onPress={() => Alert.alert('Alterar Foto', 'Funcionalidade de câmera em desenvolvimento.')}
-              activeOpacity={0.85}
-            >
-              <Camera size={14} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={styles.avatarOuterRing}>
+              <Image
+                source={require('../../assets/figma/avatar-dona-maria-lg.jpg')}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={styles.monitoredBadge}>
+              <View style={styles.monitoredDot} />
+              <Text style={styles.monitoredBadgeText}>Monitorada</Text>
+            </View>
           </View>
 
           <Text style={styles.elderlyName}>{nomeCompleto}</Text>
           <Text style={styles.elderlyPlanSubtitle}>
-            76 anos • <Text style={styles.planBadgeText}>Plano Cuidador Ativo</Text>
+            76 anos •{' '}
+            <Text style={styles.planBadgeText}>Plano Cuidador Ativo</Text>
           </Text>
 
-          {/* GRADE COM 3 CARDS DE ESTATÍSTICA RÁPIDA */}
-          <View style={styles.statsRow}>
+          {/* BANDEJA CINZA (#F2F4F7, rx=20) COM 3 CARTÕES BRANCOS (#FFFFFF, rx=16) */}
+          <View style={styles.statsTray}>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Tipo Sanguíneo</Text>
+              <Text style={styles.statLabel}>TIPO SANGUÍNEO</Text>
               <Text style={styles.bloodValue}>O+</Text>
             </View>
 
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Glicemia Méd.</Text>
-              <Text style={styles.glycemiaValue}>104 mg</Text>
+              <Text style={styles.statLabel}>GLICEMIA</Text>
+              <View style={styles.glycemiaRow}>
+                <Text style={styles.glycemiaValue}>104</Text>
+                <Text style={styles.glycemiaUnit}>mg</Text>
+              </View>
             </View>
 
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Check-in</Text>
+              <Text style={styles.statLabel}>CHECK-UP</Text>
               <Text style={styles.checkinValue}>Hoje</Text>
             </View>
           </View>
         </View>
 
-        {/* SEÇÃO 2: COMORBIDADES & ALERTAS (FOCO HU15) */}
-        <View style={styles.sectionCard}>
+        {/* SEÇÃO 2: COMORBIDADES & ALERTAS (Cabeçalho fora do card branco) */}
+        <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleWithIcon}>
-              <Activity size={18} color="#DC2626" style={{ marginRight: 8 }} />
+            <View style={styles.sectionHeaderLeft}>
+              <View style={styles.sectionIconCircleCoral}>
+                <Icon name="vital_signs" size={16} color="#B51C13" />
+              </View>
               <Text style={styles.sectionTitle}>Comorbidades &amp; Alertas</Text>
             </View>
 
@@ -190,137 +199,147 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
               onPress={() => setModalVisible(true)}
               activeOpacity={0.8}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Plus size={13} color="#031753" style={{ marginRight: 4 }} />
-                <Text style={styles.addPillText}>Adicionar</Text>
-              </View>
+              <Icon name="add" size={15} color="#031753" />
+              <Text style={styles.addPillText}>Adicionar</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionInstruction}>
-            Toque nos cartuchos para ver detalhes ou no botão de exclusão para atualizar a ficha clínica.
-          </Text>
+          <View style={styles.comorbiditiesCard}>
+            <Text style={styles.sectionInstruction}>
+              Toque nos cartuchos para ver detalhes ou no botão de exclusão para
+              atualizar a ficha clínica.
+            </Text>
 
-          {loading ? (
-            <ActivityIndicator color="#031753" size="small" style={{ marginVertical: 20 }} />
-          ) : (
-            <View style={styles.chipsContainer}>
-              {comorbidades.map((item) => (
-                <ComorbidityChip
-                  key={item}
-                  name={item}
-                  onRemove={handleRemove}
-                  disabled={actionLoading}
-                />
-              ))}
+            {loading ? (
+              <ActivityIndicator
+                color="#031753"
+                size="small"
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <View style={styles.chipsContainer}>
+                {comorbidades.map((item) => (
+                  <ComorbidityChip
+                    key={item}
+                    name={item}
+                    onRemove={handleRemove}
+                    disabled={actionLoading}
+                  />
+                ))}
 
-              {comorbidades.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>
-                    Nenhuma comorbidade registrada. Clique em "Adicionar" para incluir patologias ou alergias.
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+                {comorbidades.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>
+                      Nenhuma comorbidade registrada. Clique em "Adicionar" para
+                      incluir patologias ou alergias.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* SEÇÃO 3: FICHA CADASTRAL DO IDOSO */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionTitleWithIcon}>
-            <FileText size={18} color="#031753" style={{ marginRight: 8 }} />
+        {/* SEÇÃO 3: FICHA CADASTRAL DO IDOSO (Pílulas brancas independentes sobre o canvas) */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionIconCircleSky}>
+              <Icon name="person" size={16} color="#031753" />
+            </View>
             <Text style={styles.sectionTitle}>Ficha Cadastral do Idoso</Text>
           </View>
 
-          {/* Campo: Nome Completo */}
-          <View style={styles.labelWithIconRow}>
-            <User size={13} color="#031753" style={{ marginRight: 6 }} />
-            <Text style={styles.fieldLabel}>Nome Completo</Text>
-          </View>
-          <View style={styles.darkInputField}>
-            <TextInput
-              style={styles.darkInputText}
-              value={nomeCompleto}
-              onChangeText={setNomeCompleto}
-            />
+          {/* Campo 1: Nome Completo */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelWithIconRow}>
+              <Icon name="person" size={15} color="#64748B" />
+              <Text style={styles.fieldLabel}>Nome Completo</Text>
+            </View>
+            <View style={styles.pillInputContainer}>
+              <TextInput
+                style={styles.pillInputText}
+                value={nomeCompleto}
+                onChangeText={setNomeCompleto}
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
           </View>
 
           {/* Linha Dupla: Nascimento e Fator Sanguíneo */}
           <View style={styles.fieldsRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.labelWithIconRow}>
-                <Calendar size={13} color="#031753" style={{ marginRight: 6 }} />
+                <Icon name="calendar_today" size={14} color="#64748B" />
                 <Text style={styles.fieldLabel}>Nascimento</Text>
               </View>
-              <View style={styles.lightInputField}>
+              <View style={styles.pillInputContainer}>
                 <TextInput
-                  style={styles.lightInputText}
+                  style={styles.pillInputText}
                   value={dataNascimento}
                   onChangeText={setDataNascimento}
                   keyboardType="numeric"
+                  placeholderTextColor="#94A3B8"
                 />
               </View>
             </View>
 
             <View style={{ flex: 1 }}>
               <View style={styles.labelWithIconRow}>
-                <Droplet size={13} color="#DC2626" style={{ marginRight: 6 }} />
+                <Icon name="water_drop" size={14} color="#64748B" />
                 <Text style={styles.fieldLabel}>Fator Sanguíneo</Text>
               </View>
-              <View style={styles.lightInputField}>
+              <View style={styles.pillInputContainer}>
                 <TextInput
-                  style={styles.lightInputText}
+                  style={styles.pillInputText}
                   value={fatorSanguineo}
                   onChangeText={setFatorSanguineo}
+                  placeholderTextColor="#94A3B8"
                 />
+                <Icon name="expand_more" size={18} color="#64748B" />
               </View>
             </View>
           </View>
 
-          {/* Campo: Médico de Referência */}
-          <View style={styles.labelWithIconRow}>
-            <Stethoscope size={13} color="#031753" style={{ marginRight: 6 }} />
-            <Text style={styles.fieldLabel}>Médico(a) de Referência</Text>
+          {/* Campo 3: Médico de Referência */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelWithIconRow}>
+              <Icon name="medical_services" size={15} color="#64748B" />
+              <Text style={styles.fieldLabel}>Médico(a) de Referência</Text>
+            </View>
+            <View style={styles.pillInputContainer}>
+              <TextInput
+                style={styles.pillInputText}
+                value={medicoReferencia}
+                onChangeText={setMedicoReferencia}
+                placeholderTextColor="#94A3B8"
+              />
+              <TouchableOpacity
+                style={styles.doctorCallBadge}
+                onPress={() =>
+                  Alert.alert('Ligação', 'Discando para Dr. Silva...')
+                }
+                activeOpacity={0.8}
+              >
+                <Icon name="call" size={15} color="#003B26" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.doctorInputField}>
-            <TextInput
-              style={styles.doctorInputText}
-              value={medicoReferencia}
-              onChangeText={setMedicoReferencia}
-            />
-            <View style={styles.activeDoctorDot} />
-          </View>
+        </View>
 
-          {/* Banner de Sincronização com a Família */}
-          <View style={styles.syncAlertCard}>
-            <View style={styles.syncIconWrapper}>
-              <ShieldCheck size={20} color="#16A34A" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.syncAlertTitle}>Ficha Sincronizada com a Família</Text>
-              <Text style={styles.syncAlertDescription}>
-                Qualquer alteração feita aqui atualiza o módulo SOS e a triagem médica dos socorristas em tempo real.
-              </Text>
-            </View>
+        {/* BANNER DE SINCRONIZAÇÃO COM A FAMÍLIA (#E8F8F0, rx=24) */}
+        <View style={styles.syncAlertCard}>
+          <View style={styles.syncIconWrapper}>
+            <Icon name="shield_check" size={18} color="#003B26" />
           </View>
-
-          {/* Acesso aos Contatos de Emergência (HU35) */}
-          <TouchableOpacity
-            style={styles.emergencyContactsShortcut}
-            onPress={() => onNavigate && onNavigate('EmergencyContacts')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.emergencyShortcutLeft}>
-              <View style={styles.emergencyShortcutIconBg}>
-                <Siren size={18} color="#DC2626" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.emergencyShortcutTitle}>Contatos de Emergência &amp; SOS</Text>
-                <Text style={styles.emergencyShortcutSub}>3 Cuidadores cadastrados na fila de socorro</Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="#991B1B" />
-          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.syncAlertTitle}>
+              Ficha Sincronizada com a Família
+            </Text>
+            <Text style={styles.syncAlertDescription}>
+              Qualquer alteração feita aqui atualiza o módulo SOS e a triagem
+              médica dos socorristas em tempo real.
+            </Text>
+          </View>
         </View>
 
         {/* BOTÕES DE AÇÃO INFERIORES */}
@@ -330,21 +349,24 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
             onPress={handleSalvarAlteracoes}
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Check size={16} color="#FFFFFF" strokeWidth={3} style={{ marginRight: 6 }} />
-              <Text style={styles.primarySaveButtonText}>Salvar Alterações</Text>
-            </View>
+            <Icon name="check" size={20} color="#FFFFFF" />
+            <Text style={styles.primarySaveButtonText}>Salvar Alterações</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryHistoryButton}
-            onPress={() => Alert.alert('Histórico Clínico', 'Visualização do prontuário histórico consolidado.')}
+            onPress={() =>
+              Alert.alert(
+                'Histórico Clínico',
+                'Visualização do prontuário histórico consolidado.'
+              )
+            }
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ClipboardList size={16} color="#031753" style={{ marginRight: 6 }} />
-              <Text style={styles.secondaryHistoryButtonText}>Histórico Clínico Completo</Text>
-            </View>
+            <Icon name="assignment" size={18} color="#031753" />
+            <Text style={styles.secondaryHistoryButtonText}>
+              Histórico Clínico Completo
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -359,173 +381,248 @@ export default function ElderlyProfileScreen({ onNavigate, idosoId = DEFAULT_IDO
       />
 
       {/* BARRA DE NAVEGAÇÃO INFERIOR */}
-      <BottomNavBar currentScreen="Family" onNavigate={onNavigate} />
+      <BottomNavBar currentScreen="ElderlyProfile" onNavigate={onNavigate} />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 95,
+    paddingBottom: 110,
   },
 
-  /* CARD PRINCIPAL DO IDOSO */
+  /* CARD 1: IDENTIDADE E MÉTRICAS */
   elderlyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 32,
     padding: 20,
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#EEF2F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 24,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  cardTopGlow: {
+    position: 'absolute',
+    top: -64,
+    width: 288,
+    height: 144,
+    borderRadius: 144,
+    backgroundColor: '#FFF1EC',
+    opacity: 0.65,
   },
   avatarWrapper: {
     position: 'relative',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  avatarOuterRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   avatarImage: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
   },
-  cameraBadge: {
+  monitoredBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#031753',
-    justifyContent: 'center',
+    bottom: -6,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#E8F8F0',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    gap: 5,
   },
-  cameraIcon: {
-    fontSize: 12,
+  monitoredDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
+  },
+  monitoredBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#003B26',
+    fontFamily: typography.fontFamily.heading,
   },
   elderlyName: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    color: '#031753',
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: typography.fontFamily.heading,
+    color: '#131E3D',
     marginBottom: 4,
+    textAlign: 'center',
   },
   elderlyPlanSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600',
     color: '#64748B',
     marginBottom: 18,
+    textAlign: 'center',
+    fontFamily: typography.fontFamily.body,
   },
   planBadgeText: {
-    color: '#16A34A',
-    fontWeight: 'bold',
+    color: '#2D418A',
+    fontWeight: '700',
   },
-  statsRow: {
+  statsTray: {
     flexDirection: 'row',
     width: '100%',
-    justifyContent: 'space-between',
+    backgroundColor: '#F2F4F7',
+    borderRadius: 20,
+    padding: 6,
     gap: 8,
   },
   statBox: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderRadius: 16,
+    paddingVertical: 10,
     paddingHorizontal: 6,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   statLabel: {
     fontSize: 10,
     color: '#64748B',
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
   },
   bloodValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#DC2626',
+    fontWeight: '800',
+    color: '#B51C13',
+    fontFamily: typography.fontFamily.heading,
+  },
+  glycemiaRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
   },
   glycemiaValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#031753',
+    fontWeight: '800',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
+  },
+  glycemiaUnit: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
   },
   checkinValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#16A34A',
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#059669',
+    fontFamily: typography.fontFamily.heading,
   },
 
-  /* SEÇÕES GENÉRICAS */
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#EEF2F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  /* SEÇÃO 2: COMORBIDADES & ALERTAS */
+  sectionBlock: {
+    marginBottom: 24,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  sectionTitleWithIcon: {
+  sectionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  pulseIcon: {
-    fontSize: 16,
-    color: '#EF4444',
+    flex: 1,
     marginRight: 8,
   },
-  clipboardIcon: {
-    fontSize: 16,
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  sectionIconCircleCoral: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFEBE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  sectionIconCircleSky: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EBF5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#031753',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: typography.fontFamily.heading,
+    color: '#131E3D',
   },
   addPillButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 35,
+    paddingHorizontal: 14,
+    borderRadius: 9999,
+    backgroundColor: '#EBF5FF',
+    gap: 5,
   },
   addPillText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#031753',
+    fontFamily: typography.fontFamily.heading,
+  },
+  comorbiditiesCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    padding: 20,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   sectionInstruction: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '500',
     color: '#64748B',
     lineHeight: 16,
-    marginBottom: 16,
+    marginBottom: 14,
+    fontFamily: typography.fontFamily.body,
   },
   chipsContainer: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
   },
   emptyState: {
@@ -539,185 +636,135 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* CAMPOS DA FICHA CADASTRAL */
+  /* SEÇÃO 3: PÍLULAS INDEPENDENTES DA FICHA CADASTRAL */
+  fieldGroup: {
+    marginBottom: 14,
+  },
   labelWithIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    marginTop: 8,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    gap: 6,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
+  },
+  pillInputContainer: {
+    height: 56,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  pillInputText: {
+    flex: 1,
+    color: '#131E3D',
+    fontSize: 15,
     fontWeight: '600',
-    color: '#334155',
-  },
-  darkInputField: {
-    backgroundColor: '#0F1E36',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 48,
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  darkInputText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
+    fontFamily: typography.fontFamily.body,
   },
   fieldsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 10,
+    marginBottom: 14,
   },
-  lightInputField: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    height: 48,
+  doctorCallBadge: {
+    width: 32,
+    height: 36,
+    borderRadius: 16,
+    backgroundColor: '#E8F8F0',
     justifyContent: 'center',
-  },
-  lightInputText: {
-    color: '#1E293B',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  doctorInputField: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0F1E36',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 48,
-    marginBottom: 16,
-  },
-  doctorInputText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-  activeDoctorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
-    backgroundColor: '#22C55E',
+    marginLeft: 8,
   },
 
   /* BANNER DE SINCRONIZAÇÃO */
   syncAlertCard: {
     flexDirection: 'row',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    alignItems: 'center',
-    gap: 10,
+    backgroundColor: '#E8F8F0',
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 24,
   },
   syncIconWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#DCFCE7',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  syncShieldIcon: {
-    fontSize: 16,
-  },
   syncAlertTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#15803D',
-    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#003B26',
+    marginBottom: 3,
+    fontFamily: typography.fontFamily.heading,
   },
   syncAlertDescription: {
-    fontSize: 11,
-    color: '#166534',
-    lineHeight: 15,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#003B26',
+    lineHeight: 17,
+    fontFamily: typography.fontFamily.body,
   },
 
   /* BOTÕES DE AÇÃO */
   actionButtonsContainer: {
     gap: 12,
-    marginTop: 6,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   primarySaveButton: {
-    backgroundColor: '#DC2626',
-    borderRadius: 28,
-    height: 52,
+    backgroundColor: '#D83729',
+    borderRadius: 9999,
+    height: 60,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
+    gap: 10,
+    shadowColor: '#D83729',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 5,
   },
   primarySaveButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: typography.fontFamily.heading,
   },
   secondaryHistoryButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    height: 50,
+    borderRadius: 9999,
+    height: 56,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    gap: 10,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   secondaryHistoryButtonText: {
     color: '#031753',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  emergencyContactsShortcut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 16,
-    padding: 12,
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  emergencyShortcutLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  emergencyShortcutIconBg: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emergencyShortcutIcon: {
-    fontSize: 16,
-  },
-  emergencyShortcutTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#991B1B',
-  },
-  emergencyShortcutSub: {
-    fontSize: 10,
-    color: '#7F1D1D',
-    marginTop: 2,
-  },
-  emergencyShortcutArrow: {
-    fontSize: 20,
-    color: '#991B1B',
-    fontWeight: 'bold',
-    marginLeft: 6,
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
   },
 });

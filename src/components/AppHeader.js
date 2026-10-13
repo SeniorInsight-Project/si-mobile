@@ -1,38 +1,39 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
-import { Heart, Bell, ArrowLeft } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  Platform,
+  StatusBar,
+} from 'react-native';
+import Constants from 'expo-constants';
+import Icon from './Icon';
+import { typography, shadows } from '../theme';
+
+const TOP_INSET =
+  Platform.OS === 'android'
+    ? Math.max(StatusBar.currentHeight || 0, Constants.statusBarHeight || 0, 28) + 4
+    : Platform.OS === 'ios'
+      ? Math.max(Constants.statusBarHeight || 44, 44)
+      : 0;
 
 /**
- * Header Padronizado do SeniorInsight para todas as telas do aplicativo.
- * Garante consistência visual estrita de altura, cores, tipografia e ícones.
+ * Header Padronizado do SeniorInsight para as telas logadas.
+ * - Preenche continuamente até o topo físico da tela (Safe Area / Status Bar).
+ * - Sem botões de coração ou voltar.
+ * - Alinhado às especificações do Senior APP(2).fig.
  */
 export default function AppHeader({
-  title = 'SeniorInsight',
+  title = 'Início Monitoramento',
   subtitle = 'CUIDADO ATIVO',
-  isBack = false,
-  onBack,
   onNavigate,
-  onPressHeart,
   onPressNotification,
   onPressLogo,
   hasNotification = true,
 }) {
-  const handleHeartPress = () => {
-    if (onPressHeart) {
-      onPressHeart();
-    } else if (onNavigate) {
-      onNavigate('Home');
-    }
-  };
-
-  const handleBackPress = () => {
-    if (onBack) {
-      onBack();
-    } else if (onNavigate) {
-      onNavigate('ElderlyMode');
-    }
-  };
-
   const handleNotificationPress = () => {
     if (onPressNotification) {
       onPressNotification();
@@ -50,126 +51,132 @@ export default function AppHeader({
   };
 
   return (
-    <View style={styles.headerContainer}>
-      {/* Botão Esquerdo (Voltar ou Coração) */}
-      {isBack ? (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleBackPress}
-          activeOpacity={0.8}
-        >
-          <ArrowLeft size={18} color="#031753" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleHeartPress}
-          activeOpacity={0.8}
-        >
-          <Heart size={18} color="#031753" />
-        </TouchableOpacity>
-      )}
+    <View style={styles.safeAreaHeader}>
+      <View style={styles.headerContainer}>
+        {/* Subtítulo e Título alinhados à esquerda conforme o .fig (sem coração/voltar) */}
+        <View style={styles.leftTitleContainer}>
+          <Text style={styles.headerSubtitle}>{subtitle}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
 
-      {/* Título e Subtítulo Centralizados */}
-      <View style={styles.centerTitleContainer}>
-        <Text style={styles.headerSubtitle}>{subtitle}</Text>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
+        {/* Botões da Direita (Notificação 44x44 + Logo Circular 36x36) */}
+        <View style={styles.rightActionsRow}>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={handleNotificationPress}
+            activeOpacity={0.75}
+          >
+            <Icon name="notifications" size={20} color="#031753" />
+            {hasNotification && <View style={styles.notificationDot} />}
+          </TouchableOpacity>
 
-      {/* Botões da Direita (Notificação e Logo) */}
-      <View style={styles.rightActionsRow}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleNotificationPress}
-          activeOpacity={0.8}
-        >
-          <Bell size={18} color="#031753" />
-          {hasNotification && <View style={styles.notificationDot} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { marginLeft: 8 }]}
-          onPress={handleLogoPress}
-          activeOpacity={0.8}
-        >
-          <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.logoButton}
+            onPress={handleLogoPress}
+            activeOpacity={0.75}
+          >
+            <Image
+              source={require('../../assets/figma/logo-badge.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  safeAreaHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: TOP_INSET,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    ...shadows.tier1,
+    zIndex: 20,
+  },
   headerContainer: {
-    height: 58,
+    height: 68,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 2,
-    zIndex: 10,
   },
-  actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+  leftTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingRight: 12,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
+  },
+  rightActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: '#EEF2F6',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   notificationDot: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DC2626',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#B51C13',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
-  logoImage: {
-    width: 22,
-    height: 22,
-  },
-  centerTitleContainer: {
-    alignItems: 'center',
+  logoButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  headerSubtitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#031753',
-    textAlign: 'center',
-  },
-  rightActionsRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#EEF2F6',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
 });

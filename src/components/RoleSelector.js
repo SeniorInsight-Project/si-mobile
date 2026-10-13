@@ -1,63 +1,59 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { HelpCircle, Check } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from './Icon';
+import { typography } from '../theme';
 
 export default function RoleSelector({ selectedRole, onSelectRole }) {
   const roles = [
-    { 
-      id: 'Idoso', 
-      label: 'Idoso', 
-      subLabel: 'Assistido', 
-      image: require('../../assets/idoso.png') 
+    {
+      id: 'Idoso',
+      label: 'Idoso',
+      subLabel: 'Assistido',
+      icon: 'elderly',
     },
-    { 
-      id: 'Familiar', 
-      label: 'Familiar', 
-      subLabel: 'Responsável', 
-      image: require('../../assets/familiar.png') 
+    {
+      id: 'Familiar',
+      label: 'Familiar',
+      subLabel: 'Responsável',
+      icon: 'favorite',
     },
-    { 
-      id: 'Cuidador', 
-      label: 'Cuidador', 
-      subLabel: 'Profissional', 
-      image: require('../../assets/cuidador.png') 
-    }
+    {
+      id: 'Cuidador',
+      label: 'Cuidador',
+      subLabel: 'Profissional',
+      icon: 'medical_services',
+    },
   ];
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.mainLabel}>Qual é o seu papel no cuidado?</Text>
-        <HelpCircle size={16} color="#64748B" />
-      </View>
-      
+      <Text style={styles.mainLabel}>Qual é o seu perfil?</Text>
+
       <View style={styles.row}>
         {roles.map((role) => {
           const isActive = selectedRole === role.id;
-          
+
           return (
             <TouchableOpacity
               key={role.id}
-              style={[
-                styles.card,
-                isActive && styles.cardActive
-              ]}
+              style={[styles.card, isActive && styles.cardActive]}
               onPress={() => onSelectRole(role.id)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              {/* O símbolo de OK (Check) flutuando no canto superior direito */}
               {isActive && (
                 <View style={styles.checkBadge}>
-                  <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                  <Icon name="check" size={12} color="#FFFFFF" />
                 </View>
               )}
 
-              <Image 
-                source={role.image} 
-                style={styles.imageIcon}
-                resizeMode="contain"
-              />
-              
+              <View style={[styles.iconCircle, isActive && styles.iconCircleActive]}>
+                <Icon
+                  name={role.icon}
+                  size={22}
+                  color={isActive ? '#031753' : '#64748B'}
+                />
+              </View>
+
               <Text style={[styles.cardText, isActive && styles.textActive]}>
                 {role.label}
               </Text>
@@ -74,19 +70,16 @@ export default function RoleSelector({ selectedRole, onSelectRole }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 24,
     width: '100%',
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
   mainLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#031753',
+    color: '#131E3D',
+    textAlign: 'center',
+    marginBottom: 14,
+    fontFamily: typography.fontFamily.heading,
   },
   row: {
     flexDirection: 'row',
@@ -96,50 +89,66 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 8,
     alignItems: 'center',
     position: 'relative',
+    minHeight: 112,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   cardActive: {
     borderColor: '#031753',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#EBF5FF',
     borderWidth: 2,
   },
   checkBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: -6,
+    right: -6,
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#031753',
+    backgroundColor: '#10B981',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
   },
-  imageIcon: {
-    width: 44,
-    height: 44,
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F5F7FA',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  iconCircleActive: {
+    backgroundColor: '#FFFFFF',
   },
   cardText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   textActive: {
     color: '#031753',
   },
   subText: {
-    fontSize: 10,
-    color: '#94A3B8',
+    fontSize: 11,
+    color: '#64748B',
     marginTop: 2,
+    fontFamily: typography.fontFamily.body,
   },
   subTextActive: {
-    color: '#64748B',
+    color: '#1E2E69',
     fontWeight: '600',
   },
 });

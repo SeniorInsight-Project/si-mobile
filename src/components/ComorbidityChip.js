@@ -1,85 +1,105 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Heart, Droplet, UserCheck, AlertTriangle, Activity, X } from 'lucide-react-native';
+import Icon from './Icon';
+import { typography } from '../theme';
 
-/**
- * Mapeia dinamicamente cores e ícones Lucide conforme o tipo de comorbidade.
- */
 function getComorbidityTheme(name = '') {
   const lower = name.toLowerCase();
 
-  if (lower.includes('hipertens') || lower.includes('press') || lower.includes('card') || lower.includes('coraç')) {
+  // Cardíaco / Pressão -> Coral (#FFEBE7)
+  if (
+    lower.includes('hipertens') ||
+    lower.includes('press') ||
+    lower.includes('card') ||
+    lower.includes('coraç')
+  ) {
     return {
-      icon: Heart,
-      bgColor: '#FEE2E2',
-      borderColor: '#FECACA',
-      textColor: '#991B1B',
-      closeColor: '#B91C1C',
+      icon: 'favorite',
+      bgColor: '#FFEBE7',
+      textColor: '#B51C13',
+      closeColor: '#B51C13',
     };
   }
 
-  if (lower.includes('diabet') || lower.includes('glicem') || lower.includes('insul') || lower.includes('rim')) {
+  // Diabetes / Glicemia -> Sky (#EBF5FF)
+  if (
+    lower.includes('diabet') ||
+    lower.includes('glicem') ||
+    lower.includes('insul') ||
+    lower.includes('rim')
+  ) {
     return {
-      icon: Droplet,
-      bgColor: '#E0F2FE',
-      borderColor: '#BAE6FD',
-      textColor: '#0369A1',
-      closeColor: '#0284C7',
+      icon: 'water_drop',
+      bgColor: '#EBF5FF',
+      textColor: '#031753',
+      closeColor: '#031753',
     };
   }
 
-  if (lower.includes('osteo') || lower.includes('artr') || lower.includes('coluna') || lower.includes('reumat') || lower.includes('mobilidade')) {
+  // Mobilidade / Osteoporose -> Mint (#E8F8F0)
+  if (
+    lower.includes('osteo') ||
+    lower.includes('artr') ||
+    lower.includes('coluna') ||
+    lower.includes('reumat') ||
+    lower.includes('mobilidade')
+  ) {
     return {
-      icon: UserCheck,
-      bgColor: '#DCFCE7',
-      borderColor: '#BBF7D0',
-      textColor: '#15803D',
-      closeColor: '#16A34A',
+      icon: 'walk',
+      bgColor: '#E8F8F0',
+      textColor: '#003B26',
+      closeColor: '#003B26',
     };
   }
 
-  if (lower.includes('alerg') || lower.includes('asma') || lower.includes('rinite') || lower.includes('bronq')) {
+  // Alergias / Alertas -> Lavender (#F3EEFF)
+  if (
+    lower.includes('alerg') ||
+    lower.includes('asma') ||
+    lower.includes('rinite') ||
+    lower.includes('bronq')
+  ) {
     return {
-      icon: AlertTriangle,
-      bgColor: '#F3E8FF',
-      borderColor: '#E9D5FF',
-      textColor: '#6B21A8',
-      closeColor: '#7E22CE',
+      icon: 'shield_alert',
+      bgColor: '#F3EEFF',
+      textColor: '#5B21B6',
+      closeColor: '#5B21B6',
     };
   }
 
+  // Padrão / Outros -> Peach (#FFF1EC)
   return {
-    icon: Activity,
-    bgColor: '#FEF3C7',
-    borderColor: '#FDE68A',
-    textColor: '#92400E',
-    closeColor: '#B45309',
+    icon: 'vital_signs',
+    bgColor: '#FFF1EC',
+    textColor: '#9A3412',
+    closeColor: '#9A3412',
   };
 }
 
 export default function ComorbidityChip({ name, onRemove, disabled = false }) {
   const theme = getComorbidityTheme(name);
-  const IconComponent = theme.icon;
 
   return (
-    <View style={[styles.chipContainer, { backgroundColor: theme.bgColor, borderColor: theme.borderColor }]}>
-      <View style={styles.iconWrapper}>
-        <IconComponent size={14} color={theme.textColor} strokeWidth={2.4} />
+    <View style={[styles.chip, { backgroundColor: theme.bgColor }]}>
+      <View style={styles.iconContainer}>
+        <Icon name={theme.icon} size={15} color={theme.textColor} />
       </View>
-      
-      <Text style={[styles.label, { color: theme.textColor }]} numberOfLines={1}>
+
+      <Text
+        style={[styles.chipText, { color: theme.textColor }]}
+        numberOfLines={1}
+      >
         {name}
       </Text>
 
       {onRemove && (
         <TouchableOpacity
           onPress={() => onRemove(name)}
+          style={styles.closeButton}
+          activeOpacity={0.75}
           disabled={disabled}
-          style={styles.removeButton}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          activeOpacity={0.7}
         >
-          <X size={12} color={theme.closeColor} strokeWidth={2.6} />
+          <Icon name="close" size={12} color={theme.closeColor} />
         </TouchableOpacity>
       )}
     </View>
@@ -87,39 +107,34 @@ export default function ComorbidityChip({ name, onRemove, disabled = false }) {
 }
 
 const styles = StyleSheet.create({
-  chipContainer: {
+  chip: {
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 10,
+    paddingLeft: 14,
+    paddingRight: 8,
+    borderRadius: 9999,
+    marginRight: 8,
+    marginBottom: 8,
     alignSelf: 'flex-start',
-    maxWidth: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  iconWrapper: {
+  iconContainer: {
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  label: {
-    fontSize: 14,
+  chipText: {
+    fontSize: 13,
     fontWeight: '700',
-    marginRight: 10,
-    flexShrink: 1,
+    fontFamily: typography.fontFamily.heading,
   },
-  removeButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  closeButton: {
+    marginLeft: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)',
   },
 });

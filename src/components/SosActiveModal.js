@@ -9,7 +9,8 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { Siren, PhoneCall, XCircle, CheckCircle2, ShieldAlert } from 'lucide-react-native';
+import Icon from './Icon';
+import { colors, typography, shadows, rounded } from '../theme';
 
 export default function SosActiveModal({
   visible,
@@ -92,7 +93,7 @@ export default function SosActiveModal({
             ]}
           >
             <View style={styles.iconCircle}>
-              <Siren size={38} color="#FFFFFF" strokeWidth={2.4} />
+              <Icon name="emergency" size={38} color="#FFFFFF" />
             </View>
           </Animated.View>
 
@@ -107,19 +108,19 @@ export default function SosActiveModal({
           {/* Painel com cuidadores notificados */}
           <View style={styles.statusBox}>
             <View style={styles.statusRow}>
-              <CheckCircle2 size={16} color="#16A34A" />
+              <Icon name="check_circle" size={16} color={colors.successDark} />
               <Text style={styles.statusText}>
                 3 Cuidadores Familiares notificados via Push &amp; SMS
               </Text>
             </View>
             <View style={styles.statusRow}>
-              <CheckCircle2 size={16} color="#16A34A" />
+              <Icon name="check_circle" size={16} color={colors.successDark} />
               <Text style={styles.statusText}>
                 Horário do acionamento: <Text style={styles.bold}>{horaFormatada}</Text>
               </Text>
             </View>
             <View style={styles.statusRow}>
-              <ShieldAlert size={16} color="#DC2626" />
+              <Icon name="shield_alert" size={16} color={colors.secondaryCoral} />
               <Text style={styles.statusText}>
                 Status do alarme: <Text style={styles.boldRed}>{alarme?.status || 'DISPARADO'}</Text>
               </Text>
@@ -132,7 +133,7 @@ export default function SosActiveModal({
             onPress={handleLigarSamu}
             activeOpacity={0.85}
           >
-            <PhoneCall size={20} color="#FFFFFF" />
+            <Icon name="call" size={20} color="#FFFFFF" />
             <Text style={styles.samuButtonText}>Ligar para o SAMU (192)</Text>
           </TouchableOpacity>
 
@@ -142,7 +143,7 @@ export default function SosActiveModal({
             onPress={handleConfirmarCancelamento}
             activeOpacity={0.8}
           >
-            <XCircle size={18} color="#DC2626" />
+            <Icon name="cancel" size={18} color={colors.secondaryCoral} />
             <Text style={styles.cancelButtonText}>Cancelar Alarme (Falso Alarme)</Text>
           </TouchableOpacity>
 
@@ -163,7 +164,7 @@ export default function SosActiveModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 23, 83, 0.75)',
+    backgroundColor: 'rgba(7, 35, 105, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -171,15 +172,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 24,
     alignItems: 'center',
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
+    ...shadows.tier3,
   },
   iconWrapper: {
     marginBottom: 16,
@@ -188,109 +185,111 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.secondaryCoral,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
+    ...shadows.tier2,
   },
   alertTag: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#DC2626',
+    color: colors.secondaryCoral,
     letterSpacing: 0.8,
-    marginBottom: 4,
-    textTransform: 'uppercase',
+    marginBottom: 6,
+    fontFamily: typography.fontFamily.heading,
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#031753',
+    color: colors.primary,
     marginBottom: 8,
     textAlign: 'center',
+    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 13,
-    color: '#475569',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 18,
+    marginBottom: 20,
+    fontFamily: typography.fontFamily.body,
   },
   statusBox: {
     width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.lg,
     padding: 14,
-    marginBottom: 18,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginBottom: 8,
   },
   statusText: {
     fontSize: 12,
-    color: '#334155',
+    color: colors.onSurface,
     marginLeft: 8,
     flex: 1,
+    fontFamily: typography.fontFamily.body,
   },
   bold: {
     fontWeight: '700',
-    color: '#031753',
+    color: colors.primary,
   },
   boldRed: {
-    fontWeight: '700',
-    color: '#DC2626',
+    fontWeight: '800',
+    color: colors.secondaryCoral,
   },
   samuButton: {
     width: '100%',
+    minHeight: 48,
+    backgroundColor: colors.secondary,
+    borderRadius: rounded.full,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DC2626',
+    alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: 16,
-    marginBottom: 10,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    marginBottom: 12,
+    ...shadows.tier2,
   },
   samuButtonText: {
-    color: '#FFFFFF',
+    color: colors.onSecondary,
     fontSize: 15,
     fontWeight: '700',
     marginLeft: 8,
+    fontFamily: typography.fontFamily.heading,
   },
   cancelButton: {
     width: '100%',
+    minHeight: 48,
+    backgroundColor: colors.peach.background,
+    borderWidth: 1.5,
+    borderColor: colors.peach.border,
+    borderRadius: rounded.full,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
     paddingVertical: 12,
-    borderRadius: 16,
-    marginBottom: 10,
+    marginBottom: 14,
   },
   cancelButtonText: {
-    color: '#DC2626',
+    color: colors.secondaryCoral,
     fontSize: 14,
     fontWeight: '700',
-    marginLeft: 8,
+    marginLeft: 6,
+    fontFamily: typography.fontFamily.heading,
   },
   minimizeButton: {
     paddingVertical: 8,
   },
   minimizeText: {
-    color: '#64748B',
     fontSize: 12,
+    color: colors.textSecondary,
     fontWeight: '600',
     textDecorationLine: 'underline',
+    fontFamily: typography.fontFamily.body,
   },
 });

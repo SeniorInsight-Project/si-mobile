@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Sliders } from 'lucide-react-native';
+import Icon from './Icon';
+import { typography } from '../theme';
 
 export default function TolerancePicker({
   selectedTolerance = 15,
@@ -11,25 +12,18 @@ export default function TolerancePicker({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <View style={styles.iconContainer}>
-          <Sliders size={20} color="#0284C7" />
-        </View>
-
-        <View style={styles.textContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Janela de Tolerância</Text>
-            <View style={styles.activeTag}>
-              <View style={styles.greenDot} />
-              <Text style={styles.activeTagText}>Notificação Ativa</Text>
-            </View>
+        <View style={styles.headerLeft}>
+          <View style={styles.iconContainer}>
+            <Icon name="notifications" size={18} color="#B51C13" />
           </View>
-          <Text style={styles.subtitle}>
-            Tempo de tolerância antes de avisar os cuidadores e familiares.
-          </Text>
+          <View>
+            <Text style={styles.title}>Janela de Tolerância</Text>
+            <Text style={styles.subtitle}>Notificação Ativa</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.buttonsRow}>
+      <View style={styles.pillTray}>
         {options.map((mins) => {
           const isSelected = selectedTolerance === mins;
 
@@ -52,6 +46,10 @@ export default function TolerancePicker({
           );
         })}
       </View>
+
+      <Text style={styles.footerHint}>
+        O familiar será alertado se o remédio atrasar {selectedTolerance} min.
+      </Text>
     </View>
   );
 }
@@ -59,96 +57,79 @@ export default function TolerancePicker({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    shadowRadius: 16,
+    elevation: 3,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#E0F2FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 14,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF1EC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#031753',
-  },
-  activeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-    marginRight: 4,
-  },
-  activeTagText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 12,
+    fontWeight: '500',
     color: '#64748B',
-    lineHeight: 16,
+    fontFamily: typography.fontFamily.body,
   },
-  buttonsRow: {
+  pillTray: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    gap: 10,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 16,
+    padding: 6,
+    gap: 6,
+    marginBottom: 10,
   },
   pillButton: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 22,
-    paddingVertical: 10,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pillButtonActive: {
     backgroundColor: '#031753',
-    elevation: 3,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   pillButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
   },
   pillButtonTextActive: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  footerHint: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    textAlign: 'center',
+    fontFamily: typography.fontFamily.body,
   },
 });

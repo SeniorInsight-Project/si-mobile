@@ -1,130 +1,136 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import InputField from '../components/InputField';
-import PrimaryButton from '../components/PrimaryButton';
-import { ArrowLeft, Check } from 'lucide-react-native';
+import Icon from '../components/Icon';
+import { typography } from '../theme';
 
 export default function ForgotPasswordScreen({ onNavigate }) {
-  // Estado para controlar se o e-mail já foi enviado (alterna entre o formulário e a tela de sucesso)
-  const [emailEnviado, setEmailEnviado] = useState(false);
-  
-  // Estado para a contagem regressiva do reenvio (começa em 45 segundos, igual ao Figma)
   const [tempoRestante, setTempoRestante] = useState(45);
   const [podeReenviar, setPodeReenviar] = useState(false);
 
-  // Efeito para rodar a contagem regressiva quando a tela de sucesso estiver ativa
   useEffect(() => {
     let timer;
-    if (emailEnviado && tempoRestante > 0) {
+    if (tempoRestante > 0) {
       timer = setInterval(() => {
         setTempoRestante((prev) => prev - 1);
       }, 1000);
-    } else if (tempoRestante === 0) {
+    } else {
       setPodeReenviar(true);
     }
     return () => clearInterval(timer);
-  }, [emailEnviado, tempoRestante]);
+  }, [tempoRestante]);
 
   const handleReenviar = () => {
     setTempoRestante(45);
     setPodeReenviar(false);
-    // Aqui você chamaria a API de reenvio novamente
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper hasHeader={false}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          
-          {/* HEADER: Botão de Voltar e Logo */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => onNavigate('Login')} style={styles.iconButton}>
-              <ArrowLeft size={18} color="#031753" />
-            </TouchableOpacity>
-            
-            <Image 
-              source={require('../../assets/logoComTexto.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <View style={{ width: 40 }} />
+          {/* TOPO: Pílula Ambiente Seguro à direita (sem botão voltar) */}
+          <View style={styles.topRow}>
+            <View style={styles.safeBadge}>
+              <Icon name="shield_check" size={14} color="#2D418A" />
+              <Text style={styles.safeBadgeText}>Ambiente Seguro</Text>
+            </View>
           </View>
 
-          {/* TÍTULO E SUBTÍTULO */}
-          <Text style={styles.title}>Recuperar Senha</Text>
-          <Text style={styles.subtitle}>
-            Informe seu e-mail cadastrado para enviarmos as instruções de redefinição seguras.
-          </Text>
-
-          {/* ESTADO 1: FORMULÁRIO DE ENVIO */}
-          {!emailEnviado ? (
-            <View style={styles.formContainer}>
-              <InputField 
-                label="E-mail cadastrado" 
-                placeholder="exemplo@seniorinsight.com.br" 
-                icon="mail" 
-              />
-
-              <View style={styles.buttonWrapper}>
-                <PrimaryButton 
-                  title="Recuperar Senha  →" 
-                  onPress={() => setEmailEnviado(true)} // Simula o envio bem-sucedido
+          {/* ÍCONE CENTRALIZADO EM DUPLO CÍRCULO + TÍTULO */}
+          <View style={styles.heroCenter}>
+            <View style={styles.outerBrandCircle}>
+              <View style={styles.innerBrandCircle}>
+                <Image
+                  source={require('../../assets/logo.png')}
+                  style={styles.brandIconImage}
+                  resizeMode="contain"
                 />
               </View>
             </View>
-          ) : (
-            /* ESTADO 2: SUCESSO E CONTAGEM REGRESSIVA (FIEL AO FIGMA) */
-            <View style={styles.successContainer}>
-              
-              {/* Alerta Verde do Figma */}
-              <View style={styles.successAlert}>
-                <View style={styles.successIconCircle}>
-                  <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                </View>
-                <View style={styles.successTextWrapper}>
-                  <Text style={styles.successTitle}>Verifique sua caixa de entrada!</Text>
-                  <Text style={styles.successDescription}>
-                    Enviamos um link de recuperação para seu e-mail cadastrado.
-                  </Text>
-                </View>
-              </View>
 
-              {/* Campo de e-mail informativo (apenas leitura ou preenchido) */}
-              <InputField 
-                label="E-mail cadastrado" 
-                placeholder="exemplo@seniorinsight.com.br" 
-                icon="mail" 
-              />
+            <Text style={styles.title}>Recuperar Senha</Text>
+            <Text style={styles.subtitle}>
+              Informe seu e-mail cadastrado para enviarmos as instruções de
+              redefinição seguras.
+            </Text>
+          </View>
 
-              {/* Botão de reenviar com contagem regressiva dinâmica */}
-              <View style={styles.resendArea}>
-                <Text style={styles.resendText}>
-                  Não recebeu o e-mail?{' '}
-                  {podeReenviar ? (
-                    <TouchableOpacity onPress={handleReenviar}>
-                      <Text style={styles.resendLink}>Reenviar agora</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.timerText}>Reenviar em {tempoRestante}s</Text>
-                  )}
-                </Text>
-              </View>
-
+          {/* CARD DE FEEDBACK VERDE MENTA (#E8F8F0, rx=24) */}
+          <View style={styles.successAlert}>
+            <View style={styles.successIconCircle}>
+              <Icon name="check_circle" size={20} color="#059669" />
             </View>
-          )}
+            <View style={styles.successTextWrapper}>
+              <Text style={styles.successTitle}>
+                Verifique sua caixa de entrada!
+              </Text>
+              <Text style={styles.successDescription}>
+                Enviamos um link de recuperação para seu e-mail cadastrado.
+              </Text>
+            </View>
+          </View>
+
+          {/* CAMPO E-MAIL CADASTRADO + BOTÃO ENVIAR LINK */}
+          <View style={styles.formContainer}>
+            <InputField
+              label="E-mail cadastrado"
+              placeholder="exemplo@seniorinsight.com.br"
+              icon="mail"
+              variant="white"
+              keyboardType="email-address"
+            />
+
+            <TouchableOpacity
+              style={styles.sendLinkButton}
+              onPress={handleReenviar}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sendLinkText}>Enviar Link de Recuperação</Text>
+              <Icon name="arrow_forward" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* PÍLULA BRANCA FLUTUANTE DE REENVIO */}
+          <View style={styles.resendPillWrapper}>
+            <View style={styles.resendPill}>
+              <Icon name="schedule" size={15} color="#64748B" />
+              <Text style={styles.resendText}>Não recebeu o e-mail? </Text>
+              {podeReenviar ? (
+                <TouchableOpacity onPress={handleReenviar}>
+                  <Text style={styles.resendLink}>Reenviar agora</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.timerText}>
+                  Reenviar em {tempoRestante}s
+                </Text>
+              )}
+            </View>
+          </View>
 
           {/* RODAPÉ: Voltar ao Login */}
-          <TouchableOpacity style={styles.footerBack} onPress={() => onNavigate('Login')}>
-            <Text style={styles.footerBackText}>← Voltar ao Login</Text>
+          <TouchableOpacity
+            style={styles.footerBack}
+            onPress={() => onNavigate('Login')}
+          >
+            <Text style={styles.footerBackText}>Voltar ao Login</Text>
           </TouchableOpacity>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>
@@ -134,122 +140,181 @@ export default function ForgotPasswordScreen({ onNavigate }) {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 12,
     paddingBottom: 40,
-    alignItems: 'center',
   },
-  header: {
+  topRow: {
     width: '100%',
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  safeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBF5FF',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 9999,
+    gap: 6,
+  },
+  safeBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2D418A',
+    fontFamily: typography.fontFamily.heading,
+  },
+  heroCenter: {
+    alignItems: 'center',
     marginBottom: 24,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  outerBrandCircle: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: '#FFF1EC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  innerBrandCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  iconButtonText: {
-    fontSize: 18,
-    color: '#1E2E69',
-  },
-  logo: {
-    width: 140,
-    height: 40,
+  brandIconImage: {
+    width: 64,
+    height: 64,
   },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#1E2E69',
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#131E3D',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: 32,
-    paddingHorizontal: 10,
-    lineHeight: 20,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  buttonWrapper: {
-    marginTop: 10,
-  },
-  // ESTILOS DO ALERTA DE SUCESSO (VERDE)
-  successContainer: {
-    width: '100%',
+    lineHeight: 24,
+    paddingHorizontal: 8,
+    fontFamily: typography.fontFamily.body,
   },
   successAlert: {
     flexDirection: 'row',
-    backgroundColor: '#E6F4EA', // Verde clarinho do Figma
-    borderWidth: 1,
-    borderColor: '#CEEAD6',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
+    backgroundColor: '#E8F8F0',
+    borderRadius: 24,
+    padding: 20,
+    alignItems: 'flex-start',
     marginBottom: 24,
+    gap: 14,
   },
   successIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#137333', // Verde escuro
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  successCheck: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   successTextWrapper: {
     flex: 1,
   },
   successTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#137333',
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#003B26',
+    marginBottom: 4,
+    fontFamily: typography.fontFamily.heading,
   },
   successDescription: {
-    fontSize: 12,
-    color: '#137333',
-    lineHeight: 16,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#065F46',
+    lineHeight: 18,
+    fontFamily: typography.fontFamily.body,
   },
-  resendArea: {
+  formContainer: {
+    width: '100%',
+  },
+  sendLinkButton: {
+    width: '100%',
+    height: 60,
+    borderRadius: 9999,
+    backgroundColor: '#031753',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 6,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  sendLinkText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: typography.fontFamily.heading,
+  },
+  resendPillWrapper: {
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  resendPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    height: 42,
+    paddingHorizontal: 18,
+    borderRadius: 9999,
+    gap: 6,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   resendText: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '500',
     color: '#64748B',
+    fontFamily: typography.fontFamily.body,
   },
   timerText: {
-    fontWeight: 'bold',
-    color: '#1E2E69',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#031753',
+    fontFamily: typography.fontFamily.heading,
   },
   resendLink: {
-    fontWeight: 'bold',
-    color: '#E5534B',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#D83729',
+    fontFamily: typography.fontFamily.heading,
   },
   footerBack: {
-    marginTop: 10,
+    marginTop: 28,
     alignItems: 'center',
   },
   footerBackText: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#031753',
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
   },
 });

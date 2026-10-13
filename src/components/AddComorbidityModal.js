@@ -11,31 +11,20 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import {
-  Heart,
-  Droplet,
-  UserCheck,
-  Brain,
-  Zap,
-  Activity,
-  AlertTriangle,
-  Eye,
-  Stethoscope,
-  X,
-  Check,
-} from 'lucide-react-native';
+import Icon from './Icon';
+import { colors, typography, shadows, rounded } from '../theme';
 
 const SUGGESTIONS = [
-  { name: 'Hipertensão Arterial', icon: Heart, color: '#DC2626' },
-  { name: 'Diabetes Tipo 2', icon: Droplet, color: '#0284C7' },
-  { name: 'Osteoporose Leve', icon: UserCheck, color: '#16A34A' },
-  { name: 'Doença de Alzheimer', icon: Brain, color: '#7C3AED' },
-  { name: 'Doença de Parkinson', icon: Zap, color: '#D97706' },
-  { name: 'Insuficiência Cardíaca', icon: Activity, color: '#DC2626' },
-  { name: 'Dislipidemia (Colesterol)', icon: Activity, color: '#4F46E5' },
-  { name: 'Asma Crônica', icon: Activity, color: '#0891B2' },
-  { name: 'Alergia a Dipirona', icon: AlertTriangle, color: '#9333EA' },
-  { name: 'Glaucoma', icon: Eye, color: '#2563EB' },
+  { name: 'Hipertensão Arterial', icon: 'favorite', color: colors.peach.text },
+  { name: 'Diabetes Tipo 2', icon: 'water_drop', color: colors.sky.text },
+  { name: 'Osteoporose Leve', icon: 'walk', color: colors.mint.text },
+  { name: 'Doença de Alzheimer', icon: 'psychology', color: colors.lavender.text },
+  { name: 'Doença de Parkinson', icon: 'bolt', color: colors.amber.text },
+  { name: 'Insuficiência Cardíaca', icon: 'vital_signs', color: colors.secondaryCoral },
+  { name: 'Dislipidemia (Colesterol)', icon: 'vital_signs', color: colors.primaryNavy },
+  { name: 'Asma Crônica', icon: 'vital_signs', color: colors.sky.text },
+  { name: 'Alergia a Dipirona', icon: 'shield_alert', color: colors.lavender.text },
+  { name: 'Glaucoma', icon: 'visibility', color: colors.primaryNavy },
 ];
 
 export default function AddComorbidityModal({
@@ -106,18 +95,20 @@ export default function AddComorbidityModal({
               </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
+              <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Input manual */}
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
-              <Stethoscope size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+              <View style={{ marginRight: 8 }}>
+                <Icon name="stethoscope" size={18} color={colors.textMuted} />
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Ex: Arritmia, Artrose..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={inputText}
                 onChangeText={(text) => {
                   setInputText(text);
@@ -158,7 +149,6 @@ export default function AddComorbidityModal({
               const isAlreadyAdded = existingComorbidities.some(
                 (c) => c.trim().toLowerCase() === item.name.toLowerCase()
               );
-              const IconComp = item.icon;
 
               return (
                 <TouchableOpacity
@@ -172,7 +162,7 @@ export default function AddComorbidityModal({
                   activeOpacity={0.7}
                 >
                   <View style={styles.suggestionIconWrapper}>
-                    <IconComp size={15} color={item.color} />
+                    <Icon name={item.icon} size={15} color={item.color} />
                   </View>
                   <Text
                     style={[
@@ -183,7 +173,7 @@ export default function AddComorbidityModal({
                     {item.name}
                   </Text>
                   {isAlreadyAdded && (
-                    <Check size={14} color="#16A34A" strokeWidth={3} />
+                    <Icon name="check" size={14} color={colors.success} />
                   )}
                 </TouchableOpacity>
               );
@@ -198,143 +188,154 @@ export default function AddComorbidityModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    backgroundColor: 'rgba(7, 35, 105, 0.45)',
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(3, 23, 83, 0.45)',
   },
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   sheetContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 22,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: rounded.card,
+    borderTopRightRadius: rounded.card,
     paddingTop: 12,
+    paddingHorizontal: 20,
     paddingBottom: 36,
-    maxHeight: '75%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 10,
+    maxHeight: '80%',
+    ...shadows.tier3,
   },
   dragIndicator: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#CBD5E1',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
     alignSelf: 'center',
     marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 18,
   },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#031753',
+    color: colors.primary,
     marginBottom: 4,
+    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 12,
-    color: '#64748B',
-    lineHeight: 17,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    fontFamily: typography.fontFamily.body,
   },
   closeBtn: {
-    padding: 6,
-    marginLeft: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 8,
+    marginBottom: 8,
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    borderRadius: rounded.md,
     paddingHorizontal: 12,
-    height: 48,
-    marginRight: 10,
+    height: 50,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#031753',
-    fontWeight: '500',
+    color: colors.onSurface,
+    fontFamily: typography.fontFamily.body,
   },
   addButton: {
-    backgroundColor: '#031753',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    height: 48,
+    backgroundColor: colors.primaryNavy,
+    borderRadius: rounded.md,
+    height: 50,
+    paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: colors.onPrimary,
     fontWeight: '700',
+    fontSize: 13,
+    fontFamily: typography.fontFamily.heading,
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 12,
-    marginBottom: 12,
+    color: colors.errorBright,
     fontWeight: '600',
+    marginBottom: 10,
+    fontFamily: typography.fontFamily.body,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-    marginTop: 8,
-    marginBottom: 12,
-    letterSpacing: 0.3,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: 12,
+    marginBottom: 10,
+    fontFamily: typography.fontFamily.heading,
   },
   suggestionsScroll: {
     maxHeight: 260,
   },
   suggestionsContent: {
-    paddingBottom: 20,
+    gap: 8,
+    paddingBottom: 10,
   },
   suggestionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    marginBottom: 8,
+    backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    borderRadius: rounded.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   suggestionPillDisabled: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
-    opacity: 0.6,
+    backgroundColor: colors.surfaceContainerLow,
+    borderColor: colors.mint.border,
+    opacity: 0.8,
   },
   suggestionIconWrapper: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   suggestionText: {
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.onSurface,
+    fontFamily: typography.fontFamily.body,
   },
   suggestionTextDisabled: {
-    color: '#94A3B8',
+    color: colors.successDark,
+    fontWeight: '700',
   },
 });

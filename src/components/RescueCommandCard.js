@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { ShieldAlert, Siren, ChevronRight, Users } from 'lucide-react-native';
+import Icon from './Icon';
+import { typography } from '../theme';
 
 export default function RescueCommandCard({
   onAssumirResgate,
@@ -13,7 +14,7 @@ export default function RescueCommandCard({
       {/* Cabeçalho do Módulo */}
       <View style={styles.headerRow}>
         <View style={styles.shieldIconWrapper}>
-          <ShieldAlert size={20} color="#DC2626" />
+          <Icon name="shield_alert" size={18} color="#B51C13" />
         </View>
         <Text style={styles.cardTitle}>Comando de Resgate Familiar</Text>
       </View>
@@ -23,7 +24,7 @@ export default function RescueCommandCard({
         todos os familiares e os serviços médicos de emergência.
       </Text>
 
-      {/* Botão Primário "Estou Assumindo o Resgate" */}
+      {/* Botão Primário "Estou Assumindo o Resgate" (height 84, rx=32, #031753) */}
       <TouchableOpacity
         style={[
           styles.rescueButton,
@@ -33,12 +34,14 @@ export default function RescueCommandCard({
         activeOpacity={0.85}
       >
         <View style={styles.rescueIconCircle}>
-          <Siren size={22} color="#FFFFFF" strokeWidth={2.5} />
+          <Icon name="emergency" size={22} color="#FFFFFF" />
         </View>
 
         <View style={styles.rescueButtonTexts}>
           <Text style={styles.rescueButtonTitle}>
-            {resgateAtivo ? 'Resgate em Andamento' : 'Estou Assumindo o Resgate'}
+            {resgateAtivo
+              ? 'Resgate em Andamento'
+              : 'Estou Assumindo o\nResgate'}
           </Text>
           <Text style={styles.rescueButtonSubtitle}>
             {resgateAtivo
@@ -47,39 +50,34 @@ export default function RescueCommandCard({
           </Text>
         </View>
 
-        <ChevronRight size={20} color="#FFFFFF" />
+        <Icon name="chevron_right" size={20} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Rodapé com Cuidadores Online e Atalho de Contatos */}
-      <View style={styles.footerRow}>
-        <View style={styles.caregiversInfo}>
-          <Text style={styles.redeAtentaLabel}>Rede Atenta:</Text>
-          <View style={styles.avatarGroup}>
-            <View style={[styles.avatarDot, { backgroundColor: '#EBF5FF' }]}>
-              <Text style={[styles.avatarText, { color: '#1E40AF' }]}>CA</Text>
-            </View>
-            <View style={[styles.avatarDot, { backgroundColor: '#E6F4EA', marginLeft: -8 }]}>
-              <Text style={[styles.avatarText, { color: '#137333' }]}>RO</Text>
-            </View>
-            <View style={[styles.avatarDot, { backgroundColor: '#F3E8FF', marginLeft: -8 }]}>
-              <Text style={[styles.avatarText, { color: '#6B21A8' }]}>DR</Text>
-            </View>
-          </View>
-          <Text style={styles.onlineStatusText}>3 Cuidadores Online</Text>
-        </View>
-      </View>
-
-      {/* Atalho para Lista de Socorristas & Contatos de Emergência */}
+      {/* Caregivers Quick Presence Row (rx=32, #F5F7FA) */}
       <TouchableOpacity
-        style={styles.contactsShortcut}
+        style={styles.presencePillRow}
         onPress={onVerContatos}
         activeOpacity={0.8}
       >
-        <Users size={15} color="#031753" />
-        <Text style={styles.contactsShortcutText}>
-          Lista de Socorristas &amp; Contatos (3)
-        </Text>
-        <ChevronRight size={14} color="#64748B" />
+        <View style={styles.presenceLeft}>
+          <Text style={styles.redeAtentaLabel}>Rede Atenta:</Text>
+          <View style={styles.avatarGroup}>
+            <Image
+              source={require('../../assets/figma/avatar-caregiver-1.jpg')}
+              style={styles.caregiverAvatar}
+            />
+            <Image
+              source={require('../../assets/figma/avatar-caregiver-2.jpg')}
+              style={[styles.caregiverAvatar, styles.avatarOverlap]}
+            />
+            <Image
+              source={require('../../assets/figma/avatar-caregiver-3.jpg')}
+              style={[styles.caregiverAvatar, styles.avatarOverlap]}
+            />
+          </View>
+        </View>
+
+        <Text style={styles.onlineStatusText}>3 Cuidadores Online</Text>
       </TouchableOpacity>
     </View>
   );
@@ -88,91 +86,99 @@ export default function RescueCommandCard({
 const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 32,
+    padding: 20,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 4,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   shieldIconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFEBE7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#031753',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   cardDescription: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: '#64748B',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 16,
+    fontFamily: typography.fontFamily.body,
   },
   rescueButton: {
-    backgroundColor: '#0A194E', // Azul escuro profundo do template
-    borderRadius: 20,
+    backgroundColor: '#031753',
+    borderRadius: 32,
+    minHeight: 84,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    shadowColor: '#0A194E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    marginBottom: 16,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
     elevation: 5,
   },
   rescueButtonActive: {
-    backgroundColor: '#991B1B', // Vermelho quando ativo
+    backgroundColor: '#B51C13',
   },
   rescueIconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#D83729',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   rescueButtonTexts: {
     flex: 1,
+    paddingRight: 8,
   },
   rescueButtonTitle: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 2,
+    lineHeight: 23,
+    marginBottom: 3,
+    fontFamily: typography.fontFamily.heading,
   },
   rescueButtonSubtitle: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '500',
+    color: '#B7C4FF',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
+    fontFamily: typography.fontFamily.body,
   },
-  footerRow: {
+  presencePillRow: {
+    height: 44,
+    borderRadius: 32,
+    backgroundColor: '#F5F7FA',
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
-  caregiversInfo: {
+  presenceLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -181,41 +187,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '600',
     marginRight: 8,
+    fontFamily: typography.fontFamily.body,
   },
   avatarGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
   },
-  avatarDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
+  caregiverAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  avatarText: {
-    fontSize: 9,
-    fontWeight: '700',
+  avatarOverlap: {
+    marginLeft: -8,
   },
   onlineStatusText: {
     fontSize: 12,
-    color: '#16A34A',
+    color: '#059669',
     fontWeight: '700',
-  },
-  contactsShortcut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 10,
-    justifyContent: 'space-between',
-  },
-  contactsShortcutText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#031753',
-    flex: 1,
-    marginLeft: 6,
+    fontFamily: typography.fontFamily.heading,
   },
 });

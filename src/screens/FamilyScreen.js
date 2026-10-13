@@ -1,70 +1,95 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
+  Image,
   ScrollView,
   Alert,
 } from 'react-native';
-import {
-  Users,
-  Shield,
-  Heart,
-  Phone,
-  ChevronRight,
-  UserPlus,
-  ShieldAlert,
-  Clock,
-  CheckCircle2,
-} from 'lucide-react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
+import Icon from '../components/Icon';
+import { typography } from '../theme';
 
-const FAMILIARES_PADRAO = [
+const MEMBROS_REDE = [
   {
     id: '1',
     nome: 'Carlos Silva',
-    parentesco: 'Filho • Cuidador Principal',
-    status: 'Online agora',
-    corStatus: '#16A34A',
-    avatar: 'CS',
-    corAvatar: '#E0F2FE',
-    corTexto: '#0284C7',
-    telefone: '(11) 98765-4321',
-    permissoes: 'Acesso Total',
+    subtitulo: 'Filho • A 1.2 km de distância',
+    categoria: 'Proximos',
+    badgeTexto: 'Plantão',
+    badgeBg: '#E8F8F0',
+    badgeCor: '#003B26',
+    online: true,
+    avatar: require('../../assets/figma/avatar-carlos.jpg'),
+    infoIcon: 'notifications',
+    infoTexto: 'Recebe alertas SOS críticos',
+    infoDestaque: true,
+    acoes: ['call_primary', 'whatsapp_primary', 'history'],
   },
   {
     id: '2',
     nome: 'Roberta Santos',
-    parentesco: 'Filha • Cuidadora Secundária',
-    status: 'Visto há 15 min',
-    corStatus: '#64748B',
-    avatar: 'RS',
-    corAvatar: '#FCE7F3',
-    corTexto: '#BE185D',
-    telefone: '(11) 97654-3210',
-    permissoes: 'Acompanhamento e SOS',
+    subtitulo: 'Filha • A 3.8 km de distância',
+    categoria: 'Proximos',
+    badgeTexto: 'Família',
+    badgeBg: '#EBF5FF',
+    badgeCor: '#2D418A',
+    online: true,
+    avatar: require('../../assets/figma/avatar-roberta.jpg'),
+    infoIcon: 'medication',
+    infoTexto: 'Notificações de medicação ativas',
+    infoDestaque: false,
+    acoes: ['call', 'whatsapp'],
   },
   {
     id: '3',
-    nome: 'Dr. Roberto Silva',
-    parentesco: 'Médico Geriatra',
-    status: 'Disponível em horário comercial',
-    corStatus: '#0D9488',
-    avatar: 'DR',
-    corAvatar: '#E6FFFA',
-    corTexto: '#0D9488',
-    telefone: '(11) 91234-5678',
-    permissoes: 'Relatórios e Emergência',
+    nome: 'Lucas Silva',
+    subtitulo: 'Neto • A 8.5 km de distância',
+    categoria: 'Todos',
+    badgeTexto: 'Apoio',
+    badgeBg: '#F2F4F7',
+    badgeCor: '#64748B',
+    online: false,
+    avatar: require('../../assets/figma/avatar-lucas.jpg'),
+    infoIcon: 'schedule',
+    infoTexto: 'Contato secundário de fim de semana',
+    infoDestaque: false,
+    acoes: ['call', 'whatsapp'],
+  },
+  {
+    id: '4',
+    nome: 'Enfª Juliana Costa',
+    subtitulo: 'Cuidadora Diurna • Turno Seg–Sex',
+    categoria: 'Saude',
+    badgeTexto: 'Especialista',
+    badgeBg: '#FFEBE7',
+    badgeCor: '#B51C13',
+    online: true,
+    avatar: require('../../assets/figma/avatar-juliana.jpg'),
+    infoIcon: 'assignment',
+    infoTexto: 'Acesso ao prontuário e rotina',
+    infoDestaque: false,
+    acoes: ['call', 'prontuario'],
   },
 ];
 
 export default function FamilyScreen({ onNavigate }) {
+  const [filtroAtivo, setFiltroAtivo] = useState('Todos');
+
+  const membrosFiltrados = MEMBROS_REDE.filter((m) => {
+    if (filtroAtivo === 'Todos') return true;
+    if (filtroAtivo === 'Proximos') return m.categoria === 'Proximos';
+    if (filtroAtivo === 'Saude') return m.categoria === 'Saude';
+    return true;
+  });
+
   const handleConvidar = () => {
     Alert.alert(
-      'Convidar Cuidador',
+      'Convidar Novo Membro',
       'Um link de convite seguro foi gerado para inclusão de novos familiares na rede de Dona Maria.'
     );
   };
@@ -72,89 +97,322 @@ export default function FamilyScreen({ onNavigate }) {
   return (
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
-      <AppHeader title="Rede Familiar" subtitle="CUIDADO ATIVO" onNavigate={onNavigate} />
+      <AppHeader
+        title="Família Perfil"
+        subtitle="CUIDADO ATIVO"
+        onNavigate={onNavigate}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* BANNER DE STATUS DA REDE */}
-        <View style={styles.summaryBanner}>
-          <View style={styles.summaryIconBadge}>
-            <Users size={22} color="#0284C7" />
-          </View>
-          <View style={styles.summaryTexts}>
-            <Text style={styles.summaryTitle}>Círculo de Cuidado Ativo</Text>
-            <Text style={styles.summarySubtitle}>
-              3 cuidadores conectados e sincronizados em tempo real com os sinais vitais e alarmes de Dona Maria.
-            </Text>
-          </View>
-        </View>
-
-        {/* ATALHO PARA ESCALONAMENTO DE EMERGÊNCIA (HU35) */}
-        <TouchableOpacity
-          style={styles.emergencyShortcutCard}
-          onPress={() => onNavigate && onNavigate('EmergencyContacts')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.emergencyShortcutLeft}>
-            <View style={styles.shortcutIconBadge}>
-              <ShieldAlert size={20} color="#DC2626" />
+        {/* CARD 1: RESUMO DA REDE DE CUIDADO FAMILIAR (rx=32, #FFFFFF) */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTopRow}>
+            <View style={styles.circleConnectedRow}>
+              <View style={styles.connectedDot} />
+              <Text style={styles.circleConnectedLabel}>CÍRCULO CONECTADO</Text>
             </View>
-            <View>
-              <Text style={styles.shortcutTitle}>Escalonamento de Socorro (SOS)</Text>
-              <Text style={styles.shortcutSubtitle}>
-                Definir prioridades de discagem e contatos imediatos
+            <View style={styles.activeMembersPill}>
+              <Text style={styles.activeMembersText}>4 Membros Ativos</Text>
+            </View>
+          </View>
+
+          <Text style={styles.summaryTitle}>Rede de Cuidado Familiar</Text>
+          <Text style={styles.summarySubtitle}>
+            Pessoas autorizadas para alertas SOS e acompanhamento diário de Dona
+            Maria.
+          </Text>
+
+          {/* Caixa Azul de Plantão Atual (#EBF5FF, rx=20) */}
+          <TouchableOpacity
+            style={styles.onDutyBox}
+            onPress={() => onNavigate && onNavigate('ElderlyProfile')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.onDutyIconCircle}>
+              <Icon name="shield_check" size={18} color="#031753" />
+            </View>
+            <View style={styles.onDutyTexts}>
+              <Text style={styles.onDutyTitle}>
+                Plantão Atual: Carlos Silva
+              </Text>
+              <Text style={styles.onDutySub}>
+                Resposta rápida estimada em 4 min
               </Text>
             </View>
-          </View>
-          <ChevronRight size={18} color="#94A3B8" />
-        </TouchableOpacity>
-
-        {/* LISTA DE MEMBROS DA REDE */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Membros Conectados</Text>
-          <TouchableOpacity
-            style={styles.inviteButton}
-            onPress={handleConvidar}
-            activeOpacity={0.8}
-          >
-            <UserPlus size={14} color="#031753" style={{ marginRight: 4 }} />
-            <Text style={styles.inviteButtonText}>Convidar</Text>
           </TouchableOpacity>
         </View>
 
-        {FAMILIARES_PADRAO.map((membro) => (
-          <View key={membro.id} style={styles.memberCard}>
-            <View style={styles.memberHeader}>
-              <View style={[styles.avatarCircle, { backgroundColor: membro.corAvatar }]}>
-                <Text style={[styles.avatarText, { color: membro.corTexto }]}>
-                  {membro.avatar}
-                </Text>
+        {/* PÍLULAS DE FILTRO */}
+        <View style={styles.filtersRow}>
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filtroAtivo === 'Todos' && styles.filterPillActive,
+            ]}
+            onPress={() => setFiltroAtivo('Todos')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                filtroAtivo === 'Todos' && styles.filterPillTextActive,
+              ]}
+            >
+              Todos (4)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filtroAtivo === 'Proximos' && styles.filterPillActive,
+            ]}
+            onPress={() => setFiltroAtivo('Proximos')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                filtroAtivo === 'Proximos' && styles.filterPillTextActive,
+              ]}
+            >
+              Próximos (2)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filtroAtivo === 'Saude' && styles.filterPillActive,
+            ]}
+            onPress={() => setFiltroAtivo('Saude')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                filtroAtivo === 'Saude' && styles.filterPillTextActive,
+              ]}
+            >
+              Saúde (1)
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* LISTA DE CARDS DOS MEMBROS */}
+        <View style={styles.membersList}>
+          {membrosFiltrados.map((membro) => (
+            <View key={membro.id} style={styles.memberCard}>
+              {/* Topo do Card: Avatar + Nome + Badge de Papel */}
+              <View style={styles.memberHeaderRow}>
+                <View style={styles.memberHeaderLeft}>
+                  <View style={styles.avatarWrapper}>
+                    <Image
+                      source={membro.avatar}
+                      style={[
+                        styles.memberAvatar,
+                        {
+                          borderColor: membro.online ? '#E8F8F0' : '#F2F4F7',
+                        },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.presenceDot,
+                        {
+                          backgroundColor: membro.online
+                            ? '#10B981'
+                            : '#CBD5E1',
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <View style={styles.memberTexts}>
+                    <Text style={styles.memberName}>{membro.nome}</Text>
+                    <Text style={styles.memberSub}>{membro.subtitulo}</Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.roleBadge,
+                    { backgroundColor: membro.badgeBg },
+                  ]}
+                >
+                  <Text
+                    style={[styles.roleBadgeText, { color: membro.badgeCor }]}
+                  >
+                    {membro.badgeTexto}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.memberInfo}>
-                <Text style={styles.memberName}>{membro.nome}</Text>
-                <Text style={styles.memberRole}>{membro.parentesco}</Text>
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: membro.corStatus }]} />
-                  <Text style={styles.statusText}>{membro.status}</Text>
+              {/* Barra Inferior Cinza (#F2F4F7, rx=20) com Ações Rápidas */}
+              <View style={styles.memberBottomBar}>
+                <View style={styles.memberInfoLeft}>
+                  <Icon
+                    name={membro.infoIcon}
+                    size={15}
+                    color={membro.infoDestaque ? '#031753' : '#64748B'}
+                  />
+                  <Text
+                    style={[
+                      styles.memberInfoText,
+                      membro.infoDestaque && styles.memberInfoTextHighlight,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {membro.infoTexto}
+                  </Text>
+                </View>
+
+                <View style={styles.memberActionsRight}>
+                  {membro.acoes.map((acao) => {
+                    if (acao === 'call_primary') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={[
+                            styles.actionCircle,
+                            { backgroundColor: '#10B981' },
+                          ]}
+                          onPress={() =>
+                            Alert.alert(
+                              'Ligar',
+                              `Chamando ${membro.nome}...`
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="call" size={16} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (acao === 'whatsapp_primary') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={[
+                            styles.actionCircle,
+                            { backgroundColor: '#2D418A' },
+                          ]}
+                          onPress={() =>
+                            Alert.alert(
+                              'WhatsApp',
+                              `Abrindo conversa com ${membro.nome}...`
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="chat" size={16} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (acao === 'history') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={styles.actionCircleWhite}
+                          onPress={() =>
+                            Alert.alert(
+                              'Histórico de Plantão',
+                              `Exibindo registros de atendimento de ${membro.nome}.`
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="history" size={16} color="#031753" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (acao === 'call') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={styles.actionCircleWhite}
+                          onPress={() =>
+                            Alert.alert(
+                              'Ligar',
+                              `Chamando ${membro.nome}...`
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="call" size={16} color="#059669" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (acao === 'whatsapp') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={styles.actionCircleWhite}
+                          onPress={() =>
+                            Alert.alert(
+                              'WhatsApp',
+                              `Abrindo conversa com ${membro.nome}...`
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="chat" size={16} color="#2D418A" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (acao === 'prontuario') {
+                      return (
+                        <TouchableOpacity
+                          key={acao}
+                          style={styles.actionCircleWhite}
+                          onPress={() =>
+                            onNavigate && onNavigate('ElderlyProfile')
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="assignment" size={16} color="#031753" />
+                        </TouchableOpacity>
+                      );
+                    }
+                    return null;
+                  })}
                 </View>
               </View>
             </View>
+          ))}
+        </View>
 
-            <View style={styles.memberDivider} />
-
-            <View style={styles.memberFooter}>
-              <View style={styles.permissionBadge}>
-                <Shield size={12} color="#64748B" style={{ marginRight: 4 }} />
-                <Text style={styles.permissionText}>{membro.permissoes}</Text>
-              </View>
-
-              <Text style={styles.phoneText}>{membro.telefone}</Text>
-            </View>
+        {/* CARD DE SEQUÊNCIA DE CHAMADA SOS (#FFF1EC, rx=28) */}
+        <TouchableOpacity
+          style={styles.sosSequenceCard}
+          onPress={() => onNavigate && onNavigate('EmergencyContacts')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.sosSequenceIconCircle}>
+            <Icon name="crisis_alert" size={18} color="#B51C13" />
           </View>
-        ))}
+          <View style={styles.sosSequenceTexts}>
+            <Text style={styles.sosSequenceTitle}>
+              Sequência de Chamada SOS
+            </Text>
+            <Text style={styles.sosSequenceSub}>
+              Em caso de alarme: Carlos → Roberta → Lucas → SAMU 192
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* BOTÃO PRIMÁRIO: CONVIDAR NOVO MEMBRO (#D83729, height 56, rx=28) */}
+        <TouchableOpacity
+          style={styles.inviteCtaButton}
+          onPress={handleConvidar}
+          activeOpacity={0.85}
+        >
+          <Icon name="person_add" size={20} color="#FFFFFF" />
+          <Text style={styles.inviteCtaText}>Convidar Novo Membro</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
@@ -165,195 +423,311 @@ export default function FamilyScreen({ onNavigate }) {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 95,
+    paddingBottom: 105,
   },
-  summaryBanner: {
-    flexDirection: 'row',
+  summaryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 32,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  summaryIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E0F2FE',
-    justifyContent: 'center',
+  summaryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginRight: 14,
+    marginBottom: 8,
   },
-  summaryTexts: {
-    flex: 1,
+  circleConnectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  connectedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  circleConnectedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+    letterSpacing: 0.4,
+    fontFamily: typography.fontFamily.heading,
+  },
+  activeMembersPill: {
+    backgroundColor: '#E8F8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  activeMembersText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#003B26',
+    fontFamily: typography.fontFamily.heading,
   },
   summaryTitle: {
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#031753',
-    marginBottom: 2,
+    color: '#131E3D',
+    marginBottom: 4,
+    fontFamily: typography.fontFamily.heading,
   },
   summarySubtitle: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: '#64748B',
-    lineHeight: 17,
+    lineHeight: 19,
+    marginBottom: 16,
+    fontFamily: typography.fontFamily.body,
   },
-  emergencyShortcutCard: {
+  onDutyBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBF5FF',
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
+  },
+  onDutyIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  onDutyTexts: {
+    flex: 1,
+  },
+  onDutyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#031753',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
+  },
+  onDutySub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E2E69',
+    fontFamily: typography.fontFamily.body,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterPill: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 9999,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  filterPillActive: {
+    backgroundColor: '#031753',
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
+  },
+  filterPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  membersList: {
+    gap: 14,
+    marginBottom: 16,
+  },
+  memberCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    padding: 16,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  memberHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  memberHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  memberAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+  },
+  presenceDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  memberTexts: {
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#131E3D',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
+  },
+  memberSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.body,
+  },
+  roleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    fontFamily: typography.fontFamily.heading,
+  },
+  memberBottomBar: {
+    height: 52,
+    backgroundColor: '#F2F4F7',
+    borderRadius: 20,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
   },
-  emergencyShortcutLeft: {
+  memberInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 8,
+    paddingRight: 8,
   },
-  shortcutIconBadge: {
+  memberInfoText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    flex: 1,
+    fontFamily: typography.fontFamily.body,
+  },
+  memberInfoTextHighlight: {
+    color: '#131E3D',
+    fontWeight: '700',
+  },
+  memberActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionCircleWhite: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  shortcutTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#991B1B',
-  },
-  shortcutSubtitle: {
-    fontSize: 11,
-    color: '#7F1D1D',
-    marginTop: 2,
-  },
-  sectionHeaderRow: {
+  sosSequenceCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#031753',
-  },
-  inviteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  inviteButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#031753',
-  },
-  memberCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF1EC',
+    borderRadius: 28,
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 2,
+    gap: 12,
+    marginBottom: 16,
   },
-  memberHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  sosSequenceIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  memberInfo: {
+  sosSequenceTexts: {
     flex: 1,
   },
-  memberName: {
-    fontSize: 14,
+  sosSequenceTitle: {
+    fontSize: 13,
     fontWeight: '800',
-    color: '#031753',
+    color: '#B51C13',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
   },
-  memberRole: {
+  sosSequenceSub: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  memberDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12,
-  },
-  memberFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  permissionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  permissionText: {
-    fontSize: 11,
-    color: '#475569',
     fontWeight: '600',
-  },
-  phoneText: {
-    fontSize: 12,
     color: '#64748B',
-    fontWeight: '500',
+    lineHeight: 16,
+    fontFamily: typography.fontFamily.body,
+  },
+  inviteCtaButton: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#D83729',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#D83729',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  inviteCtaText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    fontFamily: typography.fontFamily.heading,
   },
 });

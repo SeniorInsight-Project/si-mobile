@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,27 +7,15 @@ import {
   Image,
   ScrollView,
   Alert,
-  Linking,
 } from 'react-native';
-import {
-  Heart,
-  Bell,
-  Wifi,
-  Zap,
-  Activity,
-  CheckCircle2,
-  MapPin,
-  ShieldCheck,
-  Crosshair,
-  Footprints,
-  Droplet,
-  Pill,
-} from 'lucide-react-native';
+import Icon from '../components/Icon';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
+import LiveGpsMap from '../components/LiveGpsMap';
 import { atualizarStatusAlarme } from '../services/alarmeSosService';
+import { typography } from '../theme';
 
 export default function HomeScreen({ onNavigate }) {
   const [resgateAtivo, setResgateAtivo] = useState(false);
@@ -58,14 +46,18 @@ export default function HomeScreen({ onNavigate }) {
                 'Você assumiu o socorro de Dona Maria. Escolha a ação imediata:',
                 [
                   {
-                    text: 'Ligar para Dona Maria',
-                    onPress: () => Linking.openURL('tel:11987654321'),
+                    text: 'Ligar para o Idoso',
+                    onPress: () => {
+                      Alert.alert('Discador', 'Chamando Dona Maria...');
+                    },
                   },
                   {
-                    text: 'Ligar para o SAMU 192',
-                    onPress: () => Linking.openURL('tel:192'),
+                    text: 'Ligar para SAMU (192)',
+                    onPress: () => {
+                      Alert.alert('Emergência', 'Disque 192 no seu celular.');
+                    },
                   },
-                  { text: 'OK', style: 'cancel' },
+                  { text: 'Ok', style: 'cancel' },
                 ]
               );
             },
@@ -74,24 +66,27 @@ export default function HomeScreen({ onNavigate }) {
       );
     } else {
       Alert.alert(
-        'Finalizar Protocolo de Resgate?',
-        'Deseja marcar o atendimento como concluído e normalizar o status do monitoramento?',
+        'Concluir Resgate',
+        'Deseja encerrar este protocolo de emergência?',
         [
-          { text: 'Continuar em Resgate', style: 'cancel' },
+          { text: 'Manter Ativo', style: 'cancel' },
           {
-            text: 'Concluir Resgate',
+            text: 'Encerrar Resgate',
             style: 'destructive',
             onPress: async () => {
               if (alarmeIdAtivo) {
                 await atualizarStatusAlarme(
                   alarmeIdAtivo,
-                  'RESOLVIDO',
-                  'Atendimento concluído com sucesso pelo cuidador familiar.'
+                  'ENCERRADO',
+                  'Resgate concluído com sucesso pelo cuidador.'
                 );
               }
               setResgateAtivo(false);
               setAlarmeIdAtivo(null);
-              Alert.alert('Protocolo Finalizado', 'O status de Dona Maria retornou para Estável & Seguro.');
+              Alert.alert(
+                'Resgate Encerrado',
+                'O status de Dona Maria voltou ao normal.'
+              );
             },
           },
         ]
@@ -108,18 +103,26 @@ export default function HomeScreen({ onNavigate }) {
   return (
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
-      <AppHeader title="Painel Familiar" onNavigate={onNavigate} />
+      <AppHeader
+        title="Início Monitoramento"
+        subtitle="CUIDADO ATIVO"
+        onNavigate={onNavigate}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARD DO IDOSO MONITORADO */}
-        <View style={styles.elderlySummaryCard}>
+        {/* CARD 1: RESUMO DO IDOSO MONITORADO (rx=32, #FFFFFF) */}
+        <TouchableOpacity
+          style={styles.elderlySummaryCard}
+          onPress={() => onNavigate && onNavigate('ElderlyProfile')}
+          activeOpacity={0.9}
+        >
           <View style={styles.elderlyLeft}>
             <View style={styles.avatarContainer}>
               <Image
-                source={require('../../assets/idoso.png')}
+                source={require('../../assets/figma/avatar-dona-maria-sm.jpg')}
                 style={styles.elderlyAvatar}
               />
               <View style={styles.onlineBadgeDot} />
@@ -136,38 +139,48 @@ export default function HomeScreen({ onNavigate }) {
             </View>
           </View>
 
-          {/* Badges de Conexão e Bateria */}
+          {/* Badges empilhados verticalmente à direita conforme o .fig */}
           <View style={styles.elderlyBadgesRight}>
-            <View style={styles.telemetryPillTeal}>
-              <Wifi size={12} color="#0D9488" style={{ marginRight: 4 }} />
-              <Text style={styles.telemetryTealText}>Conectado</Text>
+            <View style={styles.telemetryPill}>
+              <Icon name="wifi" size={13} color="#10B981" />
+              <Text style={styles.telemetryText}>Conectado</Text>
             </View>
-            <View style={[styles.telemetryPillGreen, { marginTop: 6 }]}>
-              <Zap size={12} color="#16A34A" style={{ marginRight: 4 }} />
-              <Text style={styles.telemetryGreenText}>88%</Text>
+            <View style={styles.telemetryPill}>
+              <Icon name="bolt" size={13} color="#10B981" />
+              <Text style={styles.telemetryText}>88%</Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* SEMÁFORO DO BEM-ESTAR (TEMPO REAL) */}
+        {/* CARD 2: SEMÁFORO DO BEM-ESTAR (#E8F8F0, rx=32) */}
         <View style={styles.semaforoCard}>
+          <View style={styles.semaforoGlow} />
+
           <View style={styles.semaforoHeader}>
             <View style={styles.semaforoTitleGroup}>
               <View style={styles.semaforoIconBadge}>
-                <Activity size={16} color="#059669" />
+                <Icon name="vital_signs" size={18} color="#003B26" />
               </View>
               <Text style={styles.semaforoTitle}>Semáforo do Bem-Estar</Text>
             </View>
-            <Text style={styles.tempoRealTag}>TEMPO REAL</Text>
+            <View style={styles.tempoRealBadge}>
+              <Text style={styles.tempoRealTag}>TEMPO REAL</Text>
+            </View>
           </View>
 
-          {/* Card interno de status */}
+          {/* Card branco interno: Ícone verde duplo à esquerda + textos à direita */}
           <View style={styles.statusInnerCard}>
-            <View style={styles.statusCheckCircle}>
-              <CheckCircle2 size={24} color="#10B981" />
+            <View style={styles.statusOuterCircle}>
+              <View style={styles.statusInnerCircle}>
+                <Icon name="check" size={20} color="#FFFFFF" />
+              </View>
             </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.statusTagLabel}>STATUS ATUAL</Text>
+
+            <View style={styles.statusTextsCol}>
+              <View style={styles.statusTagRow}>
+                <View style={styles.statusLiveDot} />
+                <Text style={styles.statusTagLabel}>STATUS ATUAL</Text>
+              </View>
               <Text style={styles.statusMainLabel}>
                 {resgateAtivo ? 'Alerta em Atendimento' : 'Estável & Seguro'}
               </Text>
@@ -183,20 +196,18 @@ export default function HomeScreen({ onNavigate }) {
           <View style={styles.semaforoSubCards}>
             <View style={styles.semaforoSubCard}>
               <View style={styles.subCardHeader}>
-                <Heart size={14} color="#10B981" />
+                <Icon name="favorite" size={14} color="#D83729" />
                 <Text style={styles.subCardTitle}>Batimentos</Text>
               </View>
               <View style={styles.subCardValueRow}>
-                <Text style={styles.subCardValue}>74 bpm</Text>
-                <View style={styles.normalBadge}>
-                  <Text style={styles.normalBadgeText}>N</Text>
-                </View>
+                <Text style={styles.subCardValue}>74</Text>
+                <Text style={styles.subCardUnit}>bpm</Text>
               </View>
             </View>
 
             <View style={styles.semaforoSubCard}>
               <View style={styles.subCardHeader}>
-                <Pill size={14} color="#10B981" />
+                <Icon name="schedule" size={14} color="#2D418A" />
                 <Text style={styles.subCardTitle}>Último Remédio</Text>
               </View>
               <View style={styles.subCardValueRow}>
@@ -207,12 +218,12 @@ export default function HomeScreen({ onNavigate }) {
           </View>
         </View>
 
-        {/* LOCALIZAÇÃO EM TEMPO REAL */}
+        {/* CARD 3: LOCALIZAÇÃO EM TEMPO REAL (rx=32, #FFFFFF) */}
         <View style={styles.mapCard}>
           <View style={styles.mapHeader}>
             <View style={styles.mapTitleGroup}>
               <View style={styles.mapPinBadge}>
-                <MapPin size={16} color="#031753" />
+                <Icon name="location_on" size={18} color="#031753" />
               </View>
               <Text style={styles.mapTitle}>Localização em Tempo Real</Text>
             </View>
@@ -222,100 +233,76 @@ export default function HomeScreen({ onNavigate }) {
             </View>
           </View>
 
-          {/* Mockup visual de Mapa em estilo vetor com raio de segurança */}
-          <View style={styles.mapVisualContainer}>
-            {/* Linhas de rua decorativas */}
-            <View style={styles.mapStreetH1} />
-            <View style={styles.mapStreetH2} />
-            <View style={styles.mapStreetV1} />
-            <View style={styles.mapStreetV2} />
-
-            {/* Perímetro de segurança circular tracejado */}
-            <View style={styles.safeZoneCircle} />
-
-            {/* Pin de localização do idoso */}
-            <View style={styles.elderlyMapPin}>
-              <Image
-                source={require('../../assets/idoso.png')}
-                style={styles.elderlyPinAvatar}
-              />
-            </View>
-
-            {/* Badge de Endereço sobre o mapa */}
-            <View style={styles.mapAddressBar}>
-              <View style={styles.addressLeft}>
-                <ShieldCheck size={18} color="#16A34A" />
-                <View style={{ marginLeft: 8, flex: 1 }}>
-                  <Text style={styles.addressText} numberOfLines={1}>
-                    Em casa (Rua das Flores, 142)
-                  </Text>
-                  <Text style={styles.safeZoneText}>
-                    Dentro do Perímetro Seguro
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.targetButton}
-                activeOpacity={0.8}
-                onPress={() =>
-                  Alert.alert(
-                    'Coordenadas GPS',
-                    'Latitude: -23.550520\nLongitude: -46.633308\nPrecisão: 5 metros (Excelente)'
-                  )
-                }
-              >
-                <Crosshair size={16} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Mapa Interativo com Perímetro Seguro, Pino da Dona Maria e Barra de Endereço */}
+          <LiveGpsMap
+            latitude={-23.55052}
+            longitude={-46.633308}
+            safeRadiusMeters={120}
+            addressTitle="Em casa (Rua das Flores, 142)"
+            addressSubtitle="Dentro do Perímetro Seguro"
+            onPressCenter={() =>
+              Alert.alert(
+                'Coordenadas GPS',
+                'Latitude: -23.550520\nLongitude: -46.633308\nPrecisão: 5 metros (Excelente)'
+              )
+            }
+          />
         </View>
 
-        {/* MÉTRICAS DE SAÚDE DIÁRIAS (PASSOS E GLICEMIA) */}
+        {/* CARD 4: MÉTRICAS DE SAÚDE (PASSOS E GLICEMIA) */}
         <View style={styles.metricsGrid}>
-          {/* Card Passos */}
+          {/* Card Passos (#FFF1EC, rx=28) */}
           <View style={styles.passosCard}>
             <View style={styles.metricHeaderRow}>
-              <View style={styles.metricIconCircle}>
-                <Footprints size={18} color="#DC2626" />
+              <View style={styles.metricIconCircleWhite}>
+                <Icon name="walk" size={18} color="#B51C13" />
               </View>
               <View style={styles.metaBadge}>
                 <Text style={styles.metaBadgeText}>Meta 4k</Text>
               </View>
             </View>
-            <Text style={styles.metricLabel}>Passos Hoje</Text>
+            <Text style={styles.metricLabelPeach}>Passos Hoje</Text>
             <View style={styles.metricValueRow}>
               <Text style={styles.metricValueLarge}>3.420</Text>
-              <Text style={styles.metricUnit}>passos</Text>
+              <Text style={styles.metricUnitPeach}>passos</Text>
             </View>
-            {/* Barra de progresso passos */}
             <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: '85%', backgroundColor: '#DC2626' }]} />
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: '85%', backgroundColor: '#D83729' },
+                ]}
+              />
             </View>
           </View>
 
-          {/* Card Glicemia */}
+          {/* Card Glicemia (#EBF5FF, rx=28) */}
           <View style={styles.glicemiaCard}>
             <View style={styles.metricHeaderRow}>
-              <View style={styles.metricIconCircle}>
-                <Droplet size={18} color="#0284C7" />
+              <View style={styles.metricIconCircleWhite}>
+                <Icon name="water_drop" size={18} color="#031753" />
               </View>
               <View style={styles.otimaBadge}>
                 <Text style={styles.otimaBadgeText}>Ótima</Text>
               </View>
             </View>
-            <Text style={styles.metricLabel}>Glicemia</Text>
+            <Text style={styles.metricLabelSky}>Glicemia</Text>
             <View style={styles.metricValueRow}>
               <Text style={styles.metricValueLarge}>98</Text>
-              <Text style={styles.metricUnit}>mg/dL</Text>
+              <Text style={styles.metricUnitSky}>mg/dL</Text>
             </View>
-            {/* Barra de progresso glicemia */}
             <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: '70%', backgroundColor: '#031753' }]} />
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: '70%', backgroundColor: '#031753' },
+                ]}
+              />
             </View>
           </View>
         </View>
 
-        {/* COMANDO DE RESGATE FAMILIAR */}
+        {/* CARD 5: COMANDO DE RESGATE FAMILIAR */}
         <RescueCommandCard
           onAssumirResgate={handleAssumirResgate}
           onVerContatos={handleVerContatos}
@@ -324,87 +311,31 @@ export default function HomeScreen({ onNavigate }) {
         />
       </ScrollView>
 
-      {/* BARRA INFERIOR DE NAVEGAÇÃO COM LUCIDE ICONS */}
+      {/* BARRA INFERIOR DE NAVEGAÇÃO */}
       <BottomNavBar currentScreen="Home" onNavigate={onNavigate} />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    position: 'relative',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DC2626',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  logoImg: {
-    width: 22,
-    height: 22,
-  },
-  headerTitleBox: {
-    alignItems: 'center',
-  },
-  headerSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-  },
-  headerMain: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#031753',
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 90,
+    paddingBottom: 100,
   },
   elderlySummaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 32,
+    padding: 16,
+    marginBottom: 18,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   elderlyLeft: {
     flexDirection: 'row',
@@ -413,464 +344,510 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: 'relative',
+    marginRight: 12,
   },
   elderlyAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#E2E8F0',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#10B981',
   },
   onlineBadgeDot: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#10B981',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
   elderlyTexts: {
-    marginLeft: 12,
     flex: 1,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 3,
   },
   elderlyName: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#031753',
-    marginRight: 6,
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   ageBadge: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: '#F2F4F7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
   },
   ageBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
   },
   monitoredBy: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '500',
     color: '#64748B',
-    marginTop: 2,
+    fontFamily: typography.fontFamily.body,
   },
   elderlyBadgesRight: {
     alignItems: 'flex-end',
+    gap: 6,
   },
-  telemetryPillTeal: {
+  telemetryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E6FFFA',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    backgroundColor: '#F5F7FA',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 5,
   },
-  telemetryTealText: {
-    fontSize: 10,
+  telemetryText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#0D9488',
-  },
-  telemetryPillGreen: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  telemetryGreenText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#16A34A',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   semaforoCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
+    backgroundColor: '#E8F8F0',
+    borderRadius: 32,
+    padding: 20,
+    marginBottom: 18,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  semaforoGlow: {
+    position: 'absolute',
+    top: -32,
+    right: -32,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: '#10B981',
+    opacity: 0.1,
   },
   semaforoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   semaforoTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   semaforoIconBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#DCFCE7',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   semaforoTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#003B26',
+    fontFamily: typography.fontFamily.heading,
+  },
+  tempoRealBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
   },
   tempoRealTag: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#059669',
+    color: '#003B26',
     letterSpacing: 0.5,
+    fontFamily: typography.fontFamily.heading,
   },
   statusInnerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 24,
+    padding: 16,
     marginBottom: 12,
+    gap: 14,
   },
-  statusCheckCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#DCFCE7',
+  statusOuterCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E8F8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  statusInnerCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusTextsCol: {
+    flex: 1,
+  },
+  statusTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  statusLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
   statusTagLabel: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#059669',
     letterSpacing: 0.5,
+    fontFamily: typography.fontFamily.heading,
   },
   statusMainLabel: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#031753',
-    marginVertical: 2,
+    color: '#003B26',
+    marginBottom: 2,
+    fontFamily: typography.fontFamily.heading,
   },
   statusSubLabel: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '500',
     color: '#64748B',
+    fontFamily: typography.fontFamily.body,
   },
   semaforoSubCards: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   semaforoSubCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 12,
   },
   subCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 4,
   },
   subCardTitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
-    marginLeft: 6,
+    fontFamily: typography.fontFamily.body,
   },
   subCardValueRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: 4,
   },
   subCardValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#031753',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
-  normalBadge: {
-    backgroundColor: '#DCFCE7',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  normalBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#16A34A',
+  subCardUnit: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.body,
   },
   remedioStatusTag: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#059669',
+    fontFamily: typography.fontFamily.heading,
   },
   mapCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 32,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 18,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   mapHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 4,
   },
   mapTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   mapPinBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EBF5FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   mapTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   gpsAtivoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    backgroundColor: '#E8F8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
   },
   gpsDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#16A34A',
-    marginRight: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
   },
   gpsAtivoText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#003B26',
+    fontFamily: typography.fontFamily.heading,
   },
   mapVisualContainer: {
-    height: 180,
-    borderRadius: 20,
-    backgroundColor: '#E0F2FE',
+    height: 176,
+    backgroundColor: '#EBF5FF',
+    borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
   },
-  mapStreetH1: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
-    height: 14,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.8,
-  },
-  mapStreetH2: {
-    position: 'absolute',
-    bottom: 60,
-    left: 0,
-    right: 0,
-    height: 10,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.8,
-  },
-  mapStreetV1: {
+  mapBgImage: {
     position: 'absolute',
     top: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
-    left: 90,
-    width: 12,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.8,
+    width: '100%',
+    height: '100%',
+    opacity: 0.72,
   },
-  mapStreetV2: {
+  radarOuterCircle: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 100,
-    width: 14,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.8,
-  },
-  safeZoneCircle: {
-    position: 'absolute',
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    top: 12,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
     borderWidth: 2,
-    borderColor: '#10B981',
-    borderStyle: 'dashed',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  radarInnerCircle: {
+    position: 'absolute',
+    top: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(16, 185, 129, 0.22)',
+  },
+  elderlyMapPinWrapper: {
+    position: 'absolute',
+    top: 42,
+    alignItems: 'center',
+    zIndex: 5,
   },
   elderlyMapPin: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#10B981',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#031753',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    overflow: 'hidden',
   },
   elderlyPinAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  pinBaseShadow: {
+    width: 16,
+    height: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(3, 23, 83, 0.3)',
+    marginTop: 2,
   },
   mapAddressBar: {
     position: 'absolute',
     bottom: 10,
     left: 10,
     right: 10,
+    height: 54,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     elevation: 3,
   },
   addressLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 8,
   },
   addressText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#031753',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   safeZoneText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#16A34A',
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '600',
+    fontFamily: typography.fontFamily.body,
   },
   targetButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F4F7',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
   },
   metricsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 14,
+    marginBottom: 18,
   },
   passosCard: {
     flex: 1,
-    backgroundColor: '#FFF5F5',
-    borderRadius: 22,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
+    backgroundColor: '#FFF1EC',
+    borderRadius: 28,
+    padding: 16,
   },
   glicemiaCard: {
     flex: 1,
-    backgroundColor: '#F0F9FF',
-    borderRadius: 22,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E0F2FE',
+    backgroundColor: '#EBF5FF',
+    borderRadius: 28,
+    padding: 16,
   },
   metricHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  metricIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  metricIconCircleWhite: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   metaBadge: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 9999,
   },
   metaBadgeText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B51C13',
+    fontFamily: typography.fontFamily.heading,
   },
   otimaBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 9999,
   },
   otimaBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  metricLabel: {
     fontSize: 11,
-    color: '#64748B',
+    fontWeight: '700',
+    color: '#2D418A',
+    fontFamily: typography.fontFamily.heading,
+  },
+  metricLabelPeach: {
+    fontSize: 12,
+    color: '#9A3412',
     fontWeight: '600',
-    marginBottom: 2,
+    fontFamily: typography.fontFamily.body,
+  },
+  metricLabelSky: {
+    fontSize: 12,
+    color: '#1E2E69',
+    fontWeight: '600',
+    fontFamily: typography.fontFamily.body,
   },
   metricValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 8,
+    gap: 4,
+    marginVertical: 4,
   },
   metricValueLarge: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#031753',
-    marginRight: 4,
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
-  metricUnit: {
+  metricUnitPeach: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#9A3412',
+    fontWeight: '700',
+  },
+  metricUnitSky: {
+    fontSize: 11,
+    color: '#1E2E69',
+    fontWeight: '700',
   },
   progressBarTrack: {
     height: 6,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 3,
+    borderRadius: 9999,
+    backgroundColor: '#FFFFFF',
+    marginTop: 8,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 9999,
   },
 });

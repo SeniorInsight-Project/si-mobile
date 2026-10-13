@@ -6,19 +6,55 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import {
-  Check,
-  Sun,
-  Moon,
-  Clock,
-  Pill,
-  Droplet,
-  Droplets,
-  Syringe,
-  Edit3,
-  Play,
-  Pause,
-} from 'lucide-react-native';
+import Icon from './Icon';
+import { typography } from '../theme';
+
+function getCardTheme(item) {
+  const nome = (item.medicamentoNome || '').toLowerCase();
+  if (nome.includes('losart')) {
+    return {
+      thumbBg: '#E8F8F0',
+      iconColor: '#003B26',
+      pillBg: '#E8F8F0',
+      pillText: '#003B26',
+      pillIcon: 'water_drop',
+    };
+  }
+  if (nome.includes('vitam')) {
+    return {
+      thumbBg: '#EBF5FF',
+      iconColor: '#2D418A',
+      pillBg: '#EBF5FF',
+      pillText: '#2D418A',
+      pillIcon: 'sunny',
+    };
+  }
+  if (nome.includes('metform')) {
+    return {
+      thumbBg: '#FFF1EC',
+      iconColor: '#9A3412',
+      pillBg: '#FFF1EC',
+      pillText: '#9A3412',
+      pillIcon: 'schedule',
+    };
+  }
+  if (nome.includes('sinvast')) {
+    return {
+      thumbBg: '#F3EEFF',
+      iconColor: '#5B21B6',
+      pillBg: '#F3EEFF',
+      pillText: '#5B21B6',
+      pillIcon: 'dark_mode',
+    };
+  }
+  return {
+    thumbBg: item.corFundoThumb || '#EBF5FF',
+    iconColor: '#031753',
+    pillBg: '#EBF5FF',
+    pillText: '#2D418A',
+    pillIcon: 'water_drop',
+  };
+}
 
 export default function MedicineTimelineCard({
   item,
@@ -30,65 +66,89 @@ export default function MedicineTimelineCard({
 }) {
   const isTomado = item.statusHoje === 'TOMADO';
   const isPausado = item.ativo === false;
+  const isProximo = item.isProximo && !isTomado;
+  const theme = getCardTheme(item);
 
-  // Renderiza o marcador lateral da linha do tempo com Lucide Icons
   const renderTimelineMarker = () => {
-    let circleBg = item.corIcone || '#0284C7';
-
     const renderMarkerIcon = () => {
       if (isTomado) {
-        return <Check size={13} color="#FFFFFF" strokeWidth={3} />;
+        return <Icon name="check" size={14} color="#FFFFFF" />;
       }
-      if (item.iconeTipo === 'sun') {
-        return <Sun size={13} color="#EAB308" />;
+      if (isProximo) {
+        return <Icon name="schedule" size={14} color="#FFFFFF" />;
       }
       if (item.iconeTipo === 'moon') {
-        return <Moon size={13} color="#6366F1" />;
+        return <Icon name="dark_mode" size={14} color="#64748B" />;
       }
-      return <Clock size={13} color="#0284C7" />;
+      return <Icon name="sunny" size={14} color="#64748B" />;
     };
 
     return (
       <View style={styles.timelineCol}>
+        {!isLast && <View style={styles.timelineLine} />}
+
         <View
           style={[
             styles.timelineCircle,
-            isTomado ? styles.timelineCircleTaken : styles.timelineCirclePending,
-            !isTomado && { borderColor: circleBg },
+            isTomado
+              ? styles.timelineCircleTaken
+              : isProximo
+              ? styles.timelineCircleNext
+              : styles.timelineCirclePending,
           ]}
         >
           {renderMarkerIcon()}
         </View>
 
-        <Text style={styles.timelineTimeText}>{item.horario}</Text>
-
-        {!isLast && <View style={styles.timelineLine} />}
+        <Text
+          style={[
+            styles.timelineTimeText,
+            isTomado
+              ? styles.timeTextTaken
+              : isProximo
+              ? styles.timeTextNext
+              : styles.timeTextPending,
+          ]}
+        >
+          {item.horario}
+        </Text>
       </View>
     );
   };
 
   const renderMedicineIcon = () => {
     const fmt = item.tipoFormato || '';
-    if (fmt === 'gotas') return <Droplet size={18} color="#0284C7" />;
-    if (fmt === 'xarope') return <Droplets size={18} color="#D97706" />;
-    if (fmt === 'injecao') return <Syringe size={18} color="#DC2626" />;
-    return <Pill size={18} color="#031753" />;
+    if (fmt === 'gotas') {
+      return <Icon name="water_drop" size={24} color={theme.iconColor} />;
+    }
+    if (fmt === 'xarope') {
+      return <Icon name="droplets" size={24} color={theme.iconColor} />;
+    }
+    if (fmt === 'injecao') {
+      return <Icon name="syringe" size={24} color={theme.iconColor} />;
+    }
+    return <Icon name="medication" size={24} color={theme.iconColor} />;
   };
 
   return (
     <View style={styles.rowWrapper}>
-      {/* Coluna da Linha do Tempo */}
+      {/* Coluna da Linha do Tempo à Esquerda */}
       {renderTimelineMarker()}
 
-      {/* Card da Medicação */}
-      <View style={[styles.card, isPausado && styles.cardPaused]}>
-        {/* Linha superior: Imagem / Ícone + Detalhes + Switch */}
+      {/* Card Branco da Medicação (rx=24) */}
+      <View
+        style={[
+          styles.card,
+          isProximo && styles.cardNext,
+          isPausado && styles.cardPaused,
+        ]}
+      >
         <View style={styles.cardHeader}>
-          {/* Miniatura do medicamento */}
+          {/* Miniatura pastel 56x56 */}
           <View
             style={[
               styles.thumbnailContainer,
-              { backgroundColor: item.corFundoThumb || '#EBF3FE' },
+              { backgroundColor: theme.thumbBg },
             ]}
           >
             {renderMedicineIcon()}
@@ -96,109 +156,120 @@ export default function MedicineTimelineCard({
 
           {/* Dados descritivos */}
           <View style={styles.infoContainer}>
-            <View style={styles.nameRow}>
-              <Text style={styles.medName} numberOfLines={1}>
-                {item.medicamentoNome}
-              </Text>
-              {item.isProximo && !isTomado && (
-                <View style={styles.nextBadge}>
-                  <Text style={styles.nextBadgeText}>Próximo</Text>
+            <View style={styles.topTitleSwitchRow}>
+              <View style={styles.titleAndBadgeCol}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.medName} numberOfLines={1}>
+                    {item.medicamentoNome}
+                  </Text>
+                  {isProximo && (
+                    <View style={styles.nextBadge}>
+                      <Text style={styles.nextBadgeText}>Próximo</Text>
+                    </View>
+                  )}
+                  {isPausado && (
+                    <View style={styles.pausedBadge}>
+                      <Text style={styles.pausedBadgeText}>Pausado</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-              {isPausado && (
-                <View style={styles.pausedBadge}>
-                  <Text style={styles.pausedBadgeText}>Pausado</Text>
-                </View>
-              )}
-            </View>
 
-            <Text style={styles.medDosage} numberOfLines={1}>
-              {item.dosagem}
-            </Text>
-            <Text style={styles.medInstructions} numberOfLines={2}>
-              {item.instrucoes}
-            </Text>
-          </View>
-
-          {/* Switch de Ingestão */}
-          <TouchableOpacity
-            style={[
-              styles.switchTrack,
-              isTomado ? styles.switchTrackActive : styles.switchTrackInactive,
-            ]}
-            onPress={() => onConfirm && onConfirm(item)}
-            activeOpacity={0.8}
-            disabled={loadingAction}
-          >
-            {loadingAction ? (
-              <ActivityIndicator
-                size="small"
-                color={isTomado ? '#FFFFFF' : '#031753'}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.switchKnob,
-                  isTomado ? styles.switchKnobRight : styles.switchKnobLeft,
-                ]}
-              >
-                {isTomado && <Check size={11} color="#10B981" strokeWidth={3} />}
+                <Text style={styles.medDosage} numberOfLines={1}>
+                  {item.dosagem}
+                </Text>
               </View>
-            )}
-          </TouchableOpacity>
-        </View>
 
-        {/* Linha inferior de Status ou Botões de Ação */}
-        {isTomado ? (
-          <View style={styles.takenBanner}>
-            <View style={styles.takenLeft}>
-              <Check size={14} color="#16A34A" strokeWidth={3} style={{ marginRight: 6 }} />
-              <Text style={styles.takenText}>Tomado com sucesso</Text>
-            </View>
-            <Text style={styles.takenTime}>
-              às {item.horarioIngestaoHoje || '08:05'}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.actionsRow}>
-            {/* Se for o próximo medicamento a ser tomado */}
-            {item.isProximo && (
+              {/* Toggle Switch Neumórfico (48x28) */}
               <TouchableOpacity
-                style={styles.confirmBtn}
+                style={[
+                  styles.switchTrack,
+                  isTomado
+                    ? styles.switchTrackActive
+                    : styles.switchTrackInactive,
+                ]}
                 onPress={() => onConfirm && onConfirm(item)}
                 activeOpacity={0.8}
                 disabled={loadingAction}
               >
-                <Check size={13} color="#FFFFFF" strokeWidth={3} style={{ marginRight: 4 }} />
-                <Text style={styles.confirmBtnText}>Confirmar</Text>
+                {loadingAction ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={isTomado ? '#FFFFFF' : '#031753'}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.switchKnob,
+                      isTomado ? styles.switchKnobRight : styles.switchKnobLeft,
+                    ]}
+                  />
+                )}
               </TouchableOpacity>
-            )}
+            </View>
 
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => onEdit && onEdit(item)}
-              activeOpacity={0.8}
+            {/* Pílula colorida de instrução */}
+            <View
+              style={[
+                styles.instructionPill,
+                { backgroundColor: theme.pillBg },
+              ]}
             >
-              <Edit3 size={13} color="#475569" style={{ marginRight: 4 }} />
-              <Text style={styles.actionBtnText}>Editar</Text>
+              <Icon name={theme.pillIcon} size={13} color={theme.pillText} />
+              <Text
+                style={[styles.instructionPillText, { color: theme.pillText }]}
+                numberOfLines={1}
+              >
+                {item.instrucoes}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Barra inferior de Status Tomado (#F2F4F7) */}
+        {isTomado && (
+          <View style={styles.takenBanner}>
+            <Icon name="check_circle" size={14} color="#059669" />
+            <Text style={styles.takenText}>
+              Tomado com sucesso às {item.horarioIngestaoHoje || '08:05'}
+            </Text>
+          </View>
+        )}
+
+        {/* Botões de Ação quando for o Próximo ou quando o usuário quiser editar */}
+        {!isTomado && isProximo && (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={() => onConfirm && onConfirm(item)}
+              activeOpacity={0.8}
+              disabled={loadingAction}
+            >
+              <Icon name="check" size={14} color="#003B26" />
+              <Text style={styles.confirmBtnText}>Confirmar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={styles.editBtn}
+              onPress={() => onEdit && onEdit(item)}
+              activeOpacity={0.8}
+            >
+              <Icon name="edit" size={14} color="#131E3D" />
+              <Text style={styles.editBtnText}>Editar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.pauseBtn}
               onPress={() => onTogglePause && onTogglePause(item)}
               activeOpacity={0.8}
             >
-              {isPausado ? (
-                <>
-                  <Play size={12} color="#475569" style={{ marginRight: 4 }} />
-                  <Text style={styles.actionBtnText}>Retomar</Text>
-                </>
-              ) : (
-                <>
-                  <Pause size={12} color="#475569" style={{ marginRight: 4 }} />
-                  <Text style={styles.actionBtnText}>Pausar</Text>
-                </>
-              )}
+              <Icon
+                name={isPausado ? 'play' : 'pause'}
+                size={14}
+                color="#64748B"
+              />
+              <Text style={styles.pauseBtnText}>
+                {isPausado ? 'Retomar' : 'Pausar'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -210,15 +281,22 @@ export default function MedicineTimelineCard({
 const styles = StyleSheet.create({
   rowWrapper: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
+    position: 'relative',
   },
   timelineCol: {
-    width: 50,
+    width: 48,
     alignItems: 'center',
+    marginRight: 8,
     position: 'relative',
-    marginRight: 10,
+  },
+  timelineLine: {
+    position: 'absolute',
+    top: 32,
+    bottom: -24,
+    width: 2,
+    backgroundColor: 'rgba(3, 23, 83, 0.14)',
+    zIndex: 1,
   },
   timelineCircle: {
     width: 32,
@@ -227,111 +305,137 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  timelineCirclePending: {
-    borderWidth: 2,
   },
   timelineCircleTaken: {
     backgroundColor: '#10B981',
   },
-  timelineTimeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-    marginTop: 4,
+  timelineCircleNext: {
+    backgroundColor: '#F59E0B',
   },
-  timelineLine: {
-    position: 'absolute',
-    top: 32,
-    bottom: -16,
-    width: 2,
-    backgroundColor: '#E2E8F0',
-    zIndex: 1,
+  timelineCirclePending: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+  },
+  timelineTimeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+    fontFamily: typography.fontFamily.heading,
+  },
+  timeTextTaken: {
+    color: '#059669',
+  },
+  timeTextNext: {
+    color: '#D97706',
+  },
+  timeTextPending: {
+    color: '#64748B',
   },
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  cardNext: {
+    borderWidth: 2,
+    borderColor: '#EBF5FF',
   },
   cardPaused: {
-    backgroundColor: '#F8FAFC',
-    opacity: 0.75,
+    opacity: 0.65,
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   thumbnailContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   infoContainer: {
     flex: 1,
-    marginRight: 8,
+  },
+  topTitleSwitchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  titleAndBadgeCol: {
+    flex: 1,
+    paddingRight: 8,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 2,
   },
   medName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#031753',
-    flexShrink: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   nextBadge: {
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 6,
+    backgroundColor: '#FFEBE7',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 6,
+    borderRadius: 9999,
   },
   nextBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B51C13',
+    fontFamily: typography.fontFamily.heading,
   },
   pausedBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
+    backgroundColor: '#F2F4F7',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 6,
+    borderRadius: 9999,
   },
   pausedBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
   },
   medDosage: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#64748B',
-    marginTop: 2,
+    fontFamily: typography.fontFamily.body,
   },
-  medInstructions: {
+  instructionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
+  },
+  instructionPillText: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
   },
   switchTrack: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    padding: 2,
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    padding: 4,
     justifyContent: 'center',
   },
   switchTrackActive: {
@@ -345,71 +449,84 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  switchKnobRight: {
-    alignSelf: 'flex-end',
   },
   switchKnobLeft: {
     alignSelf: 'flex-start',
   },
+  switchKnobRight: {
+    alignSelf: 'flex-end',
+  },
   takenBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F2F4F7',
+    height: 30,
     borderRadius: 12,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
-  },
-  takenLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 12,
+    gap: 6,
   },
   takenText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  takenTime: {
-    fontSize: 10,
-    color: '#64748B',
     fontWeight: '600',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.body,
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
     gap: 8,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   confirmBtn: {
+    flex: 1,
+    height: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#E8F8F0',
     borderRadius: 12,
   },
   confirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
+    color: '#003B26',
+    fontFamily: typography.fontFamily.heading,
   },
-  actionBtn: {
+  editBtn: {
+    height: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F5F7FA',
+    paddingHorizontal: 12,
     borderRadius: 12,
   },
-  actionBtnText: {
-    color: '#475569',
-    fontSize: 11,
-    fontWeight: '600',
+  editBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
+  },
+  pauseBtn: {
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F5F7FA',
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  pauseBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
   },
 });
