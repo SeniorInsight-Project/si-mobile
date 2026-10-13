@@ -73,10 +73,7 @@ export default function TwoFactorAuthScreen({ onNavigate }) {
             <Text style={styles.safeAccessText}>Acesso Seguro</Text>
           </View>
           <View style={styles.avatarContainer}>
-            <Image
-              source={require('../../assets/figma/avatar-2fa.jpg')}
-              style={styles.avatarImage}
-            />
+            <Icon name="person" size={20} color="#031753" />
           </View>
         </View>
 

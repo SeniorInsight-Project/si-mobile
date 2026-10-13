@@ -293,10 +293,9 @@ export default function ElderlyModeScreen({
         <View style={styles.greetingCard}>
           <View style={styles.greetingLeft}>
             <View style={styles.avatarWrapper}>
-              <Image
-                source={require('../../assets/figma/avatar-dona-maria-sm.jpg')}
-                style={styles.avatarImage}
-              />
+              <View style={[styles.avatarImage, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
+                <Icon name="person" size={26} color="#031753" />
+              </View>
               <View style={styles.onlineDot} />
             </View>
             <View style={styles.greetingTexts}>

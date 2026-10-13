@@ -144,11 +144,9 @@ export default function ElderlyProfileScreen({
 
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarOuterRing}>
-              <Image
-                source={require('../../assets/figma/avatar-dona-maria-lg.jpg')}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
+              <View style={[styles.avatarImage, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
+                <Icon name="person" size={44} color="#031753" />
+              </View>
             </View>
             <View style={styles.monitoredBadge}>
               <View style={styles.monitoredDot} />

@@ -4,27 +4,32 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Image,
   ScrollView,
   Alert,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
+import InviteMemberModal from '../components/InviteMemberModal';
 import Icon from '../components/Icon';
+import { gerarConvite } from '../services/redeProtecaoService';
 import { typography } from '../theme';
+
+const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
 const MEMBROS_REDE = [
   {
     id: '1',
     nome: 'Carlos Silva',
+    iniciais: 'CS',
+    avatarBg: '#EBF5FF',
+    avatarCor: '#031753',
     subtitulo: 'Filho • A 1.2 km de distância',
     categoria: 'Proximos',
     badgeTexto: 'Plantão',
     badgeBg: '#E8F8F0',
     badgeCor: '#003B26',
     online: true,
-    avatar: require('../../assets/figma/avatar-carlos.jpg'),
     infoIcon: 'notifications',
     infoTexto: 'Recebe alertas SOS críticos',
     infoDestaque: true,
@@ -33,13 +38,15 @@ const MEMBROS_REDE = [
   {
     id: '2',
     nome: 'Roberta Santos',
+    iniciais: 'RS',
+    avatarBg: '#E8F8F0',
+    avatarCor: '#003B26',
     subtitulo: 'Filha • A 3.8 km de distância',
     categoria: 'Proximos',
     badgeTexto: 'Família',
     badgeBg: '#EBF5FF',
     badgeCor: '#2D418A',
     online: true,
-    avatar: require('../../assets/figma/avatar-roberta.jpg'),
     infoIcon: 'medication',
     infoTexto: 'Notificações de medicação ativas',
     infoDestaque: false,
@@ -48,13 +55,15 @@ const MEMBROS_REDE = [
   {
     id: '3',
     nome: 'Lucas Silva',
+    iniciais: 'LS',
+    avatarBg: '#F2F4F7',
+    avatarCor: '#475467',
     subtitulo: 'Neto • A 8.5 km de distância',
     categoria: 'Todos',
     badgeTexto: 'Apoio',
     badgeBg: '#F2F4F7',
     badgeCor: '#64748B',
     online: false,
-    avatar: require('../../assets/figma/avatar-lucas.jpg'),
     infoIcon: 'schedule',
     infoTexto: 'Contato secundário de fim de semana',
     infoDestaque: false,
@@ -63,13 +72,15 @@ const MEMBROS_REDE = [
   {
     id: '4',
     nome: 'Enfª Juliana Costa',
+    iniciais: 'JC',
+    avatarBg: '#FFEBE7',
+    avatarCor: '#B51C13',
     subtitulo: 'Cuidadora Diurna • Turno Seg–Sex',
     categoria: 'Saude',
     badgeTexto: 'Especialista',
     badgeBg: '#FFEBE7',
     badgeCor: '#B51C13',
     online: true,
-    avatar: require('../../assets/figma/avatar-juliana.jpg'),
     infoIcon: 'assignment',
     infoTexto: 'Acesso ao prontuário e rotina',
     infoDestaque: false,
@@ -77,8 +88,10 @@ const MEMBROS_REDE = [
   },
 ];
 
-export default function FamilyScreen({ onNavigate }) {
+export default function FamilyScreen({ onNavigate, idosoId = DEFAULT_IDOSO_ID }) {
   const [filtroAtivo, setFiltroAtivo] = useState('Todos');
+  const [modalInviteVisible, setModalInviteVisible] = useState(false);
+  const [submittingInvite, setSubmittingInvite] = useState(false);
 
   const membrosFiltrados = MEMBROS_REDE.filter((m) => {
     if (filtroAtivo === 'Todos') return true;
@@ -88,10 +101,23 @@ export default function FamilyScreen({ onNavigate }) {
   });
 
   const handleConvidar = () => {
-    Alert.alert(
-      'Convidar Novo Membro',
-      'Um link de convite seguro foi gerado para inclusão de novos familiares na rede de Dona Maria.'
-    );
+    setModalInviteVisible(true);
+  };
+
+  const handleEnviarConvite = async (dadosConvite) => {
+    try {
+      setSubmittingInvite(true);
+      await gerarConvite(idosoId, dadosConvite);
+      setModalInviteVisible(false);
+      Alert.alert(
+        'Convite Enviado',
+        `Um convite seguro (válido por 48h) foi enviado para ${dadosConvite.email}.`
+      );
+    } catch (err) {
+      Alert.alert('Erro', err.message || 'Não foi possível enviar o convite.');
+    } finally {
+      setSubmittingInvite(false);
+    }
   };
 
   return (
@@ -210,15 +236,27 @@ export default function FamilyScreen({ onNavigate }) {
               <View style={styles.memberHeaderRow}>
                 <View style={styles.memberHeaderLeft}>
                   <View style={styles.avatarWrapper}>
-                    <Image
-                      source={membro.avatar}
+                    <View
                       style={[
                         styles.memberAvatar,
                         {
+                          backgroundColor: membro.avatarBg,
                           borderColor: membro.online ? '#E8F8F0' : '#F2F4F7',
+                          justifyContent: 'center',
+                          alignItems: 'center',
                         },
                       ]}
-                    />
+                    >
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: '700',
+                          color: membro.avatarCor,
+                        }}
+                      >
+                        {membro.iniciais}
+                      </Text>
+                    </View>
                     <View
                       style={[
                         styles.presenceDot,
@@ -414,6 +452,14 @@ export default function FamilyScreen({ onNavigate }) {
           <Text style={styles.inviteCtaText}>Convidar Novo Membro</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* MODAL DE CONVITE DE NOVO MEMBRO (HU16) */}
+      <InviteMemberModal
+        visible={modalInviteVisible}
+        onClose={() => setModalInviteVisible(false)}
+        onSendInvite={handleEnviarConvite}
+        loading={submittingInvite}
+      />
 
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
       <BottomNavBar currentScreen="Family" onNavigate={onNavigate} />

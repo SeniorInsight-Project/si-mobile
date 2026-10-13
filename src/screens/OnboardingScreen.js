@@ -31,7 +31,7 @@ export default function OnboardingScreen({ onNavigate }) {
             <View style={styles.glowTopRight} />
             <View style={styles.glowBottomLeft} />
             <Image
-              source={require('../../assets/figma/onboarding-illustration.jpg')}
+              source={require('../../assets/onbor_img.png')}
               style={styles.illustration}
               resizeMode="cover"
             />

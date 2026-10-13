@@ -121,10 +121,9 @@ export default function HomeScreen({ onNavigate }) {
         >
           <View style={styles.elderlyLeft}>
             <View style={styles.avatarContainer}>
-              <Image
-                source={require('../../assets/figma/avatar-dona-maria-sm.jpg')}
-                style={styles.elderlyAvatar}
-              />
+              <View style={[styles.elderlyAvatar, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
+                <Icon name="person" size={26} color="#031753" />
+              </View>
               <View style={styles.onlineBadgeDot} />
             </View>
 

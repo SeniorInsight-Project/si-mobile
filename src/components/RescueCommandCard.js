@@ -62,18 +62,32 @@ export default function RescueCommandCard({
         <View style={styles.presenceLeft}>
           <Text style={styles.redeAtentaLabel}>Rede Atenta:</Text>
           <View style={styles.avatarGroup}>
-            <Image
-              source={require('../../assets/figma/avatar-caregiver-1.jpg')}
-              style={styles.caregiverAvatar}
-            />
-            <Image
-              source={require('../../assets/figma/avatar-caregiver-2.jpg')}
-              style={[styles.caregiverAvatar, styles.avatarOverlap]}
-            />
-            <Image
-              source={require('../../assets/figma/avatar-caregiver-3.jpg')}
-              style={[styles.caregiverAvatar, styles.avatarOverlap]}
-            />
+            <View
+              style={[
+                styles.caregiverAvatar,
+                { backgroundColor: '#031753', justifyContent: 'center', alignItems: 'center' },
+              ]}
+            >
+              <Text style={styles.caregiverInitials}>CS</Text>
+            </View>
+            <View
+              style={[
+                styles.caregiverAvatar,
+                styles.avatarOverlap,
+                { backgroundColor: '#003B26', justifyContent: 'center', alignItems: 'center' },
+              ]}
+            >
+              <Text style={styles.caregiverInitials}>RS</Text>
+            </View>
+            <View
+              style={[
+                styles.caregiverAvatar,
+                styles.avatarOverlap,
+                { backgroundColor: '#B51C13', justifyContent: 'center', alignItems: 'center' },
+              ]}
+            >
+              <Text style={styles.caregiverInitials}>JC</Text>
+            </View>
           </View>
         </View>
 
@@ -199,6 +213,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  caregiverInitials: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   avatarOverlap: {
     marginLeft: -8,

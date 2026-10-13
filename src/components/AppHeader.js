@@ -78,7 +78,7 @@ export default function AppHeader({
             activeOpacity={0.75}
           >
             <Image
-              source={require('../../assets/figma/logo-badge.png')}
+              source={require('../../assets/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

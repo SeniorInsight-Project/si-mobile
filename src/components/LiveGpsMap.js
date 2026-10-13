@@ -175,10 +175,7 @@ export default function LiveGpsMap({ onLocationChange }) {
           <View style={styles.radarInnerCircle} />
           <View style={styles.elderlyMapPinWrapper}>
             <View style={styles.elderlyMapPin}>
-              <Image
-                source={require('../../assets/figma/avatar-dona-maria-pin.jpg')}
-                style={styles.elderlyPinAvatar}
-              />
+              <Icon name="person" size={24} color="#FFFFFF" />
             </View>
             <View style={styles.pinBaseShadow} />
           </View>
