@@ -12,6 +12,8 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import ScreenWrapper from '../components/ScreenWrapper';
 import BottomNavBar from '../components/BottomNavBar';
+import ComorbidityChip from '../components/ComorbidityChip';
+import AddComorbidityModal from '../components/AddComorbidityModal';
 import {
   listarIdososDoFamiliar,
   salvarCadastroIdoso,
@@ -19,6 +21,12 @@ import {
   obterIdosoLocalPorId,
 } from '../services/elderlyService';
 import { gerarCodigoIdentidade } from '../services/identityService';
+import {
+  listarComorbidades,
+  adicionarComorbidades,
+  removerComorbidade,
+  INITIAL_COMORBIDITIES,
+} from '../services/comorbidadeService';
 
 const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 const EMPTY_FORM = {
@@ -95,6 +103,10 @@ export default function ElderlyProfileScreen({
   const [codigoIdentidade, setCodigoIdentidade] = useState('');
   const [qrValue, setQrValue] = useState('');
   const [gerandoCodigo, setGerandoCodigo] = useState(false);
+  const [comorbidades, setComorbidades] = useState(INITIAL_COMORBIDITIES);
+  const [loadingComorbidades, setLoadingComorbidades] = useState(false);
+  const [comorbidadeLoading, setComorbidadeLoading] = useState(false);
+  const [modalComorbidadeVisible, setModalComorbidadeVisible] = useState(false);
 
   const podeEditar = accessRole !== 'OBSERVADOR';
 
@@ -134,6 +146,70 @@ export default function ElderlyProfileScreen({
 
     carregarPerfil();
   }, [idosoId, familiarId]);
+
+  // Comorbidades (HU15 / HU-010)
+  useEffect(() => {
+    if (!idosoId) return;
+
+    async function carregarComorbidades() {
+      try {
+        setLoadingComorbidades(true);
+        const data = await listarComorbidades(idosoId);
+        if (data && Array.isArray(data.comorbidades) && data.comorbidades.length > 0) {
+          setComorbidades(data.comorbidades);
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar comorbidades:', err.message);
+      } finally {
+        setLoadingComorbidades(false);
+      }
+    }
+
+    carregarComorbidades();
+  }, [idosoId]);
+
+  const removerComorbidadeDaFicha = (nome) => {
+    Alert.alert(
+      'Remover Comorbidade',
+      `Deseja realmente remover "${nome}" do prontuário do idoso?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: async () => {
+            const listaAnterior = [...comorbidades];
+            setComorbidades((prev) => prev.filter((item) => item !== nome));
+
+            try {
+              setComorbidadeLoading(true);
+              await removerComorbidade(idosoId, nome);
+            } catch (err) {
+              console.warn('Falha na API ao remover, revertendo:', err.message);
+              setComorbidades(listaAnterior);
+              Alert.alert('Aviso', 'Não foi possível sincronizar a remoção com o servidor no momento.');
+            } finally {
+              setComorbidadeLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const adicionarComorbidadeNaFicha = async (novaComorbidade) => {
+    try {
+      setComorbidadeLoading(true);
+      setComorbidades((prev) => [...prev, novaComorbidade]);
+      setModalComorbidadeVisible(false);
+      await adicionarComorbidades(idosoId, [novaComorbidade]);
+    } catch (err) {
+      console.warn('Erro ao sincronizar nova comorbidade com o backend:', err.message);
+      Alert.alert('Sincronização', 'Comorbidade salva localmente. O servidor será atualizado assim que conectado.');
+    } finally {
+      setComorbidadeLoading(false);
+    }
+  };
 
   const atualizarCampo = (campo, valor) => {
     setForm((prev) => ({ ...prev, [campo]: valor }));
@@ -343,7 +419,51 @@ export default function ElderlyProfileScreen({
             </TouchableOpacity>
           </View>
         ) : null}
+
+        {profile?.idosoId ? (
+          <View style={styles.card}>
+            <View style={styles.header}>
+              <Text style={styles.sectionTitle}>Comorbidades & Alertas</Text>
+              {podeEditar && (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => setModalComorbidadeVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.editButtonText}>+ Adicionar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {loadingComorbidades ? (
+              <ActivityIndicator color="#031753" size="small" style={{ marginVertical: 20 }} />
+            ) : (
+              <View style={styles.chipsContainer}>
+                {comorbidades.map((item) => (
+                  <ComorbidityChip
+                    key={item}
+                    name={item}
+                    onRemove={podeEditar ? removerComorbidadeDaFicha : undefined}
+                    disabled={comorbidadeLoading}
+                  />
+                ))}
+
+                {comorbidades.length === 0 && (
+                  <Text style={styles.roleHint}>Nenhuma comorbidade registrada.</Text>
+                )}
+              </View>
+            )}
+          </View>
+        ) : null}
       </ScrollView>
+
+      <AddComorbidityModal
+        visible={modalComorbidadeVisible}
+        onClose={() => setModalComorbidadeVisible(false)}
+        onAdd={adicionarComorbidadeNaFicha}
+        existingComorbidities={comorbidades}
+        loading={comorbidadeLoading}
+      />
 
       <BottomNavBar currentScreen="Family" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -351,6 +471,11 @@ export default function ElderlyProfileScreen({
 }
 
 const styles = StyleSheet.create({
+  chipsContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginTop: 8,
+  },
   container: {
     flex: 1,
   },
