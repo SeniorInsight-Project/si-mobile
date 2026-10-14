@@ -14,6 +14,8 @@ import EmergencyContactsScreen from './src/screens/EmergencyContactsScreen';
 
 export default function App() {
   const [telaAtual, setTelaAtual] = useState('Onboarding');
+  const [idosoSelecionadoId, setIdosoSelecionadoId] = useState('e3b0c442-98fc-1c14-9afc-432100000001');
+  const [papelAcessoAtual] = useState('ADMIN');
 
   const renderScreen = () => {
     switch (telaAtual) {
@@ -30,9 +32,20 @@ export default function App() {
       case 'ElderlyMode':
         return <ElderlyModeScreen onNavigate={setTelaAtual} />;
       case 'ElderlyProfile':
-        return <ElderlyProfileScreen onNavigate={setTelaAtual} />;
+        return (
+          <ElderlyProfileScreen
+            onNavigate={setTelaAtual}
+            idosoId={idosoSelecionadoId}
+            accessRole={papelAcessoAtual}
+          />
+        );
       case 'Home':
-        return <HomeScreen onNavigate={setTelaAtual} />;
+        return (
+          <HomeScreen
+            onNavigate={setTelaAtual}
+            onSelectElderly={setIdosoSelecionadoId}
+          />
+        );
       case 'Medicines':
         return <MedicinesScreen onNavigate={setTelaAtual} />;
       case 'Family':

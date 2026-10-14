@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from '../components/Icon';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -15,11 +16,46 @@ import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import { atualizarStatusAlarme } from '../services/alarmeSosService';
+import { listarIdososDoFamiliar } from '../services/elderlyService';
 import { typography } from '../theme';
 
-export default function HomeScreen({ onNavigate }) {
+function calcularIdade(dataNascimento) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
+  if (!match) return null;
+  const hoje = new Date();
+  const nascimento = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  if (
+    hoje.getMonth() < nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate())
+  ) {
+    idade -= 1;
+  }
+  return idade;
+}
+
+export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = 'familiar-dev' }) {
   const [resgateAtivo, setResgateAtivo] = useState(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState(null);
+  const [idosos, setIdosos] = useState([]);
+  const [loadingIdosos, setLoadingIdosos] = useState(false);
+
+  // Lista dos idosos do familiar (HU-008)
+  useEffect(() => {
+    async function carregarIdosos() {
+      try {
+        setLoadingIdosos(true);
+        const data = await listarIdososDoFamiliar(familiarId);
+        setIdosos(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.warn('Erro ao carregar idosos na Home:', error.message);
+      } finally {
+        setLoadingIdosos(false);
+      }
+    }
+
+    carregarIdosos();
+  }, [familiarId]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -113,43 +149,68 @@ export default function HomeScreen({ onNavigate }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARD 1: RESUMO DO IDOSO MONITORADO (rx=32, #FFFFFF) */}
-        <TouchableOpacity
-          style={styles.elderlySummaryCard}
-          onPress={() => onNavigate && onNavigate('ElderlyProfile')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.elderlyLeft}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.elderlyAvatar, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
-                <Icon name="person" size={26} color="#031753" />
-              </View>
-              <View style={styles.onlineBadgeDot} />
-            </View>
+        {/* CARD 1: IDOSOS DA FAMÍLIA (HU-008), um resumo por idoso (rx=32, #FFFFFF) */}
+        {loadingIdosos ? (
+          <ActivityIndicator color="#031753" size="small" style={{ marginBottom: 18 }} />
+        ) : (
+          idosos.map((idoso) => (
+            <TouchableOpacity
+              key={idoso.idosoId}
+              style={styles.elderlySummaryCard}
+              onPress={() => {
+                if (onSelectElderly) onSelectElderly(idoso.idosoId);
+                if (onNavigate) onNavigate('ElderlyProfile');
+              }}
+              activeOpacity={0.9}
+            >
+              <View style={styles.elderlyLeft}>
+                <View style={styles.avatarContainer}>
+                  <View style={[styles.elderlyAvatar, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Icon name="person" size={26} color="#031753" />
+                  </View>
+                  <View style={styles.onlineBadgeDot} />
+                </View>
 
-            <View style={styles.elderlyTexts}>
-              <View style={styles.nameRow}>
-                <Text style={styles.elderlyName}>Dona Maria</Text>
-                <View style={styles.ageBadge}>
-                  <Text style={styles.ageBadgeText}>76 anos</Text>
+                <View style={styles.elderlyTexts}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.elderlyName}>{idoso.nome}</Text>
+                    {calcularIdade(idoso.dataNascimento) !== null && (
+                      <View style={styles.ageBadge}>
+                        <Text style={styles.ageBadgeText}>{calcularIdade(idoso.dataNascimento)} anos</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.monitoredBy}>Monitorada por Dr. Ricardo</Text>
                 </View>
               </View>
-              <Text style={styles.monitoredBy}>Monitorada por Dr. Ricardo</Text>
-            </View>
-          </View>
 
-          {/* Badges empilhados verticalmente à direita conforme o .fig */}
-          <View style={styles.elderlyBadgesRight}>
-            <View style={styles.telemetryPill}>
-              <Icon name="wifi" size={13} color="#10B981" />
-              <Text style={styles.telemetryText}>Conectado</Text>
+              {/* Badges empilhados verticalmente à direita conforme o .fig */}
+              <View style={styles.elderlyBadgesRight}>
+                <View style={styles.telemetryPill}>
+                  <Icon name="wifi" size={13} color="#10B981" />
+                  <Text style={styles.telemetryText}>Conectado</Text>
+                </View>
+                <View style={styles.telemetryPill}>
+                  <Icon name="bolt" size={13} color="#10B981" />
+                  <Text style={styles.telemetryText}>88%</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+
+        {!loadingIdosos && idosos.length === 0 && (
+          <TouchableOpacity
+            style={styles.elderlySummaryCard}
+            onPress={() => onNavigate && onNavigate('ElderlyProfile')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.elderlyTexts}>
+              <Text style={styles.elderlyName}>Nenhum idoso cadastrado</Text>
+              <Text style={styles.monitoredBy}>Acesse o perfil para cadastrar o primeiro idoso.</Text>
             </View>
-            <View style={styles.telemetryPill}>
-              <Icon name="bolt" size={13} color="#10B981" />
-              <Text style={styles.telemetryText}>88%</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* CARD 2: SEMÁFORO DO BEM-ESTAR (#E8F8F0, rx=32) */}
         <View style={styles.semaforoCard}>
