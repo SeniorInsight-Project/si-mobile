@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  Image,
   ScrollView,
   TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
@@ -23,25 +23,142 @@ import {
   removerComorbidade,
   INITIAL_COMORBIDITIES,
 } from '../services/comorbidadeService';
+import {
+  listarIdososDoFamiliar,
+  salvarCadastroIdoso,
+  atualizarDadosIdoso,
+  obterIdosoLocalPorId,
+} from '../services/elderlyService';
+import { gerarCodigoIdentidade } from '../services/identityService';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
+
+const SEXOS = ['Feminino', 'Masculino', 'Outro'];
+const EMPTY_FORM = {
+  nome: '',
+  dataNascimento: '',
+  sexo: '',
+  celular: '',
+};
+
+function formatarCelular(texto) {
+  const numeros = texto.replace(/\D/g, '').slice(0, 11);
+  if (numeros.length <= 2) return numeros;
+  if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+  if (numeros.length <= 10) {
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
+  }
+  return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
+}
+
+function formatarData(texto) {
+  const numeros = texto.replace(/\D/g, '').slice(0, 8);
+  if (numeros.length <= 2) return numeros;
+  if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
+  return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4)}`;
+}
+
+function parseDataBr(data) {
+  const match = /^([0-3]\d)\/([0-1]\d)\/(\d{4})$/.exec(data);
+  if (!match) return null;
+
+  const dia = Number(match[1]);
+  const mes = Number(match[2]);
+  const ano = Number(match[3]);
+  const date = new Date(ano, mes - 1, dia);
+
+  if (
+    date.getFullYear() !== ano ||
+    date.getMonth() !== mes - 1 ||
+    date.getDate() !== dia ||
+    date > new Date()
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function calcularIdade(dataNascimento) {
+  const nascimento = parseDataBr(dataNascimento);
+  if (!nascimento) return null;
+
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFezAniversario =
+    hoje.getMonth() < nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
+
+  if (aindaNaoFezAniversario) idade -= 1;
+  return idade;
+}
 
 export default function ElderlyProfileScreen({
   onNavigate,
   idosoId = DEFAULT_IDOSO_ID,
+  accessRole = 'ADMIN',
+  familiarId = 'familiar-dev',
 }) {
   const [comorbidades, setComorbidades] = useState(INITIAL_COMORBIDITIES);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Estados dos campos da ficha cadastral conforme o .fig
-  const [nomeCompleto, setNomeCompleto] = useState('Dona Maria Aparecida');
-  const [dataNascimento, setDataNascimento] = useState('14/05/1948');
+  // Cadastro do idoso (HU-008) e identidade de acesso (HU-009)
+  const [loadingPerfil, setLoadingPerfil] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [editando, setEditando] = useState(true);
+  const [codigoIdentidade, setCodigoIdentidade] = useState('');
+  const [qrValue, setQrValue] = useState('');
+  const [gerandoCodigo, setGerandoCodigo] = useState(false);
+
+  // Campos complementares da ficha conforme o .fig
   const [fatorSanguineo, setFatorSanguineo] = useState('O+ Positivo');
   const [medicoReferencia, setMedicoReferencia] = useState(
     'Dr. Silva - Cardiologista'
   );
+
+  const podeEditar = accessRole !== 'OBSERVADOR';
+
+  const idade = useMemo(() => calcularIdade(form.dataNascimento), [form.dataNascimento]);
+  const avisoIdade = idade !== null && idade < 49;
+
+  useEffect(() => {
+    async function carregarPerfil() {
+      try {
+        setLoadingPerfil(true);
+        const locais = await listarIdososDoFamiliar(familiarId);
+        const idosoAtual = locais.find((item) => item.idosoId === idosoId) || obterIdosoLocalPorId(idosoId);
+
+        if (idosoAtual) {
+          setProfile(idosoAtual);
+          setForm({
+            nome: idosoAtual.nome || '',
+            dataNascimento: idosoAtual.dataNascimento || '',
+            sexo: idosoAtual.sexo || '',
+            celular: idosoAtual.celular || '',
+          });
+          setEditando(false);
+          const identidade = await gerarCodigoIdentidade(idosoAtual.idosoId);
+          setCodigoIdentidade(identidade.codigo);
+          setQrValue(identidade.qrValue);
+        } else {
+          setEditando(true);
+          setProfile(null);
+          setForm(EMPTY_FORM);
+        }
+      } catch (error) {
+        console.warn('Erro ao carregar perfil do idoso:', error.message);
+      } finally {
+        setLoadingPerfil(false);
+      }
+    }
+
+    carregarPerfil();
+  }, [idosoId, familiarId]);
 
   useEffect(() => {
     async function carregarDados() {
@@ -64,6 +181,92 @@ export default function ElderlyProfileScreen({
 
     carregarDados();
   }, [idosoId]);
+
+  const atualizarCampo = (campo, valor) => {
+    setForm((prev) => ({ ...prev, [campo]: valor }));
+    if (errors[campo]) {
+      setErrors((prev) => ({ ...prev, [campo]: undefined }));
+    }
+  };
+
+  const validar = () => {
+    const novosErros = {};
+
+    if (!form.nome.trim()) {
+      novosErros.nome = 'Informe o nome completo do idoso.';
+    }
+
+    const dataValida = parseDataBr(form.dataNascimento);
+    if (!form.dataNascimento.trim()) {
+      novosErros.dataNascimento = 'Informe a data de nascimento.';
+    } else if (!dataValida) {
+      novosErros.dataNascimento = 'Data de nascimento inválida. Use DD/MM/AAAA.';
+    }
+
+    if (!form.sexo) {
+      novosErros.sexo = 'Selecione o sexo.';
+    }
+
+    const celularNumeros = form.celular.replace(/\D/g, '');
+    if (!form.celular.trim()) {
+      novosErros.celular = 'Informe o celular.';
+    } else if (celularNumeros.length < 10 || celularNumeros.length > 11) {
+      novosErros.celular = 'Celular inválido. Use DDD + número.';
+    }
+
+    setErrors(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
+  const gerarNovoCodigo = async (idosoIdAtual) => {
+    try {
+      setGerandoCodigo(true);
+      const identidade = await gerarCodigoIdentidade(idosoIdAtual);
+      setCodigoIdentidade(identidade.codigo);
+      setQrValue(identidade.qrValue);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível gerar um novo código agora.');
+    } finally {
+      setGerandoCodigo(false);
+    }
+  };
+
+  const salvar = async () => {
+    if (!validar()) return;
+
+    try {
+      setSaving(true);
+
+      const payload = {
+        nome: form.nome.trim(),
+        dataNascimento: form.dataNascimento,
+        sexo: form.sexo,
+        celular: form.celular,
+      };
+
+      const salvo = profile?.idosoId
+        ? await atualizarDadosIdoso(profile.idosoId, payload)
+        : await salvarCadastroIdoso({ ...payload, idosoId });
+
+      setProfile(salvo);
+      setEditando(false);
+
+      await gerarNovoCodigo(salvo.idosoId);
+
+      if (avisoIdade) {
+        Alert.alert(
+          'Cadastro salvo com aviso',
+          'A idade é menor que 49 anos. O cadastro foi salvo normalmente.'
+        );
+      } else {
+        Alert.alert('Cadastro salvo', 'Dados do idoso atualizados com sucesso.');
+      }
+    } catch (error) {
+      Alert.alert('Erro ao salvar', 'Não foi possível salvar os dados do idoso.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleRemove = (nome) => {
     Alert.alert(
@@ -118,12 +321,22 @@ export default function ElderlyProfileScreen({
     }
   };
 
-  const handleSalvarAlteracoes = () => {
-    Alert.alert(
-      'Ficha Atualizada',
-      'As alterações cadastrais e a lista de comorbidades foram salvas e sincronizadas com toda a rede de cuidadores e socorristas.'
+  if (loadingPerfil) {
+    return (
+      <ScreenWrapper>
+        <AppHeader
+          title="Família Perfil"
+          subtitle="CUIDADO ATIVO"
+          onNavigate={onNavigate}
+        />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#031753" />
+          <Text style={styles.loadingText}>Carregando perfil...</Text>
+        </View>
+        <BottomNavBar currentScreen="ElderlyProfile" onNavigate={onNavigate} />
+      </ScreenWrapper>
     );
-  };
+  }
 
   return (
     <ScreenWrapper>
@@ -154,9 +367,9 @@ export default function ElderlyProfileScreen({
             </View>
           </View>
 
-          <Text style={styles.elderlyName}>{nomeCompleto}</Text>
+          <Text style={styles.elderlyName}>{form.nome || 'Novo idoso'}</Text>
           <Text style={styles.elderlyPlanSubtitle}>
-            76 anos •{' '}
+            {idade !== null ? `${idade} anos` : 'Idade não informada'} •{' '}
             <Text style={styles.planBadgeText}>Plano Cuidador Ativo</Text>
           </Text>
 
@@ -192,14 +405,16 @@ export default function ElderlyProfileScreen({
               <Text style={styles.sectionTitle}>Comorbidades &amp; Alertas</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.addPillButton}
-              onPress={() => setModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Icon name="add" size={15} color="#031753" />
-              <Text style={styles.addPillText}>Adicionar</Text>
-            </TouchableOpacity>
+            {podeEditar && (
+              <TouchableOpacity
+                style={styles.addPillButton}
+                onPress={() => setModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Icon name="add" size={15} color="#031753" />
+                <Text style={styles.addPillText}>Adicionar</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.comorbiditiesCard}>
@@ -220,7 +435,7 @@ export default function ElderlyProfileScreen({
                   <ComorbidityChip
                     key={item}
                     name={item}
-                    onRemove={handleRemove}
+                    onRemove={podeEditar ? handleRemove : undefined}
                     disabled={actionLoading}
                   />
                 ))}
@@ -238,14 +453,31 @@ export default function ElderlyProfileScreen({
           </View>
         </View>
 
-        {/* SEÇÃO 3: FICHA CADASTRAL DO IDOSO (Pílulas brancas independentes sobre o canvas) */}
+        {/* SEÇÃO 3: FICHA CADASTRAL DO IDOSO (HU-008) */}
         <View style={styles.sectionBlock}>
-          <View style={styles.sectionTitleRow}>
-            <View style={styles.sectionIconCircleSky}>
-              <Icon name="person" size={16} color="#031753" />
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <View style={styles.sectionIconCircleSky}>
+                <Icon name="person" size={16} color="#031753" />
+              </View>
+              <Text style={styles.sectionTitle}>Ficha Cadastral do Idoso</Text>
             </View>
-            <Text style={styles.sectionTitle}>Ficha Cadastral do Idoso</Text>
+
+            {!editando && podeEditar && (
+              <TouchableOpacity
+                style={styles.addPillButton}
+                onPress={() => setEditando(true)}
+                activeOpacity={0.8}
+              >
+                <Icon name="edit" size={15} color="#031753" />
+                <Text style={styles.addPillText}>Editar</Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          <Text style={styles.roleHint}>
+            Perfil atual: {accessRole === 'OBSERVADOR' ? 'Familiar de Apoio' : accessRole}
+          </Text>
 
           {/* Campo 1: Nome Completo */}
           <View style={styles.fieldGroup}>
@@ -253,14 +485,17 @@ export default function ElderlyProfileScreen({
               <Icon name="person" size={15} color="#64748B" />
               <Text style={styles.fieldLabel}>Nome Completo</Text>
             </View>
-            <View style={styles.pillInputContainer}>
+            <View style={[styles.pillInputContainer, errors.nome && styles.pillInputError]}>
               <TextInput
                 style={styles.pillInputText}
-                value={nomeCompleto}
-                onChangeText={setNomeCompleto}
+                value={form.nome}
+                onChangeText={(texto) => atualizarCampo('nome', texto)}
+                editable={editando}
+                placeholder="Nome completo"
                 placeholderTextColor="#94A3B8"
               />
             </View>
+            {errors.nome && <Text style={styles.errorText}>{errors.nome}</Text>}
           </View>
 
           {/* Linha Dupla: Nascimento e Fator Sanguíneo */}
@@ -270,12 +505,14 @@ export default function ElderlyProfileScreen({
                 <Icon name="calendar_today" size={14} color="#64748B" />
                 <Text style={styles.fieldLabel}>Nascimento</Text>
               </View>
-              <View style={styles.pillInputContainer}>
+              <View style={[styles.pillInputContainer, errors.dataNascimento && styles.pillInputError]}>
                 <TextInput
                   style={styles.pillInputText}
-                  value={dataNascimento}
-                  onChangeText={setDataNascimento}
-                  keyboardType="numeric"
+                  value={form.dataNascimento}
+                  onChangeText={(texto) => atualizarCampo('dataNascimento', formatarData(texto))}
+                  editable={editando}
+                  keyboardType="number-pad"
+                  placeholder="DD/MM/AAAA"
                   placeholderTextColor="#94A3B8"
                 />
               </View>
@@ -291,11 +528,69 @@ export default function ElderlyProfileScreen({
                   style={styles.pillInputText}
                   value={fatorSanguineo}
                   onChangeText={setFatorSanguineo}
+                  editable={editando}
                   placeholderTextColor="#94A3B8"
                 />
                 <Icon name="expand_more" size={18} color="#64748B" />
               </View>
             </View>
+          </View>
+          {errors.dataNascimento && <Text style={styles.errorText}>{errors.dataNascimento}</Text>}
+
+          {avisoIdade && (
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>
+                Aviso: idade menor que 49 anos. O cadastro será permitido.
+              </Text>
+            </View>
+          )}
+
+          {/* Campo: Sexo */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelWithIconRow}>
+              <Icon name="person" size={15} color="#64748B" />
+              <Text style={styles.fieldLabel}>Sexo</Text>
+            </View>
+            <View style={styles.sexRow}>
+              {SEXOS.map((item) => {
+                const selected = form.sexo === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    style={[
+                      styles.sexButton,
+                      selected && styles.sexButtonSelected,
+                      !editando && styles.sexButtonDisabled,
+                    ]}
+                    onPress={() => editando && atualizarCampo('sexo', item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.sexButtonText, selected && styles.sexButtonTextSelected]}>{item}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {errors.sexo && <Text style={styles.errorText}>{errors.sexo}</Text>}
+          </View>
+
+          {/* Campo: Celular */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelWithIconRow}>
+              <Icon name="call" size={15} color="#64748B" />
+              <Text style={styles.fieldLabel}>Celular</Text>
+            </View>
+            <View style={[styles.pillInputContainer, errors.celular && styles.pillInputError]}>
+              <TextInput
+                style={styles.pillInputText}
+                value={form.celular}
+                onChangeText={(texto) => atualizarCampo('celular', formatarCelular(texto))}
+                editable={editando}
+                keyboardType="phone-pad"
+                placeholder="(00) 00000-0000"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+            {errors.celular && <Text style={styles.errorText}>{errors.celular}</Text>}
           </View>
 
           {/* Campo 3: Médico de Referência */}
@@ -309,6 +604,7 @@ export default function ElderlyProfileScreen({
                 style={styles.pillInputText}
                 value={medicoReferencia}
                 onChangeText={setMedicoReferencia}
+                editable={editando}
                 placeholderTextColor="#94A3B8"
               />
               <TouchableOpacity
@@ -323,6 +619,38 @@ export default function ElderlyProfileScreen({
             </View>
           </View>
         </View>
+
+        {/* SEÇÃO 4: IDENTIDADE DE ACESSO (HU-009) */}
+        {profile?.idosoId && codigoIdentidade && qrValue ? (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionIconCircleSky}>
+                <Icon name="verified_user" size={16} color="#031753" />
+              </View>
+              <Text style={styles.sectionTitle}>Identidade de Acesso</Text>
+            </View>
+
+            <View style={styles.comorbiditiesCard}>
+              <Text style={styles.codeLabel}>Código de 6 dígitos</Text>
+              <Text style={styles.codeValue}>{codigoIdentidade}</Text>
+
+              <View style={styles.qrWrapper}>
+                <QRCode value={qrValue} size={170} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => gerarNovoCodigo(profile.idosoId)}
+                activeOpacity={0.85}
+                disabled={gerandoCodigo}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {gerandoCodigo ? 'Gerando...' : 'Gerar novo código'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {/* BANNER DE SINCRONIZAÇÃO COM A FAMÍLIA (#E8F8F0, rx=24) */}
         <View style={styles.syncAlertCard}>
@@ -342,14 +670,19 @@ export default function ElderlyProfileScreen({
 
         {/* BOTÕES DE AÇÃO INFERIORES */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.primarySaveButton}
-            onPress={handleSalvarAlteracoes}
-            activeOpacity={0.85}
-          >
-            <Icon name="check" size={20} color="#FFFFFF" />
-            <Text style={styles.primarySaveButtonText}>Salvar Alterações</Text>
-          </TouchableOpacity>
+          {editando && podeEditar && (
+            <TouchableOpacity
+              style={styles.primarySaveButton}
+              onPress={salvar}
+              activeOpacity={0.85}
+              disabled={saving}
+            >
+              <Icon name="check" size={20} color="#FFFFFF" />
+              <Text style={styles.primarySaveButtonText}>
+                {saving ? 'Salvando...' : 'Salvar Cadastro'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.secondaryHistoryButton}
@@ -383,6 +716,7 @@ export default function ElderlyProfileScreen({
     </ScreenWrapper>
   );
 }
+
 
 const styles = StyleSheet.create({
   scrollContent: {
@@ -764,5 +1098,111 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontFamily: typography.fontFamily.heading,
+  },
+
+  /* CADASTRO (HU-008) E IDENTIDADE DE ACESSO (HU-009) */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#64748B',
+  },
+  roleHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  editButton: {
+    backgroundColor: '#031753',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  errorText: {
+    color: '#DC2626',
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  warningBox: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+  },
+  sexRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sexButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  sexButtonDisabled: {
+    backgroundColor: '#F8FAFC',
+  },
+  sexButtonSelected: {
+    borderColor: '#031753',
+    backgroundColor: '#EBF2FF',
+  },
+  sexButtonText: {
+    color: '#334155',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  sexButtonTextSelected: {
+    color: '#031753',
+  },
+  codeLabel: {
+    fontSize: 13,
+    color: '#475569',
+    marginBottom: 4,
+  },
+  codeValue: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#031753',
+    letterSpacing: 3,
+  },
+  qrWrapper: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  secondaryButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 24,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#031753',
+    fontWeight: '700',
+  },
+  pillInputError: {
+    borderWidth: 1,
+    borderColor: '#DC2626',
   },
 });
