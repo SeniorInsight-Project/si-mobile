@@ -62,7 +62,7 @@ export async function solicitarPermissaoNotificacoes() {
     if (Platform.OS === 'android' && typeof Notifications.setNotificationChannelAsync === 'function') {
       await Notifications.setNotificationChannelAsync('medicamentos-alarmes', {
         name: 'Lembretes de Medicamentos',
-        importance: Notifications.AndroidImportance.MAX,
+        importance: Notifications.AndroidImportance?.MAX ?? 5,
         vibrationPattern: [0, 500, 250, 500],
         lightColor: '#072369',
         sound: 'default',
@@ -150,7 +150,7 @@ export async function agendarLembretesMedicacao(rotinas = []) {
           title: `💊 Hora do Remédio: ${nomeMed}`,
           body: `${dose ? `${dose} • ` : ''}${instrucao}`,
           sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
+          priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
           channelId: 'medicamentos-alarmes',
           data: {
             tipo: 'LEMBRETE_MEDICAMENTO',
@@ -160,9 +160,10 @@ export async function agendarLembretesMedicacao(rotinas = []) {
           },
         },
         trigger: {
+          type: 'daily',
           hour,
           minute,
-          repeats: true,
+          channelId: 'medicamentos-alarmes',
         },
       });
 

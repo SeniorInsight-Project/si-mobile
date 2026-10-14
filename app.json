@@ -15,7 +15,8 @@
     "android": {
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -27,10 +28,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "seniorapp",
+    "scheme": "seniorinsight",
     "plugins": [
       "expo-sqlite",
       "expo-web-browser",
+      "expo-notifications",
       [
         "expo-location",
         {

@@ -15,6 +15,7 @@ import {
 import Icon from './Icon';
 import Checkbox from './Checkbox';
 import { colors, typography, shadows, rounded } from '../theme';
+import { formatarHorarioInput, normalizarHorario } from '../services/timeFormat.js';
 
 const FORMAT_OPTIONS = [
   { id: 'comprimido', label: 'Comprimido', icon: 'medication' },
@@ -89,8 +90,9 @@ export default function AddMedicineModal({
       setErrorMessage('Por favor, informe a dosagem.');
       return;
     }
-    if (!horario.trim()) {
-      setErrorMessage('Por favor, informe o horário da dose.');
+    const horarioNormalizado = normalizarHorario(horario);
+    if (!horarioNormalizado) {
+      setErrorMessage('Horário inválido. Utilize o formato HH:mm (entre 00:00 e 23:59).');
       return;
     }
 
@@ -99,7 +101,7 @@ export default function AddMedicineModal({
       medicamentoNome: nome.trim(),
       dosagem: dosagem.trim(),
       tipoFormato: formato,
-      horario: horario.trim(),
+      horario: horarioNormalizado,
       frequencia,
       instrucoes: instrucoes.trim() || 'Tomar conforme prescrição',
       observacoes: observacoes.trim(),
@@ -261,8 +263,10 @@ export default function AddMedicineModal({
                 placeholder="08:00"
                 placeholderTextColor={colors.textMuted}
                 value={horario}
+                keyboardType="numeric"
                 onChangeText={(text) => {
-                  setHorario(text);
+                  const formatado = formatarHorarioInput(horario, text);
+                  setHorario(formatado);
                   if (errorMessage) setErrorMessage('');
                 }}
                 maxLength={5}
