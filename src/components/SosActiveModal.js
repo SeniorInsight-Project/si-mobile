@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -8,30 +8,43 @@ import {
   Animated,
   Linking,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from './Icon';
 import { colors, typography, shadows, rounded } from '../theme';
 
+/**
+ * Modal / Tela "Chamando sua família" (HU-063, HU-064 e RN-009).
+ * - Exibe feedback imediato do SOS disparado.
+ * - Suporta cancelamento em até 10 segundos ("Foi engano", HU-064).
+ * - Após 10 segundos, exibe "Ajuda a caminho".
+ * - Exibe status de reenvio offline (60s) e discagem rápida para o 1º contato.
+ */
 export default function SosActiveModal({
   visible,
   alarme,
+  filaStatus,
+  primeiroContato,
   onClose,
   onCancelAlarme,
 }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [segundosCancelamento, setSegundosCancelamento] = useState(10);
+  const cancelTimerRef = useRef(null);
 
+  // Animação contínua do ícone de socorro
   useEffect(() => {
     if (visible) {
       const pulseLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.15,
-            duration: 700,
+            toValue: 1.12,
+            duration: 650,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 700,
+            duration: 650,
             useNativeDriver: true,
           }),
         ])
@@ -42,39 +55,65 @@ export default function SosActiveModal({
     }
   }, [visible, pulseAnim]);
 
-  const handleLigarSamu = () => {
-    Linking.openURL('tel:192').catch(() => {
-      Alert.alert('Discador Indisponível', 'Disque 192 manualmente pelo seu telefone.');
+  // Contagem regressiva de 10 segundos para cancelamento de falso alarme (HU-064)
+  useEffect(() => {
+    if (visible) {
+      setSegundosCancelamento(10);
+
+      cancelTimerRef.current = setInterval(() => {
+        setSegundosCancelamento((prev) => {
+          if (prev <= 1) {
+            clearInterval(cancelTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (cancelTimerRef.current) {
+          clearInterval(cancelTimerRef.current);
+          cancelTimerRef.current = null;
+        }
+      };
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const contatoPadrao = primeiroContato || {
+    nome: 'Carlos Silva',
+    parentesco: 'Filho (Cuidador Principal)',
+    telefone: '(11) 98765-4321',
+  };
+
+  const handleLigarContato = () => {
+    const rawTel = contatoPadrao.telefone || '11987654321';
+    const telSanitizado = rawTel.replace(/\D/g, '');
+    Linking.openURL(`tel:${telSanitizado}`).catch(() => {
+      Alert.alert(
+        'Discador Indisponível',
+        `Disque manualmente para ${contatoPadrao.nome}: ${contatoPadrao.telefone}`
+      );
     });
   };
 
-  const handleConfirmarCancelamento = () => {
-    Alert.alert(
-      'Cancelar Alarme SOS?',
-      'Deseja registrar este acionamento como falso alarme e tranquilizar a rede de cuidadores?',
-      [
-        { text: 'Não, manter alerta', style: 'cancel' },
-        {
-          text: 'Sim, cancelar socorro',
-          style: 'destructive',
-          onPress: () => {
-            if (onCancelAlarme && alarme?.id) {
-              onCancelAlarme(alarme.id);
-            }
-          },
-        },
-      ]
-    );
+  const handleFoiEngano = () => {
+    if (onCancelAlarme) {
+      onCancelAlarme(alarme?.id || alarme?.idempotencyKey);
+    }
   };
-
-  if (!visible) return null;
 
   const horaFormatada = alarme?.criadoEm
     ? new Date(alarme.criadoEm).toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
       })
-    : 'Agora';
+    : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const isOffline = filaStatus?.status === 'PENDENTE_OFFLINE';
+  const isTimeout = filaStatus?.status === 'EXPIRADO';
+  const tempoRestante = filaStatus?.tempoRestanteSegundos ?? 60;
 
   return (
     <Modal
@@ -85,75 +124,112 @@ export default function SosActiveModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          {/* Ícone pulsante de sirene */}
+          {/* Ícone pulsante de sirene / emergência */}
           <Animated.View
             style={[
               styles.iconWrapper,
               { transform: [{ scale: pulseAnim }] },
             ]}
           >
-            <View style={styles.iconCircle}>
-              <Icon name="emergency" size={38} color="#FFFFFF" />
+            <View style={[styles.iconCircle, isTimeout && styles.iconCircleTimeout]}>
+              <Icon name="crisis_alert" size={40} color="#FFFFFF" />
             </View>
           </Animated.View>
 
-          {/* Cabeçalho do Alarme */}
-          <Text style={styles.alertTag}>SISTEMA DE EMERGÊNCIA ATIVADO</Text>
-          <Text style={styles.title}>Socorro em Andamento!</Text>
+          {/* Cabeçalho da Tela: "Chamando sua família" (HU-063) */}
+          <Text style={styles.alertTag}>EMERGÊNCIA ACIONADA</Text>
+          <Text style={styles.title}>Chamando sua família</Text>
           <Text style={styles.subtitle}>
-            Sua localização exata e status de bateria ({alarme?.nivelBateria ?? 88}%) foram
-            enviados em tempo real com alta prioridade (SLA &lt; 100ms).
+            Sua localização aproximada e pedido de socorro estão sendo enviados para sua rede de apoio.
           </Text>
 
-          {/* Painel com cuidadores notificados */}
+          {/* Card de Status de Envio e Conexão */}
           <View style={styles.statusBox}>
+            {isTimeout ? (
+              <View style={styles.alertOfflineBox}>
+                <Icon name="warning" size={20} color="#B51C13" />
+                <View style={styles.alertOfflineTextWrapper}>
+                  <Text style={styles.alertOfflineTitle}>Sem conexão após 60 segundos</Text>
+                  <Text style={styles.alertOfflineSub}>
+                    Não conseguimos enviar via internet. Ligue diretamente para o seu cuidador abaixo.
+                  </Text>
+                </View>
+              </View>
+            ) : isOffline ? (
+              <View style={styles.alertWarningBox}>
+                <ActivityIndicator size="small" color="#D97706" />
+                <View style={styles.alertOfflineTextWrapper}>
+                  <Text style={styles.alertWarningTitle}>Tentando conectar pela internet...</Text>
+                  <Text style={styles.alertWarningSub}>
+                    Reenviando automaticamente ({tempoRestante}s restantes)
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.statusRow}>
+                <Icon name="check_circle" size={18} color="#16A34A" />
+                <Text style={styles.statusText}>
+                  Família notificada com alta prioridade
+                </Text>
+              </View>
+            )}
+
             <View style={styles.statusRow}>
-              <Icon name="check_circle" size={16} color={colors.successDark} />
+              <Icon name="schedule" size={16} color="#64748B" />
               <Text style={styles.statusText}>
-                3 Cuidadores Familiares notificados via Push &amp; SMS
+                Horário do chamado: <Text style={styles.bold}>{horaFormatada}</Text>
               </Text>
             </View>
+
             <View style={styles.statusRow}>
-              <Icon name="check_circle" size={16} color={colors.successDark} />
+              <Icon name="person" size={16} color="#64748B" />
               <Text style={styles.statusText}>
-                Horário do acionamento: <Text style={styles.bold}>{horaFormatada}</Text>
-              </Text>
-            </View>
-            <View style={styles.statusRow}>
-              <Icon name="shield_alert" size={16} color={colors.secondaryCoral} />
-              <Text style={styles.statusText}>
-                Status do alarme: <Text style={styles.boldRed}>{alarme?.status || 'DISPARADO'}</Text>
+                1º socorrista: <Text style={styles.bold}>{contatoPadrao.nome}</Text> ({contatoPadrao.parentesco || 'Familiar'})
               </Text>
             </View>
           </View>
 
-          {/* Botão de discagem rápida SAMU 192 */}
+          {/* Botão de Cancelamento em 10 segundos (HU-064 / RN-009) */}
+          {segundosCancelamento > 0 ? (
+            <TouchableOpacity
+              style={styles.cancel10Button}
+              onPress={handleFoiEngano}
+              activeOpacity={0.8}
+            >
+              <Icon name="cancel" size={20} color="#FFFFFF" />
+              <Text style={styles.cancel10ButtonText}>
+                Foi engano (Cancelar em {segundosCancelamento}s)
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.ajudaCaminhoBanner}>
+              <Icon name="health_and_safety" size={22} color="#031753" />
+              <Text style={styles.ajudaCaminhoText}>Ajuda a caminho</Text>
+              <Text style={styles.ajudaCaminhoSub}>
+                Fique calmo(a), seus familiares já foram avisados!
+              </Text>
+            </View>
+          )}
+
+          {/* Botão para ligar para o 1º contato de emergência (Cenário 3 / Fallback) */}
           <TouchableOpacity
-            style={styles.samuButton}
-            onPress={handleLigarSamu}
+            style={[styles.callButton, isTimeout && styles.callButtonUrgent]}
+            onPress={handleLigarContato}
             activeOpacity={0.85}
           >
             <Icon name="call" size={20} color="#FFFFFF" />
-            <Text style={styles.samuButtonText}>Ligar para o SAMU (192)</Text>
+            <Text style={styles.callButtonText}>
+              Ligar para {contatoPadrao.nome}
+            </Text>
           </TouchableOpacity>
 
-          {/* Botão de cancelamento de falso alarme */}
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleConfirmarCancelamento}
-            activeOpacity={0.8}
-          >
-            <Icon name="cancel" size={18} color={colors.secondaryCoral} />
-            <Text style={styles.cancelButtonText}>Cancelar Alarme (Falso Alarme)</Text>
-          </TouchableOpacity>
-
-          {/* Botão de fechar/minimizar mantendo o alarme ativo */}
+          {/* Minimizar modal mantendo o socorro ativo */}
           <TouchableOpacity
             style={styles.minimizeButton}
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <Text style={styles.minimizeText}>Minimizar e Manter Monitoramento</Text>
+            <Text style={styles.minimizeText}>Fechar e Manter Chamado Ativo</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -164,132 +240,205 @@ export default function SosActiveModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(7, 35, 105, 0.75)',
+    backgroundColor: 'rgba(3, 23, 83, 0.78)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 380,
-    backgroundColor: colors.surface,
-    borderRadius: rounded.card,
+    maxWidth: 390,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
     padding: 24,
     alignItems: 'center',
     ...shadows.tier3,
   },
   iconWrapper: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   iconCircle: {
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: colors.secondaryCoral,
+    backgroundColor: '#B51C13',
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.tier2,
+    borderWidth: 4,
+    borderColor: '#FEE2E2',
+  },
+  iconCircleTimeout: {
+    backgroundColor: '#DC2626',
   },
   alertTag: {
     fontSize: 11,
     fontWeight: '800',
-    color: colors.secondaryCoral,
-    letterSpacing: 0.8,
-    marginBottom: 6,
-    fontFamily: typography.fontFamily.heading,
+    color: '#B51C13',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 22,
+    ...typography.headlineMedium,
+    color: '#031753',
     fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 8,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
+    marginBottom: 6,
+    fontSize: 24,
   },
   subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    ...typography.bodyMedium,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-    fontFamily: typography.fontFamily.body,
+    lineHeight: 20,
+    marginBottom: 16,
+    paddingHorizontal: 10,
   },
   statusBox: {
     width: '100%',
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: rounded.lg,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
     padding: 14,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
+    gap: 10,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 8,
   },
   statusText: {
-    fontSize: 12,
-    color: colors.onSurface,
-    marginLeft: 8,
+    ...typography.bodySmall,
+    color: '#334155',
     flex: 1,
-    fontFamily: typography.fontFamily.body,
   },
   bold: {
     fontWeight: '700',
-    color: colors.primary,
+    color: '#0F172A',
   },
-  boldRed: {
-    fontWeight: '800',
-    color: colors.secondaryCoral,
-  },
-  samuButton: {
-    width: '100%',
-    minHeight: 48,
-    backgroundColor: colors.secondary,
-    borderRadius: rounded.full,
+  alertOfflineBox: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FEF2F2',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  alertOfflineTextWrapper: {
+    flex: 1,
+  },
+  alertOfflineTitle: {
+    ...typography.labelMedium,
+    color: '#B51C13',
+    fontWeight: '800',
+  },
+  alertOfflineSub: {
+    ...typography.bodySmall,
+    color: '#7F1D1D',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  alertWarningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  alertWarningTitle: {
+    ...typography.labelMedium,
+    color: '#B45309',
+    fontWeight: '800',
+  },
+  alertWarningSub: {
+    ...typography.bodySmall,
+    color: '#92400E',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  cancel10Button: {
+    width: '100%',
+    flexDirection: 'row',
+    backgroundColor: '#B51C13',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 14,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
     ...shadows.tier2,
   },
-  samuButtonText: {
-    color: colors.onSecondary,
+  cancel10ButtonText: {
+    ...typography.titleMedium,
+    color: '#FFFFFF',
+    fontWeight: '800',
     fontSize: 15,
-    fontWeight: '700',
-    marginLeft: 8,
-    fontFamily: typography.fontFamily.heading,
   },
-  cancelButton: {
+  ajudaCaminhoBanner: {
     width: '100%',
-    minHeight: 48,
-    backgroundColor: colors.peach.background,
-    borderWidth: 1.5,
-    borderColor: colors.peach.border,
-    borderRadius: rounded.full,
+    backgroundColor: '#EBF5FF',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  ajudaCaminhoText: {
+    ...typography.titleMedium,
+    color: '#031753',
+    fontWeight: '900',
+    fontSize: 18,
+    marginTop: 2,
+  },
+  ajudaCaminhoSub: {
+    ...typography.bodySmall,
+    color: '#1E40AF',
+    textAlign: 'center',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  callButton: {
+    width: '100%',
     flexDirection: 'row',
+    backgroundColor: '#031753',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 14,
+    gap: 8,
+    marginBottom: 8,
   },
-  cancelButtonText: {
-    color: colors.secondaryCoral,
-    fontSize: 14,
+  callButtonUrgent: {
+    backgroundColor: '#B51C13',
+  },
+  callButtonText: {
+    ...typography.titleMedium,
+    color: '#FFFFFF',
     fontWeight: '700',
-    marginLeft: 6,
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 15,
   },
   minimizeButton: {
     paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 4,
   },
   minimizeText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    ...typography.labelMedium,
+    color: '#64748B',
     fontWeight: '600',
-    textDecorationLine: 'underline',
-    fontFamily: typography.fontFamily.body,
   },
 });
