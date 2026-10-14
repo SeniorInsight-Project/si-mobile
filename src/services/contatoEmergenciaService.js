@@ -106,6 +106,22 @@ export async function removerContato(idosoId, contatoId) {
 }
 
 /**
+ * Atualiza a ordem de prioridade de todos os contatos de emergência (Reorder / Drag & Drop).
+ * @param {string} idosoId
+ * @param {Array} novaListaContatos
+ * @returns {Promise<Array>}
+ */
+export async function reordenarContatos(idosoId, novaListaContatos) {
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  const atualizados = novaListaContatos.map((c, idx) => ({
+    ...c,
+    ordem: idx + 1,
+  }));
+  contatosEmMemoria = [...atualizados];
+  return [...contatosEmMemoria];
+}
+
+/**
  * Restaura os contatos padrão iniciais (útil para testes).
  */
 export function resetarContatos() {
