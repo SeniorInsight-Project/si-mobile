@@ -12,11 +12,13 @@ import {
   Easing,
   Vibration,
   Platform,
+  Linking,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
+import SosHoldButton from '../components/SosHoldButton';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
 import {
@@ -25,10 +27,16 @@ import {
   INITIAL_MEDICINES,
 } from '../services/medicamentoService.js';
 import {
-  dispararSos,
   atualizarStatusAlarme,
 } from '../services/alarmeSosService.js';
-import { obterLocalizacaoAtual } from '../services/locationService.js';
+import { obterLocalizacaoRapida } from '../services/locationService.js';
+import {
+  enfileirarSos,
+  iniciarCicloEnvio,
+  cancelarFilaSos,
+  retomarPendentes,
+} from '../services/sosQueueService.js';
+import { listarContatos } from '../services/contatoEmergenciaService.js';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
@@ -40,16 +48,13 @@ export default function ElderlyModeScreen({
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Estados do Botão SOS e Modal de Socorro Ativo (HU35)
+  // Estados do Botão SOS de 2s e Fila Offline (HU-063, HU-064)
   const [modalSosVisible, setModalSosVisible] = useState(false);
   const [alarmeAtivo, setAlarmeAtivo] = useState(null);
-  const [isPressingSos, setIsPressingSos] = useState(false);
-  const [sosCountdown, setSosCountdown] = useState(3);
+  const [filaStatus, setFilaStatus] = useState(null);
+  const [primeiroContato, setPrimeiroContato] = useState(null);
   const [disparandoSos, setDisparandoSos] = useState(false);
 
-  const pressProgress = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef(null);
-  const countdownIntervalRef = useRef(null);
 
   useEffect(() => {
     async function carregar() {
@@ -66,8 +71,33 @@ export default function ElderlyModeScreen({
       }
     }
 
+    async function carregarContatos() {
+      try {
+        const lista = await listarContatos(idosoId);
+        if (lista && lista.length > 0) {
+          setPrimeiroContato(lista[0]);
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar contatos:', err.message);
+      }
+    }
+
     carregar();
+    carregarContatos();
+
+    // Retoma qualquer SOS pendente que tenha ficado no SQLite (ex: app fechado na janela de 60s)
+    retomarPendentes({
+      onStatusChange: (statusInfo) => {
+        setFilaStatus(statusInfo);
+      },
+      onTimeout: ({ primeiroContato: contato }) => {
+        if (contato) setPrimeiroContato(contato);
+        const telSanitizado = (contato?.telefone || '11987654321').replace(/\D/g, '');
+        Linking.openURL(`tel:${telSanitizado}`).catch(() => {});
+      },
+    });
   }, [idosoId]);
+
 
   const remedioAtual = useMemo(() => {
     return rotinas.find((r) => r.statusHoje !== 'TOMADO' && r.ativo !== false);
@@ -150,131 +180,98 @@ export default function ElderlyModeScreen({
     }
   };
 
-  const startSosPress = () => {
-    setIsPressingSos(true);
-    setSosCountdown(3);
-
-    if (Platform.OS !== 'web') {
-      try {
-        Vibration.vibrate(80);
-      } catch (e) {}
-    }
-
-    Animated.timing(pressProgress, {
-      toValue: 1,
-      duration: 3000,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    }).start();
-
-    let count = 3;
-    countdownIntervalRef.current = setInterval(() => {
-      count -= 1;
-      if (count >= 1) {
-        setSosCountdown(count);
-        if (Platform.OS !== 'web') {
-          try {
-            Vibration.vibrate(60);
-          } catch (e) {}
-        }
-      } else {
-        clearInterval(countdownIntervalRef.current);
-      }
-    }, 1000);
-
-    timerRef.current = setTimeout(() => {
-      executarDisparoEmergencia();
-    }, 3000);
-  };
-
-  const cancelSosPress = () => {
-    setIsPressingSos(false);
-    setSosCountdown(3);
-
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-
-    Animated.timing(pressProgress, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const executarDisparoEmergencia = async () => {
-    setIsPressingSos(false);
-    setSosCountdown(3);
-    pressProgress.setValue(0);
-
-    if (Platform.OS !== 'web') {
-      try {
-        Vibration.vibrate([0, 300, 100, 300, 100, 400]);
-      } catch (e) {}
-    }
-
+  const handleTriggerSos = async () => {
+    setDisparandoSos(true);
     try {
-      setDisparandoSos(true);
+      // 1. Obtém localização rápida (cache ou 1.5s timeout, sem bloqueio de geocoding reverso)
+      const loc = await obterLocalizacaoRapida();
 
-      const locAtual = await obterLocalizacaoAtual();
-
-      const novoAlarme = await dispararSos(idosoId, {
-        latitude: locAtual.latitude,
-        longitude: locAtual.longitude,
-        enderecoAproximado:
-          locAtual.endereco || 'Rua das Flores, 142 - São Paulo, SP',
-        precisaoMetros: locAtual.accuracy || 5.0,
-        nivelBateria: 88,
+      // 2. Enfileira imediatamente no SQLite e memória com chave de idempotência UUID única
+      const registro = await enfileirarSos(idosoId, {
+        latitude: loc?.latitude ?? null,
+        longitude: loc?.longitude ?? null,
+        nivelBateria: null,
+        observacao: 'SOS acionado pelo idoso (pressão contínua de 2s).',
       });
 
-      setAlarmeAtivo(novoAlarme);
-      setModalSosVisible(true);
-    } catch (err) {
-      Alert.alert(
-        'Alarme Disparado Offline',
-        'Não foi possível conectar à internet imediatamente, mas o sinal de emergência foi salvo e os contatos de urgência foram acionados.'
-      );
-      setAlarmeAtivo({
-        id: `offline-${Date.now()}`,
+      const alarmeInicial = {
+        id: registro.idempotencyKey,
+        idempotencyKey: registro.idempotencyKey,
         status: 'DISPARADO',
-        criadoEm: new Date().toISOString(),
-        nivelBateria: 88,
+        criadoEm: new Date(registro.criadoEm).toISOString(),
+        latitude: loc?.latitude,
+        longitude: loc?.longitude,
+      };
+      setAlarmeAtivo(alarmeInicial);
+      setFilaStatus({
+        status: 'ENVIANDO',
+        tempoRestanteSegundos: 60,
+        tentativas: 1,
+        idempotencyKey: registro.idempotencyKey,
       });
       setModalSosVisible(true);
+
+      // 3. Inicia ciclo de envio com reenvio contínuo por até 60s com a mesma chave de idempotência
+      iniciarCicloEnvio(registro.idempotencyKey, {
+        onStatusChange: (statusInfo) => {
+          setFilaStatus(statusInfo);
+        },
+        onSucesso: (alarmeServidor) => {
+          setAlarmeAtivo(alarmeServidor);
+          setFilaStatus({ status: 'ENVIADO', tempoRestanteSegundos: 0 });
+        },
+        onTimeout: ({ primeiroContato: contato }) => {
+          setFilaStatus({ status: 'EXPIRADO', tempoRestanteSegundos: 0 });
+          if (contato) setPrimeiroContato(contato);
+
+          const destino = contato || primeiroContato;
+          const telSanitizado = (destino?.telefone || '11987654321').replace(/\D/g, '');
+
+          // Cenário 3: 60s sem resposta -> abre discador telefônico
+          Linking.openURL(`tel:${telSanitizado}`).catch(() => {
+            Alert.alert(
+              'Tempo de Conexão Esgotado',
+              `Não foi possível enviar via internet após 60s. Por favor, ligue para ${destino?.nome || 'seu contato de emergência'}.`
+            );
+          });
+        },
+      });
+    } catch (err) {
+      console.warn('Erro ao disparar SOS:', err.message);
     } finally {
       setDisparandoSos(false);
     }
   };
 
-  const handleCancelarAlarme = async (alarmeId) => {
+  const handleCancelarAlarme = async (chaveOuId) => {
     try {
-      await atualizarStatusAlarme(
-        alarmeId,
-        'CANCELADO',
-        'Idoso cancelou o chamado através da confirmação de falso alarme no aplicativo.'
-      );
+      await cancelarFilaSos(chaveOuId);
+
+      if (alarmeAtivo?.id && !alarmeAtivo.id.startsWith('offline-')) {
+        try {
+          await atualizarStatusAlarme(
+            alarmeAtivo.id,
+            'CANCELADO',
+            'Idoso cancelou o chamado ("Foi engano") nos primeiros 10 segundos.'
+          );
+        } catch (e) {
+          console.warn('Erro ao cancelar alarme no servidor:', e.message);
+        }
+      }
 
       setModalSosVisible(false);
       setAlarmeAtivo(null);
+      setFilaStatus(null);
 
       Alert.alert(
         'Alarme Cancelado',
-        'Seus familiares foram avisados de que foi um falso alarme e você está em segurança.'
+        'Seu pedido de socorro foi cancelado e seus familiares foram avisados que você está em segurança.'
       );
     } catch (err) {
-      Alert.alert('Erro', 'Não foi possível cancelar o alarme no servidor.');
+      setModalSosVisible(false);
     }
   };
 
-  const progressWidth = pressProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
 
   return (
     <ScreenWrapper>
@@ -451,7 +448,7 @@ export default function ElderlyModeScreen({
           <Icon name="chevron_right" size={20} color="#64748B" />
         </TouchableOpacity>
 
-        {/* CARD 3: SOS EMERGÊNCIA (rx=32, #FFFFFF com brilho coral no topo) */}
+        {/* CARD 3: SOS EMERGÊNCIA (HU-063 / RN-009) */}
         <View style={styles.sosCard}>
           <View style={styles.sosTopGlow} />
 
@@ -463,56 +460,11 @@ export default function ElderlyModeScreen({
             Precisa de socorro urgente?
           </Text>
 
-          {/* BOTÃO CIRCULAR SOS GIGANTE (208x208 externo / 192x192 interno) */}
-          <View style={styles.sosButtonOuterWrapper}>
-            <View style={styles.sosOuterRing}>
-              <TouchableOpacity
-                style={[
-                  styles.sosInnerButton,
-                  isPressingSos && styles.sosButtonContainerPressing,
-                ]}
-                onPressIn={startSosPress}
-                onPressOut={cancelSosPress}
-                activeOpacity={0.92}
-              >
-                <Icon name="crisis_alert" size={38} color="#FFFFFF" />
-                <Text style={styles.sosMainButtonText}>EMERGÊNCIA</Text>
-                <View style={styles.sosSubPill}>
-                  <Text style={styles.sosSubPillText}>SOS</Text>
-                </View>
-
-                {isPressingSos && (
-                  <View style={styles.pressingOverlay}>
-                    <Text style={styles.countdownNumber}>{sosCountdown}</Text>
-                    <Text style={styles.countdownSub}>segure...</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {isPressingSos && (
-              <View style={styles.progressTrack}>
-                <Animated.View
-                  style={[styles.progressFill, { width: progressWidth }]}
-                />
-              </View>
-            )}
-          </View>
-
-          {/* INSTRUÇÃO */}
-          <View style={styles.sosInstructionRow}>
-            <Icon name="touch_app" size={18} color="#B51C13" />
-            <Text style={styles.sosFooterInstruction}>
-              {isPressingSos
-                ? `Segure por mais ${sosCountdown}s para disparar!`
-                : 'Pressione e segure por 3 segundos'}
-            </Text>
-          </View>
-
-          <Text style={styles.sosFooterSub}>
-            Avisará imediatamente 3 cuidadores familiares e{'\n'}compartilhará
-            sua localização com o SAMU (192).
-          </Text>
+          {/* NOVO BOTÃO SOS CIRCULAR COM ANEL SVG DE 2 SEGUNDOS E HAPTICS */}
+          <SosHoldButton
+            onTrigger={handleTriggerSos}
+            disabled={disparandoSos}
+          />
 
           {/* PÍLULA DE CUIDADORES AVISADOS */}
           <TouchableOpacity
@@ -522,7 +474,9 @@ export default function ElderlyModeScreen({
           >
             <View style={styles.caregiversAvatars}>
               <View style={[styles.miniAvatar, { backgroundColor: '#031753' }]}>
-                <Text style={styles.avatarTxt}>CA</Text>
+                <Text style={styles.avatarTxt}>
+                  {primeiroContato?.iniciais || 'CA'}
+                </Text>
               </View>
               <View
                 style={[
@@ -542,19 +496,24 @@ export default function ElderlyModeScreen({
               </View>
             </View>
             <Text style={styles.caregiversText}>
-              Carlos, Roberta e Dr. Silva avisados
+              {primeiroContato
+                ? `${primeiroContato.nome.split(' ')[0]}, Roberta e familiares avisados`
+                : 'Carlos, Roberta e familiares avisados'}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* MODAL DE SOCORRO ATIVO COM CANCELAMENTO DE FALSO ALARME */}
+      {/* MODAL / TELA "CHAMANDO SUA FAMÍLIA" (HU-063, HU-064) */}
       <SosActiveModal
         visible={modalSosVisible}
         alarme={alarmeAtivo}
+        filaStatus={filaStatus}
+        primeiroContato={primeiroContato}
         onClose={() => setModalSosVisible(false)}
         onCancelAlarme={handleCancelarAlarme}
       />
+
 
       {/* BARRA DE NAVEGAÇÃO INFERIOR */}
       <BottomNavBar currentScreen="ElderlyMode" onNavigate={onNavigate} />

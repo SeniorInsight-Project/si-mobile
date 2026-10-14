@@ -22,63 +22,60 @@ let alarmesLocais = [];
 export async function dispararSos(
   idosoId,
   {
-    latitude = -23.550520,
-    longitude = -46.633308,
-    nivelBateria = 88,
+    latitude = null,
+    longitude = null,
+    nivelBateria = null,
     observacao = 'Botão SOS acionado no aplicativo móvel.',
+    idempotencyKey = null,
   } = {},
   token = null
 ) {
   const agora = new Date().toISOString();
-  const mockFallback = {
-    id: `sos-${Date.now()}`,
-    idosoId,
-    nomeIdoso: 'Dona Maria Silva',
-    latitude,
-    longitude,
-    nivelBateria,
-    status: 'DISPARADO',
-    observacao,
-    criadoEm: agora,
-    atualizadoEm: agora,
-    mensagem: 'Alarme SOS registrado com sucesso e enviado à rede de socorro.',
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+    headers['X-Idempotency-Key'] = idempotencyKey;
+  }
 
-  try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+  const payload = {
+    observacao,
+  };
+  if (latitude !== null && latitude !== undefined) payload.latitude = latitude;
+  if (longitude !== null && longitude !== undefined) payload.longitude = longitude;
+  if (nivelBateria !== null && nivelBateria !== undefined) payload.nivelBateria = nivelBateria;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        latitude,
-        longitude,
-        nivelBateria,
-        observacao,
-      }),
-    });
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
 
-    if (response.status === 202 || response.ok) {
-      const data = await response.json();
-      alarmesLocais.unshift(data);
-      return data;
-    }
+  if (response.status === 202 || response.ok) {
+    const data = await response.json();
+    alarmesLocais.unshift(data);
+    return data;
+  }
 
-    console.warn(`[alarmeSosService] Backend respondeu status ${response.status}. Ativando fallback local.`);
-    alarmesLocais.unshift(mockFallback);
-    return mockFallback;
-  } catch (error) {
-    console.warn('[alarmeSosService] Erro ao conectar com o backend:', error.message);
-    alarmesLocais.unshift(mockFallback);
-    return mockFallback;
+  const erroMsg = `Falha ao registrar alarme SOS (HTTP ${response.status})`;
+  console.warn(`[alarmeSosService] ${erroMsg}`);
+  const erro = new Error(erroMsg);
+  erro.status = response.status;
+  throw erro;
+}
+
+export function registrarAlarmeLocalmente(alarme) {
+  if (alarme) {
+    alarmesLocais.unshift(alarme);
   }
 }
+
 
 /**
  * Atualiza o status do alarme (ex: EM_ATENDIMENTO, RESOLVIDO, CANCELADO).
