@@ -7,9 +7,16 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O SeniorInsight utiliza sua localização em tempo real para monitorar o perímetro seguro e enviar socorro imediato em caso de SOS."
+      }
     },
     "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -23,7 +30,13 @@
     "scheme": "seniorapp",
     "plugins": [
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O SeniorInsight utiliza sua localização em tempo real para monitorar o perímetro seguro e enviar socorro imediato em caso de SOS."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://seniorinsight-backend-br-73d00847a82b.herokuapp.com",

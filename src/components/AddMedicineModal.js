@@ -12,13 +12,15 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Icon from './Icon';
+import { colors, typography, shadows, rounded } from '../theme';
 
 const FORMAT_OPTIONS = [
-  { id: 'comprimido', label: 'Comprimido', emoji: '💊' },
-  { id: 'gotas', label: 'Gotas', emoji: '💧' },
-  { id: 'xarope', label: 'Xarope', emoji: '🧴' },
-  { id: 'injecao', label: 'Injeção', emoji: '💉' },
-  { id: 'outro', label: 'Outro', emoji: '🩺' },
+  { id: 'comprimido', label: 'Comprimido', icon: 'medication' },
+  { id: 'gotas', label: 'Gotas', icon: 'water_drop' },
+  { id: 'xarope', label: 'Xarope', icon: 'droplets' },
+  { id: 'injecao', label: 'Injeção', icon: 'syringe' },
+  { id: 'outro', label: 'Outro', icon: 'stethoscope' },
 ];
 
 const QUICK_TIMES = ['08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00'];
@@ -50,7 +52,6 @@ export default function AddMedicineModal({
   const [observacoes, setObservacoes] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Preenche dados quando abre em modo de edição ou limpa para novo cadastro
   useEffect(() => {
     if (initialData) {
       setNome(initialData.medicamentoNome || '');
@@ -73,105 +74,100 @@ export default function AddMedicineModal({
   }, [initialData, visible]);
 
   const handleSave = () => {
-    const trimmedNome = nome.trim();
-    const trimmedDosagem = dosagem.trim();
-    const trimmedHorario = horario.trim();
-
-    if (!trimmedNome) {
+    if (!nome.trim()) {
       setErrorMessage('Por favor, informe o nome do medicamento.');
       return;
     }
-    if (!trimmedDosagem) {
-      setErrorMessage('Por favor, informe a dosagem (ex: 50mg ou 1 comprimido).');
+    if (!dosagem.trim()) {
+      setErrorMessage('Por favor, informe a dosagem.');
       return;
     }
-    if (!trimmedHorario) {
-      setErrorMessage('Por favor, informe o horário de administração (ex: 08:00).');
+    if (!horario.trim()) {
+      setErrorMessage('Por favor, informe o horário da dose.');
       return;
     }
 
-    setErrorMessage('');
-
-    onSave({
-      id: initialData?.id,
-      nomeMedicamento: trimmedNome,
-      medicamentoNome: trimmedNome,
-      dosagem: trimmedDosagem,
-      horario: trimmedHorario,
+    const payload = {
+      medicamentoNome: nome.trim(),
+      dosagem: dosagem.trim(),
       tipoFormato: formato,
+      horario: horario.trim(),
       frequencia,
-      instrucoes: instrucoes.trim() || 'Conforme orientação médica',
+      instrucoes: instrucoes.trim() || 'Tomar conforme prescrição',
       observacoes: observacoes.trim(),
-      diasSemana: 'TODOS',
-      ativo: initialData?.ativo !== undefined ? initialData.ativo : true,
-    });
+    };
+
+    if (onSave) {
+      onSave(payload, initialData?.id);
+    }
   };
 
   const handleDelete = () => {
-    if (!initialData?.id || !onDelete) return;
-
     Alert.alert(
       'Excluir Medicamento',
-      `Deseja realmente remover "${initialData.medicamentoNome}" da rotina diária?`,
+      `Tem certeza que deseja remover ${nome} da rotina de cuidados?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
-          onPress: () => onDelete(initialData.id),
+          onPress: () => {
+            if (onDelete && initialData?.id) {
+              onDelete(initialData.id);
+            }
+          },
         },
       ]
     );
   };
 
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}
-      transparent={true}
       animationType="slide"
+      transparent
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-
         <View style={styles.sheetContainer}>
-          {/* Indicador superior */}
-          <View style={styles.dragIndicator} />
-
-          {/* Cabeçalho */}
+          {/* Header do Modal */}
           <View style={styles.header}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.headerLeft}>
+              <View style={styles.iconCircle}>
+                <Icon name="medication" size={20} color={colors.primary} />
+              </View>
               <Text style={styles.title}>
                 {isEditing ? 'Editar Medicamento' : 'Novo Medicamento'}
               </Text>
-              <Text style={styles.subtitle}>
-                Configure o horário, dosagem e instruções clínicas de administração.
-              </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              activeOpacity={0.7}
+            >
+              <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.formScroll}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Mensagem de Erro */}
-            {Boolean(errorMessage) && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
-              </View>
-            )}
+          {/* Mensagem de Erro */}
+          {Boolean(errorMessage) && (
+            <View style={styles.errorContainer}>
+              <Icon name="shield_alert" size={16} color={colors.secondaryCoral} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          )}
 
+          <ScrollView
+            style={styles.body}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.bodyContent}
+          >
             {/* Campo: Nome do Medicamento */}
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>
@@ -180,7 +176,7 @@ export default function AddMedicineModal({
               <TextInput
                 style={styles.input}
                 placeholder="Ex: Losartana Potássica"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={nome}
                 onChangeText={(text) => {
                   setNome(text);
@@ -197,7 +193,7 @@ export default function AddMedicineModal({
               <TextInput
                 style={styles.input}
                 placeholder="Ex: 50mg • 1 comprimido ou 10ml"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={dosagem}
                 onChangeText={(text) => {
                   setDosagem(text);
@@ -226,7 +222,13 @@ export default function AddMedicineModal({
                       onPress={() => setFormato(opt.id)}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.chipEmoji}>{opt.emoji}</Text>
+                      <View style={{ marginRight: 6 }}>
+                        <Icon
+                          name={opt.icon}
+                          size={16}
+                          color={isSelected ? colors.primary : colors.textSecondary}
+                        />
+                      </View>
                       <Text
                         style={[
                           styles.chipLabel,
@@ -249,7 +251,7 @@ export default function AddMedicineModal({
               <TextInput
                 style={styles.input}
                 placeholder="08:00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={horario}
                 onChangeText={(text) => {
                   setHorario(text);
@@ -322,7 +324,7 @@ export default function AddMedicineModal({
               <TextInput
                 style={styles.input}
                 placeholder="Ex: Tomar com água após o café da manhã"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={instrucoes}
                 onChangeText={setInstrucoes}
               />
@@ -334,7 +336,7 @@ export default function AddMedicineModal({
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Ex: Medir pressão antes de tomar. Não ingerir em jejum."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={observacoes}
                 onChangeText={setObservacoes}
                 multiline
@@ -353,9 +355,12 @@ export default function AddMedicineModal({
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.saveButtonText}>
-                    {isEditing ? 'Atualizar Medicamento' : 'Salvar Medicamento'}
-                  </Text>
+                  <View style={styles.buttonInnerRow}>
+                    <Icon name="check" size={16} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>
+                      {isEditing ? 'Atualizar Medicamento' : 'Salvar Medicamento'}
+                    </Text>
+                  </View>
                 )}
               </TouchableOpacity>
 
@@ -366,7 +371,10 @@ export default function AddMedicineModal({
                   disabled={loading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.deleteButtonText}>Excluir Medicamento</Text>
+                  <View style={styles.buttonInnerRow}>
+                    <Icon name="delete" size={16} color={colors.secondaryCoral} />
+                    <Text style={styles.deleteButtonText}>Excluir Medicamento</Text>
+                  </View>
                 </TouchableOpacity>
               )}
 
@@ -375,7 +383,7 @@ export default function AddMedicineModal({
                 onPress={onClose}
                 activeOpacity={0.85}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.cancelButtonText}>Voltar</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -388,141 +396,138 @@ export default function AddMedicineModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 23, 83, 0.45)',
+    backgroundColor: 'rgba(7, 35, 105, 0.45)',
     justifyContent: 'flex-end',
   },
-  backdrop: {
-    flex: 1,
-  },
   sheetContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '88%',
-    paddingTop: 12,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  dragIndicator: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#CBD5E1',
-    alignSelf: 'center',
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: rounded.card,
+    borderTopRightRadius: rounded.card,
+    maxHeight: '90%',
+    paddingBottom: 24,
+    ...shadows.tier3,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingBottom: 12,
+    borderBottomColor: colors.borderLight,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.sky.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.sky.border,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#031753',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 16,
+    fontWeight: '800',
+    color: colors.primary,
+    fontFamily: typography.fontFamily.heading,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
-    marginLeft: 10,
+    alignItems: 'center',
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: 'bold',
-  },
-  formScroll: {
-    paddingVertical: 4,
-  },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.peach.background,
     borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
+    borderColor: colors.peach.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: rounded.md,
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 12,
+    color: colors.peach.textDark,
     fontWeight: '600',
+    flex: 1,
+    fontFamily: typography.fontFamily.body,
+  },
+  body: {
+    paddingHorizontal: 20,
+  },
+  bodyContent: {
+    paddingTop: 16,
+    paddingBottom: 40,
   },
   fieldGroup: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 6,
+    color: colors.primary,
+    marginBottom: 8,
+    fontFamily: typography.fontFamily.heading,
   },
   required: {
-    color: '#BA1A1A',
+    color: colors.secondaryCoral,
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: rounded.md,
     paddingHorizontal: 14,
-    paddingVertical: 10,
     fontSize: 14,
-    color: '#031753',
+    color: colors.onSurface,
+    backgroundColor: colors.surface,
+    fontFamily: typography.fontFamily.body,
   },
   textArea: {
-    minHeight: 56,
+    height: 70,
+    paddingTop: 10,
     textAlignVertical: 'top',
   },
   chipsScroll: {
-    flexDirection: 'row',
-    paddingVertical: 2,
     gap: 8,
+    paddingVertical: 4,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    borderRadius: rounded.full,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
   chipActive: {
-    backgroundColor: '#031753',
-    borderColor: '#031753',
-  },
-  chipEmoji: {
-    fontSize: 14,
-    marginRight: 6,
+    backgroundColor: colors.sky.background,
+    borderColor: colors.primary,
   },
   chipLabel: {
     fontSize: 12,
+    color: colors.textSecondary,
     fontWeight: '600',
-    color: '#475569',
+    fontFamily: typography.fontFamily.body,
   },
   chipLabelActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontWeight: '700',
   },
   quickTimesRow: {
     flexDirection: 'row',
@@ -531,69 +536,78 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   quickTimeChip: {
-    backgroundColor: '#F1F5F9',
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+    borderRadius: rounded.sm,
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   quickTimeChipActive: {
-    backgroundColor: '#0284C7',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   quickTimeText: {
     fontSize: 11,
+    color: colors.textSecondary,
     fontWeight: '600',
-    color: '#64748B',
+    fontFamily: typography.fontFamily.body,
   },
   quickTimeTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: colors.onPrimary,
+    fontWeight: '700',
   },
   actionButtonsContainer: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: 20,
     gap: 10,
   },
   saveButton: {
-    backgroundColor: '#031753',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
+    height: 52,
+    backgroundColor: colors.secondaryCoral,
+    borderRadius: rounded.full,
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    alignItems: 'center',
+    ...shadows.tier2,
+  },
+  buttonInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   saveButtonText: {
-    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: colors.onPrimary,
+    fontFamily: typography.fontFamily.heading,
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
+    height: 48,
+    backgroundColor: colors.peach.background,
+    borderWidth: 1.5,
+    borderColor: colors.peach.border,
+    borderRadius: rounded.full,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#DC2626',
     fontSize: 14,
     fontWeight: '700',
+    color: colors.secondaryCoral,
+    fontFamily: typography.fontFamily.heading,
   },
   cancelButton: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 48,
+    backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    borderRadius: rounded.full,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#64748B',
     fontSize: 14,
     fontWeight: '600',
+    color: colors.textSecondary,
+    fontFamily: typography.fontFamily.body,
   },
 });

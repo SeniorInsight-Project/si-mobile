@@ -1,81 +1,112 @@
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from './Icon';
+import { colors, typography } from '../theme';
 
 export default function BottomNavBar({ currentScreen, onNavigate }) {
   const tabs = [
-    { id: 'Home', label: 'Início', emoji: '📈' },
-    { id: 'Medicines', label: 'Remédios', emoji: '💊' },
-    { id: 'ElderlyMode', label: 'SOS Idoso', emoji: '🚨' },
-    { id: 'Family', label: 'Família', emoji: '👥' },
+    { id: 'Home', label: 'Início', icon: 'vital_signs' },
+    { id: 'Medicines', label: 'Remédios', icon: 'medication' },
+    { id: 'ElderlyMode', label: 'SOS Idoso', icon: 'crisis_alert' },
+    { id: 'Family', label: 'Família', icon: 'groups' },
   ];
 
-  return (
-    <View style={styles.bottomTabNav}>
-      {tabs.map((tab) => {
-        const isActive = currentScreen === tab.id;
+  const isTabActive = (tabId) => {
+    if (tabId === 'Family') {
+      return (
+        currentScreen === 'Family' ||
+        currentScreen === 'ElderlyProfile' ||
+        currentScreen === 'EmergencyContacts'
+      );
+    }
+    return currentScreen === tabId;
+  };
 
-        return (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tabItem, isActive && styles.tabItemActive]}
-            onPress={() => onNavigate(tab.id)}
-            activeOpacity={0.8}
-          >
-            <Text style={isActive ? styles.tabEmojiActive : styles.tabEmoji}>
-              {tab.emoji}
-            </Text>
-            <Text style={isActive ? styles.tabLabelActive : styles.tabLabel}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+  return (
+    <View style={styles.navOuterWrapper} pointerEvents="box-none">
+      <View style={styles.bottomTabNav}>
+        {tabs.map((tab) => {
+          const isActive = isTabActive(tab.id);
+
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tabItem, isActive && styles.tabItemActive]}
+              onPress={() => onNavigate && onNavigate(tab.id)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.iconContainer}>
+                <Icon
+                  name={tab.icon}
+                  size={20}
+                  color={isActive ? '#FFFFFF' : '#64748B'}
+                />
+              </View>
+              <Text style={isActive ? styles.tabLabelActive : styles.tabLabel}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bottomTabNav: {
+  navOuterWrapper: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 12,
+    left: 16,
+    right: 16,
+    zIndex: 30,
+  },
+  bottomTabNav: {
+    height: 64,
+    borderRadius: 48,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 4,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
     elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.7)',
   },
   tabItem: {
+    flex: 1,
+    height: 56,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 24,
-  },
-  tabEmoji: {
-    fontSize: 18,
-    marginBottom: 2,
-  },
-  tabLabel: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '600',
   },
   tabItemActive: {
-    backgroundColor: '#031753', // Fundo azul escuro para a página ativa
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 24,
+    backgroundColor: '#031753',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  tabEmojiActive: {
-    fontSize: 16,
+  iconContainer: {
     marginBottom: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    fontFamily: typography.fontFamily.body,
   },
   tabLabelActive: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.body,
   },
 });

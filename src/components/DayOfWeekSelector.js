@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { typography } from '../theme';
 
 export const DIAS_DA_SEMANA_PADRAO = [
   { id: '2026-10-21', diaSemana: 'SEG', diaNumero: '21', labelCompleta: 'Segunda-feira, 21 Out' },
@@ -17,84 +18,83 @@ export default function DayOfWeekSelector({
   dias = DIAS_DA_SEMANA_PADRAO,
 }) {
   return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
-        {dias.map((item) => {
-          const isSelected = item.id === selectedDate || item.diaNumero === selectedDate;
+    <View style={styles.rowContainer}>
+      {dias.map((item) => {
+        const isSelected =
+          item.id === selectedDate || item.diaNumero === selectedDate;
 
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.dayCard, isSelected && styles.dayCardActive]}
-              onPress={() => onSelectDate && onSelectDate(item)}
-              activeOpacity={0.8}
+        return (
+          <TouchableOpacity
+            key={item.id}
+            style={[styles.dayCard, isSelected && styles.dayCardActive]}
+            onPress={() => onSelectDate && onSelectDate(item)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.dayName, isSelected && styles.dayNameActive]}>
+              {item.diaSemana}
+            </Text>
+            <Text
+              style={[styles.dayNumber, isSelected && styles.dayNumberActive]}
             >
-              <Text style={[styles.dayName, isSelected && styles.dayNameActive]}>
-                {item.diaSemana}
-              </Text>
-              <Text style={[styles.dayNumber, isSelected && styles.dayNumberActive]}>
-                {item.diaNumero}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              {item.diaNumero}
+            </Text>
+            {isSelected && <View style={styles.activeGreenDot} />}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 12,
-  },
-  scrollContainer: {
+  rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
-    paddingVertical: 2,
+    gap: 6,
   },
   dayCard: {
     flex: 1,
-    height: 54,
-    marginHorizontal: 3,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    height: 60,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    position: 'relative',
   },
   dayCardActive: {
     backgroundColor: '#031753',
-    borderColor: '#031753',
-    elevation: 3,
     shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    transform: [{ scale: 1.03 }],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   dayName: {
     fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
     marginBottom: 2,
-    textTransform: 'uppercase',
+    fontFamily: typography.fontFamily.heading,
   },
   dayNameActive: {
-    color: '#93C5FD',
+    color: '#CBD5E1',
   },
   dayNumber: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#031753',
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
   },
   dayNumberActive: {
     color: '#FFFFFF',
+  },
+  activeGreenDot: {
+    position: 'absolute',
+    bottom: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
   },
 });

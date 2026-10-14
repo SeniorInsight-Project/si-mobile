@@ -1,17 +1,53 @@
-import { SafeAreaView, StyleSheet, Platform, StatusBar } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Platform, StatusBar } from 'react-native';
+import Constants from 'expo-constants';
+import { colors } from '../theme';
 
-export default function ScreenWrapper({ children, style }) {
+const TOP_SAFE_INSET =
+  Platform.OS === 'android'
+    ? Math.max(StatusBar.currentHeight || 0, Constants.statusBarHeight || 0, 28) + 8
+    : Platform.OS === 'ios'
+      ? Math.max(Constants.statusBarHeight || 44, 44)
+      : 0;
+
+export default function ScreenWrapper({
+  children,
+  style,
+  hasHeader = true,
+}) {
+  if (!hasHeader) {
+    return (
+      <View style={[styles.containerNoHeader, style]}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={colors.canvasBase}
+          translucent={true}
+        />
+        {children}
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={[styles.container, style]}>
+    <View style={[styles.containerWithHeader, style]}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#FFFFFF"
+        translucent={true}
+      />
       {children}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  containerWithHeader: {
     flex: 1,
-    backgroundColor: '#F7F9FC',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ? StatusBar.currentHeight + 6 : 30) : 0,
+    backgroundColor: colors.canvasBase,
+  },
+  containerNoHeader: {
+    flex: 1,
+    backgroundColor: colors.canvasBase,
+    paddingTop: TOP_SAFE_INSET,
   },
 });

@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Icon from './Icon';
 
 const GRAUS_SUGERIDOS = [
   'Filho(a)',
@@ -27,19 +28,19 @@ const PAPEIS_ACESSO = [
     id: 'ADMIN',
     titulo: 'Administrador',
     subtitulo: 'Acesso total à rede, dados clínicos e convites',
-    badge: '🛡️ Completo',
+    badge: 'Completo',
   },
   {
     id: 'CUIDADOR',
     titulo: 'Cuidador Principal',
     subtitulo: 'Registra medicamentos, atende SOS e rotinas diárias',
-    badge: '★ Recomendado',
+    badge: 'Recomendado',
   },
   {
     id: 'OBSERVADOR',
     titulo: 'Observador / Apoio',
     subtitulo: 'Acompanhamento de rotina e alertas informativos',
-    badge: '👁️ Leitura',
+    badge: 'Leitura',
   },
 ];
 
@@ -114,7 +115,7 @@ export default function InviteMemberModal({
               disabled={loading}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeIcon}>✕</Text>
+              <Icon name="close" size={18} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -129,7 +130,7 @@ export default function InviteMemberModal({
                 E-mail do Convidado <Text style={styles.requiredStar}>*</Text>
               </Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Icon name="mail" size={18} color="#64748B" style={{ marginRight: 8 }} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="ex: familiar@email.com"
@@ -150,7 +151,7 @@ export default function InviteMemberModal({
                 Grau de Parentesco / Relação <Text style={styles.requiredStar}>*</Text>
               </Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>👥</Text>
+                <Icon name="family_restroom" size={18} color="#64748B" style={{ marginRight: 8 }} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="ex: Filho(a), Neto(a), Cuidador..."
@@ -242,7 +243,12 @@ export default function InviteMemberModal({
 
             {/* AVISO DE SEGURANÇA E 48 HORAS */}
             <View style={styles.securityBox}>
-              <Text style={styles.securityTitle}>⏳ Validade Temporal de 48 Horas</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Icon name="schedule" size={15} color="#1D4ED8" style={{ marginRight: 6 }} />
+                <Text style={[styles.securityTitle, { marginBottom: 0 }]}>
+                  Validade Temporal de 48 Horas
+                </Text>
+              </View>
               <Text style={styles.securityText}>
                 Por segurança clínica e conformidade LGPD, um token único será enviado por e-mail e expirará automaticamente após 48h.
               </Text>
@@ -269,7 +275,10 @@ export default function InviteMemberModal({
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText}>✉️ Enviar Convite</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Icon name="send" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.submitButtonText}>Enviar Convite</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>

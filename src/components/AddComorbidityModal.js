@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,18 +11,20 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import Icon from './Icon';
+import { colors, typography, shadows, rounded } from '../theme';
 
 const SUGGESTIONS = [
-  { name: 'Hipertensão Arterial', icon: '❤️' },
-  { name: 'Diabetes Tipo 2', icon: '💧' },
-  { name: 'Osteoporose Leve', icon: '🧍' },
-  { name: 'Doença de Alzheimer', icon: '🧠' },
-  { name: 'Doença de Parkinson', icon: '⚡' },
-  { name: 'Insuficiência Cardíaca', icon: '🫀' },
-  { name: 'Dislipidemia (Colesterol)', icon: '🧪' },
-  { name: 'Asma Crônica', icon: '🫁' },
-  { name: 'Alergia a Dipirona', icon: '⚠️' },
-  { name: 'Glaucoma', icon: '👁️' },
+  { name: 'Hipertensão Arterial', icon: 'favorite', color: colors.peach.text },
+  { name: 'Diabetes Tipo 2', icon: 'water_drop', color: colors.sky.text },
+  { name: 'Osteoporose Leve', icon: 'walk', color: colors.mint.text },
+  { name: 'Doença de Alzheimer', icon: 'psychology', color: colors.lavender.text },
+  { name: 'Doença de Parkinson', icon: 'bolt', color: colors.amber.text },
+  { name: 'Insuficiência Cardíaca', icon: 'vital_signs', color: colors.secondaryCoral },
+  { name: 'Dislipidemia (Colesterol)', icon: 'vital_signs', color: colors.primaryNavy },
+  { name: 'Asma Crônica', icon: 'vital_signs', color: colors.sky.text },
+  { name: 'Alergia a Dipirona', icon: 'shield_alert', color: colors.lavender.text },
+  { name: 'Glaucoma', icon: 'visibility', color: colors.primaryNavy },
 ];
 
 export default function AddComorbidityModal({
@@ -93,52 +95,55 @@ export default function AddComorbidityModal({
               </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Input manual */}
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🩺</Text>
+              <View style={{ marginRight: 8 }}>
+                <Icon name="stethoscope" size={18} color={colors.textMuted} />
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Ex: Arritmia, Artrose..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={inputText}
                 onChangeText={(text) => {
                   setInputText(text);
                   if (errorMessage) setErrorMessage('');
                 }}
-                autoCapitalize="words"
+                onSubmitEditing={() => handleAdd()}
                 returnKeyType="done"
-                onSubmitEditing={() => handleAdd(inputText)}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.addBtn, loading && styles.addBtnDisabled]}
-              onPress={() => handleAdd(inputText)}
+              style={[styles.addButton, loading && { opacity: 0.6 }]}
+              onPress={() => handleAdd()}
               disabled={loading}
               activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.addBtnText}>+ Adicionar</Text>
+                <Text style={styles.addButtonText}>Adicionar</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {errorMessage ? (
+          {errorMessage !== '' && (
             <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : null}
+          )}
 
-          {/* Sugestões Rápidas */}
-          <Text style={styles.suggestionsTitle}>SUGESTÕES FREQUENTES</Text>
+          {/* Sugestões rápidas */}
+          <Text style={styles.sectionLabel}>Sugestões Clínicas Frequentes</Text>
+
           <ScrollView
+            style={styles.suggestionsScroll}
+            contentContainerStyle={styles.suggestionsContent}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.suggestionsGrid}
           >
             {SUGGESTIONS.map((item) => {
               const isAlreadyAdded = existingComorbidities.some(
@@ -156,7 +161,9 @@ export default function AddComorbidityModal({
                   disabled={isAlreadyAdded || loading}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.suggestionIcon}>{item.icon}</Text>
+                  <View style={styles.suggestionIconWrapper}>
+                    <Icon name={item.icon} size={15} color={item.color} />
+                  </View>
                   <Text
                     style={[
                       styles.suggestionText,
@@ -166,7 +173,7 @@ export default function AddComorbidityModal({
                     {item.name}
                   </Text>
                   {isAlreadyAdded && (
-                    <Text style={styles.checkMark}>✓</Text>
+                    <Icon name="check" size={14} color={colors.success} />
                   )}
                 </TouchableOpacity>
               );
@@ -181,33 +188,29 @@ export default function AddComorbidityModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    backgroundColor: 'rgba(7, 35, 105, 0.45)',
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(3, 23, 83, 0.45)',
   },
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   sheetContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 22,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: rounded.card,
+    borderTopRightRadius: rounded.card,
     paddingTop: 12,
+    paddingHorizontal: 20,
     paddingBottom: 36,
-    maxHeight: '75%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
+    maxHeight: '80%',
+    ...shadows.tier3,
   },
   dragIndicator: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E2E8F0',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
     alignSelf: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
@@ -217,28 +220,25 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#031753',
+    fontWeight: '800',
+    color: colors.primary,
     marginBottom: 4,
+    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     lineHeight: 16,
+    fontFamily: typography.fontFamily.body,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
-  },
-  closeBtnText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#64748B',
   },
   inputRow: {
     flexDirection: 'row',
@@ -250,89 +250,92 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: rounded.md,
     paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    height: 50,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.onSurface,
+    fontFamily: typography.fontFamily.body,
   },
-  addBtn: {
-    backgroundColor: '#E53E3E',
-    height: 48,
+  addButton: {
+    backgroundColor: colors.primaryNavy,
+    borderRadius: rounded.md,
+    height: 50,
     paddingHorizontal: 16,
-    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addBtnDisabled: {
-    opacity: 0.6,
-  },
-  addBtnText: {
-    color: '#FFFFFF',
+  addButtonText: {
+    color: colors.onPrimary,
+    fontWeight: '700',
     fontSize: 13,
-    fontWeight: 'bold',
+    fontFamily: typography.fontFamily.heading,
   },
   errorText: {
     fontSize: 12,
-    color: '#DC2626',
+    color: colors.errorBright,
+    fontWeight: '600',
     marginBottom: 10,
-    marginTop: 2,
+    fontFamily: typography.fontFamily.body,
   },
-  suggestionsTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#94A3B8',
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginTop: 14,
+    marginTop: 12,
     marginBottom: 10,
+    fontFamily: typography.fontFamily.heading,
   },
-  suggestionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  suggestionsScroll: {
+    maxHeight: 260,
+  },
+  suggestionsContent: {
     gap: 8,
-    paddingBottom: 16,
+    paddingBottom: 10,
   },
   suggestionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    borderRadius: rounded.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   suggestionPillDisabled: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    opacity: 0.5,
+    backgroundColor: colors.surfaceContainerLow,
+    borderColor: colors.mint.border,
+    opacity: 0.8,
   },
-  suggestionIcon: {
-    fontSize: 13,
-    marginRight: 6,
+  suggestionIconWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   suggestionText: {
-    fontSize: 12,
-    color: '#334155',
+    flex: 1,
+    fontSize: 13,
     fontWeight: '600',
+    color: colors.onSurface,
+    fontFamily: typography.fontFamily.body,
   },
   suggestionTextDisabled: {
-    color: '#94A3B8',
-  },
-  checkMark: {
-    fontSize: 11,
-    color: '#16A34A',
-    fontWeight: 'bold',
-    marginLeft: 5,
+    color: colors.successDark,
+    fontWeight: '700',
   },
 });
