@@ -26,6 +26,7 @@ import {
   confirmarIngestao,
   INITIAL_MEDICINES,
 } from '../services/medicamentoService.js';
+import { obterRotinasDoCache } from '../services/medicamentoDatabase.js';
 import {
   atualizarStatusAlarme,
 } from '../services/alarmeSosService.js';
@@ -57,11 +58,21 @@ export default function ElderlyModeScreen({
 
 
   useEffect(() => {
+    // 1. Carrega previamente do SQLite local para exibição instantânea 100% offline (RF-038)
+    obterRotinasDoCache(idosoId)
+      .then((cached) => {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setRotinas(cached);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Consulta o gateway em background e sincroniza a agenda
     async function carregar() {
       try {
         setLoading(true);
         const data = await listarRotinas(idosoId);
-        if (data && Array.isArray(data)) {
+        if (data && Array.isArray(data) && data.length > 0) {
           setRotinas(data);
         }
       } catch (err) {
@@ -133,25 +144,34 @@ export default function ElderlyModeScreen({
         'Idoso confirmou com 1 toque no Modo Idoso.'
       );
 
-      if (res && res.sucesso) {
+      if (res && (res.sucesso || res.status === 'TOMADO')) {
+        const horaRegistrada =
+          res.horarioIngestaoHoje ||
+          new Date().toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
         setRotinas((prev) =>
           prev.map((item) =>
             item.id === remedioAtual.id
               ? {
                   ...item,
                   statusHoje: 'TOMADO',
-                  horarioIngestaoHoje: new Date().toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }),
+                  horarioIngestaoHoje: horaRegistrada,
                 }
               : item
           )
         );
 
+        const nomeMedicamento =
+          remedioAtual.medicamentoNome ||
+          remedioAtual.nomeMedicamento ||
+          'o medicamento';
+
         Alert.alert(
           'Muito Bem, Dona Maria! 🎉',
-          `Registramos que você tomou ${remedioAtual.medicamentoNome}. Sua família já foi avisada!`
+          `Registramos que você tomou ${nomeMedicamento}. Sua família já foi avisada!`
         );
       }
     } catch (err) {
@@ -165,7 +185,7 @@ export default function ElderlyModeScreen({
     if (remedioAtual) {
       Alert.alert(
         'Voz Ativa 🗣️',
-        `"Olá, Dona Maria! São ${remedioAtual.horario}. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome}, ${remedioAtual.dosagem}. ${remedioAtual.instrucoes || 'Tome com um copo d\'água.'}"`
+        `"Olá, Dona Maria! São ${remedioAtual.horario}. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome || remedioAtual.nomeMedicamento || 'seu remédio'}, ${remedioAtual.dosagem}. ${remedioAtual.instrucoes || 'Tome com um copo d\'água.'}"`
       );
     } else if (todosTomados) {
       Alert.alert(
@@ -339,7 +359,7 @@ export default function ElderlyModeScreen({
             <View style={styles.medicineBody}>
               <View style={styles.medicineLeftCol}>
                 <Text style={styles.medicineName}>
-                  {remedioAtual.medicamentoNome}
+                  {remedioAtual.medicamentoNome || remedioAtual.nomeMedicamento || 'Medicamento'}
                 </Text>
                 <Text style={styles.medicineDosage}>
                   {remedioAtual.dosagem}
@@ -438,7 +458,7 @@ export default function ElderlyModeScreen({
               </Text>
               <Text style={styles.nextMainLabel} numberOfLines={1}>
                 {proximoRemedio
-                  ? `${proximoRemedio.horario} — ${proximoRemedio.medicamentoNome}`
+                  ? `${proximoRemedio.horario} — ${proximoRemedio.medicamentoNome || proximoRemedio.nomeMedicamento || 'Medicamento'}`
                   : todosTomados
                   ? `${totalAtivos} doses registradas com sucesso`
                   : '14:00 — Vitamina D3 (1 cápsula)'}
