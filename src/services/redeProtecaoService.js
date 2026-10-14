@@ -9,7 +9,14 @@ export const INITIAL_MEMBERS = [
     id: 'member-carlos-01',
     vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000101',
     usuarioId: 'usr-carlos-01',
+    nome: 'Carlos Silva',
     nomeCompleto: 'Carlos Silva',
+    iniciais: 'CS',
+    avatarBg: '#EBF5FF',
+    avatarCor: '#031753',
+    badgeBg: '#E8F8F0',
+    badgeCor: '#003B26',
+    acoes: ['call_primary', 'whatsapp_primary', 'history'],
     verificado: true,
     grauParentesco: 'Filho',
     papelAcesso: 'ADMIN',
@@ -35,7 +42,14 @@ export const INITIAL_MEMBERS = [
     id: 'member-roberta-02',
     vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000102',
     usuarioId: 'usr-roberta-02',
+    nome: 'Roberta Santos',
     nomeCompleto: 'Roberta Santos',
+    iniciais: 'RS',
+    avatarBg: '#E8F8F0',
+    avatarCor: '#003B26',
+    badgeBg: '#EBF5FF',
+    badgeCor: '#2D418A',
+    acoes: ['call', 'whatsapp'],
     verificado: false,
     grauParentesco: 'Filha',
     papelAcesso: 'CUIDADOR',
@@ -61,7 +75,14 @@ export const INITIAL_MEMBERS = [
     id: 'member-lucas-03',
     vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000103',
     usuarioId: 'usr-lucas-03',
+    nome: 'Lucas Silva',
     nomeCompleto: 'Lucas Silva',
+    iniciais: 'LS',
+    avatarBg: '#F2F4F7',
+    avatarCor: '#475467',
+    badgeBg: '#F2F4F7',
+    badgeCor: '#64748B',
+    acoes: ['call', 'whatsapp'],
     verificado: false,
     grauParentesco: 'Neto',
     papelAcesso: 'OBSERVADOR',
@@ -86,7 +107,14 @@ export const INITIAL_MEMBERS = [
     id: 'member-juliana-04',
     vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000104',
     usuarioId: 'usr-juliana-04',
+    nome: 'Enfª Juliana Costa',
     nomeCompleto: 'Enfª Juliana Costa',
+    iniciais: 'JC',
+    avatarBg: '#FFEBE7',
+    avatarCor: '#B51C13',
+    badgeBg: '#FFEBE7',
+    badgeCor: '#B51C13',
+    acoes: ['call', 'prontuario'],
     verificado: true,
     grauParentesco: 'Enfermeira',
     papelAcesso: 'MEDICO',
@@ -147,24 +175,77 @@ function normalizarMembroBackend(membro) {
     categoria = 'todos';
   }
 
+  const nomeCompleto = membro.nomeCompleto || membro.nome || 'Membro da Rede';
+  const iniciais = nomeCompleto
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('') || 'MR';
+
+  let avatarBg = '#EBF5FF';
+  let avatarCor = '#031753';
+  let badgeBg = '#EBF5FF';
+  let badgeCor = '#2D418A';
+
+  if (badgeTipo === 'plantao') {
+    avatarBg = '#EBF5FF';
+    avatarCor = '#031753';
+    badgeBg = '#E8F8F0';
+    badgeCor = '#003B26';
+  } else if (badgeTipo === 'especialista') {
+    avatarBg = '#FFEBE7';
+    avatarCor = '#B51C13';
+    badgeBg = '#FFEBE7';
+    badgeCor = '#B51C13';
+  } else if (badgeTipo === 'apoio') {
+    avatarBg = '#F2F4F7';
+    avatarCor = '#475467';
+    badgeBg = '#F2F4F7';
+    badgeCor = '#64748B';
+  } else {
+    avatarBg = '#E8F8F0';
+    avatarCor = '#003B26';
+    badgeBg = '#EBF5FF';
+    badgeCor = '#2D418A';
+  }
+
+  const acoes = isPlantao
+    ? ['call_primary', 'whatsapp_primary', 'history']
+    : membro.papelAcesso === 'MEDICO'
+    ? ['call', 'prontuario']
+    : ['call', 'whatsapp'];
+
   return {
     id: membro.vinculoId || membro.familiarId || `mem-${Math.random()}`,
     vinculoId: membro.vinculoId,
     usuarioId: membro.usuarioId,
-    nomeCompleto: membro.nomeCompleto || 'Membro da Rede',
+    nome: nomeCompleto,
+    nomeCompleto,
+    iniciais,
+    avatarBg,
+    avatarCor,
+    subtitulo: `${membro.grauParentesco || 'Familiar'} • Conectado à rede`,
     verificado: membro.papelAcesso === 'ADMIN' || membro.papelAcesso === 'MEDICO',
     grauParentesco: membro.grauParentesco || 'Familiar',
     papelAcesso: membro.papelAcesso || 'CUIDADOR',
     papelLabel: `${membro.papelAcesso} (${membro.grauParentesco || 'Familiar'})`,
     badgeTipo,
     badgeTexto,
+    badgeBg,
+    badgeCor,
+    online: true,
     statusConexao: 'ONLINE',
     statusLabel: 'Conectado à rede de proteção',
     statusIcone: 'location',
+    infoIcon: isPlantao ? 'notifications' : 'schedule',
+    infoTexto: isPlantao ? 'Recebe alertas SOS críticos' : 'Notificações de cuidado ativas',
+    infoDestaque: isPlantao,
     telefone: membro.telefone || '+55 11 98765-4321',
     email: membro.email || '',
     avatarUrl: null,
     acoesTexto: 'Conectado recentemente',
+    acoes,
     isPlantao,
     categoria,
     historicoRecente: [],
@@ -191,7 +272,7 @@ export async function listarMembrosRede(idosoId, token = null) {
 
     if (!response.ok) {
       console.warn(`[redeProtecaoService] Backend retornou status ${response.status}. Usando fallback do protótipo.`);
-      return INITIAL_MEMBERS;
+      return INITIAL_MEMBERS.map(normalizarMembroBackend);
     }
 
     const data = await response.json();
@@ -199,15 +280,67 @@ export async function listarMembrosRede(idosoId, token = null) {
       return data.map(normalizarMembroBackend);
     }
 
-    return INITIAL_MEMBERS;
+    return INITIAL_MEMBERS.map(normalizarMembroBackend);
   } catch (error) {
     console.warn('[redeProtecaoService] Backend inacessível. Ativando fallback resiliente:', error.message);
-    return INITIAL_MEMBERS;
+    return INITIAL_MEMBERS.map(normalizarMembroBackend);
   }
 }
 
 /**
- * Gera um convite temporal (48h) para inclusão de novo membro na Rede de Proteção (HU16).
+ * Convites pendentes iniciais para exibição imediata e fallback resiliente
+ */
+export const CONVITES_PENDENTES_INICIAIS = [
+  {
+    id: 'conv-pend-01',
+    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
+    nomeIdoso: 'Dona Maria Silva',
+    emailDestinatario: 'marina.silva@exemplo.com',
+    papelAcessoSugerido: 'CUIDADOR',
+    papelLabel: 'Cuidadora Principal',
+    grauParentescoSugerido: 'Sobrinha',
+    mensagemPersonalizada: 'Oi Marina, junte-se à rede de cuidados da vovó Maria!',
+    token: 'tok-marina-48h',
+    linkConvite: 'seniorinsight://convite/tok-marina-48h',
+    status: 'PENDENTE',
+    criadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    dataExpiracao: new Date(Date.now() + 46 * 60 * 60 * 1000).toISOString(),
+    validadeHorasRestantes: 46,
+  },
+];
+
+let convitesPendentesEmMemoria = [...CONVITES_PENDENTES_INICIAIS];
+
+/**
+ * Simulação de geração de convite temporal (48h) para testes e fallback offline.
+ */
+function simularGeracaoConvite(idosoId, dadosConvite) {
+  const dataExpiracao = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const tokenSimulado = `token-${Math.random().toString(36).substring(2, 12)}`;
+  const novoConvite = {
+    id: `convite-${Date.now()}`,
+    idosoId,
+    nomeIdoso: 'Dona Maria Silva',
+    emailDestinatario: dadosConvite.email,
+    token: tokenSimulado,
+    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
+    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
+    papelAcessoSugerido: dadosConvite.papelAcesso || 'CUIDADOR',
+    papelLabel: dadosConvite.papelAcesso === 'ADMIN' ? 'Administrador' : dadosConvite.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
+    grauParentescoSugerido: dadosConvite.grauParentesco || 'Familiar',
+    mensagemPersonalizada: dadosConvite.mensagemPersonalizada || '',
+    status: 'PENDENTE',
+    dataExpiracao,
+    criadoEm: new Date().toISOString(),
+    mensagemSimulacao: `Convite simulado com sucesso para ${dadosConvite.email}. Válido por 48 horas.`,
+    validadeHorasRestantes: 48,
+  };
+  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
+  return novoConvite;
+}
+
+/**
+ * Gera um convite temporal (48h/72h) para inclusão de novo membro na Rede de Proteção (HU16).
  * Endpoint: POST /api/v1/idosos/{idosoId}/convites
  * Payload: { email, papelAcesso, grauParentesco, mensagemPersonalizada }
  */
@@ -233,34 +366,80 @@ export async function gerarConvite(idosoId, dadosConvite, token = null) {
     });
 
     if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('[redeProtecaoService] Backend retornou 404 ao gerar convite. Ativando fallback resiliente.');
+        return simularGeracaoConvite(idosoId, dadosConvite);
+      }
+
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Erro ${response.status} ao gerar convite.`);
+      const erro = new Error(errorData.message || `Erro ${response.status} ao gerar convite.`);
+      erro.status = response.status;
+      throw erro;
     }
 
-    return await response.json();
-  } catch (error) {
-    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite. Simulando sucesso local:', error.message);
-    
-    // Simulação resiliente de emissão com prazo de 48 horas
-    const dataExpiracao = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-    return {
-      id: `convite-${Date.now()}`,
-      idosoId,
-      nomeIdoso: 'Dona Maria Silva',
-      emailDestinatario: dadosConvite.email,
-      token: `token-${Math.random().toString(36).substring(2, 12)}`,
-      papelAcessoSugerido: dadosConvite.papelAcesso || 'CUIDADOR',
-      grauParentescoSugerido: dadosConvite.grauParentesco || 'Familiar',
-      status: 'PENDENTE',
-      dataExpiracao,
-      criadoEm: new Date().toISOString(),
-      mensagemSimulacao: `Convite simulado com sucesso para ${dadosConvite.email}. Válido por 48 horas.`,
+    const data = await response.json();
+    const conviteFormatado = {
+      ...data,
+      linkConvite: `seniorinsight://convite/${data.token}`,
+      linkWeb: `https://seniorinsight.app/convite/${data.token}`,
+      papelLabel: (data.papelAcesso || dadosConvite.papelAcesso) === 'ADMIN' ? 'Administrador' : (data.papelAcesso || dadosConvite.papelAcesso) === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
+      grauParentescoSugerido: data.grauParentesco || dadosConvite.grauParentesco || 'Familiar',
+      emailDestinatario: data.email || dadosConvite.email,
     };
+    convitesPendentesEmMemoria = [conviteFormatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
+    return conviteFormatado;
+  } catch (error) {
+    if (error.status && error.status !== 404) {
+      // Erro de regra de negócio retornado pela API (ex: 409, 400, 403) - deve ser propagado
+      throw error;
+    }
+
+    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite. Simulando sucesso local:', error.message);
+    return simularGeracaoConvite(idosoId, dadosConvite);
   }
 }
 
 /**
- * Aceita um convite temporal para vínculo na rede de proteção (HU16).
+ * Consulta ou simula os dados informativos de um convite a partir de seu token (HU-013).
+ */
+export async function obterDetalhesConvite(tokenConvite) {
+  if (!tokenConvite || typeof tokenConvite !== 'string') {
+    throw new Error('Token de convite inválido ou ausente.');
+  }
+
+  const tokenLimpo = tokenConvite.trim();
+
+  // Verifica se o token simula expiração para testes
+  if (tokenLimpo.toLowerCase().includes('expirado')) {
+    return {
+      token: tokenLimpo,
+      nomeIdoso: 'Dona Maria Silva',
+      papelAcessoSugerido: 'CUIDADOR',
+      grauParentescoSugerido: 'Familiar de Apoio',
+      status: 'EXPIRADO',
+      expirado: true,
+      mensagem: 'Convite expirado. O prazo de validade temporal de 48 horas foi ultrapassado.',
+    };
+  }
+
+  // Retorna os dados informativos do convite para a tela de aceite
+  return {
+    token: tokenLimpo,
+    nomeIdoso: 'Dona Maria Silva',
+    idadeIdoso: 76,
+    solicitanteNome: 'Carlos Silva',
+    solicitanteGrau: 'Filho (Administrador)',
+    papelAcessoSugerido: 'CUIDADOR',
+    papelLabel: 'Familiar de Apoio',
+    grauParentescoSugerido: 'Familiar',
+    status: 'PENDENTE',
+    expirado: false,
+    dataExpiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+  };
+}
+
+/**
+ * Aceita um convite temporal para vínculo na rede de proteção (HU16 / HU-013).
  * Endpoint: POST /api/v1/convites/aceitar?token=...
  */
 export async function aceitarConvite(tokenConvite, tokenAutenticacao = null) {
@@ -279,13 +458,135 @@ export async function aceitarConvite(tokenConvite, tokenAutenticacao = null) {
     });
 
     if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('[redeProtecaoService] Backend retornou 404 para aceitarConvite. Ativando fallback resiliente.');
+        if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
+          const err = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
+          err.status = 410;
+          throw err;
+        }
+        return {
+          vinculoId: `vinculo-${Date.now()}`,
+          idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
+          nomeIdoso: 'Dona Maria Silva',
+          familiarId: `familiar-${Date.now()}`,
+          nomeFamiliar: 'Familiar Convidado',
+          grauParentesco: 'Familiar',
+          papelAcesso: 'CUIDADOR',
+          criadoEm: new Date().toISOString(),
+          mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
+        };
+      }
+
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Erro ${response.status} ao aceitar convite.`);
+      let mensagem = errorData.message || `Erro ${response.status} ao aceitar convite.`;
+      if (response.status === 410) {
+        mensagem = 'Convite expirado. Peça um novo convite ao familiar administrador.';
+      } else if (response.status === 409) {
+        mensagem = errorData.message || 'Você já possui vínculo ativo com este idoso na Rede de Proteção.';
+      }
+      const erro = new Error(mensagem);
+      erro.status = response.status;
+      throw erro;
     }
 
     return await response.json();
   } catch (error) {
-    console.warn('[redeProtecaoService] Erro ao aceitar convite:', error.message);
-    throw error;
+    if (error.status && error.status !== 404) {
+      throw error;
+    }
+
+    console.warn('[redeProtecaoService] Erro ao aceitar convite no backend. Verificando fallback:', error.message);
+    
+    // Tratamento de convite expirado no fallback de teste
+    if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
+      const err = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
+      err.status = 410;
+      throw err;
+    }
+
+    return {
+      vinculoId: `vinculo-${Date.now()}`,
+      idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
+      nomeIdoso: 'Dona Maria Silva',
+      familiarId: `familiar-${Date.now()}`,
+      nomeFamiliar: 'Familiar Convidado',
+      grauParentesco: 'Familiar',
+      papelAcesso: 'CUIDADOR',
+      criadoEm: new Date().toISOString(),
+      mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
+    };
   }
 }
+
+/**
+ * Lista todos os convites pendentes de um idoso (HU-012/HU-013).
+ */
+export async function listarConvitesPendentes(idosoId, token = null) {
+  try {
+    const headers = { 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites/pendentes`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) {
+      return [...convitesPendentesEmMemoria];
+    }
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0) return data;
+    return [...convitesPendentesEmMemoria];
+  } catch (error) {
+    return [...convitesPendentesEmMemoria];
+  }
+}
+
+/**
+ * Cancela um convite pendente.
+ */
+export async function cancelarConvite(idosoId, conviteId, token = null) {
+  try {
+    const headers = { 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
+      method: 'DELETE',
+      headers,
+    });
+  } catch (err) {
+    console.warn('[redeProtecaoService] Falha ao cancelar convite no backend, atualizando localmente:', err.message);
+  }
+  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
+  return true;
+}
+
+/**
+ * Edita dados de um convite pendente (email, papel, grau, mensagem).
+ */
+export async function editarConvite(idosoId, conviteId, novosDados, token = null) {
+  try {
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(novosDados),
+    });
+  } catch (err) {
+    console.warn('[redeProtecaoService] Falha ao editar convite no backend, atualizando localmente:', err.message);
+  }
+  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId);
+  if (idx !== -1) {
+    convitesPendentesEmMemoria[idx] = {
+      ...convitesPendentesEmMemoria[idx],
+      emailDestinatario: novosDados.email || convitesPendentesEmMemoria[idx].emailDestinatario,
+      grauParentescoSugerido: novosDados.grauParentesco || convitesPendentesEmMemoria[idx].grauParentescoSugerido,
+      papelAcessoSugerido: novosDados.papelAcesso || convitesPendentesEmMemoria[idx].papelAcessoSugerido,
+      papelLabel: novosDados.papelAcesso === 'ADMIN' ? 'Administrador' : novosDados.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
+      mensagemPersonalizada: novosDados.mensagemPersonalizada ?? convitesPendentesEmMemoria[idx].mensagemPersonalizada,
+    };
+    return convitesPendentesEmMemoria[idx];
+  }
+  return null;
+}
+
+

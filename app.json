@@ -27,7 +27,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "seniorapp",
+    "scheme": "seniorinsight",
     "plugins": [
       "expo-sqlite",
       "expo-web-browser",
