@@ -3,7 +3,8 @@ import * as SQLite from 'expo-sqlite';
 let sqliteDb = null;
 
 /**
- * Conexão SQLite nativa (Android / iOS development build) para persistência offline do SOS.
+ * Conexão SQLite nativa (Android / iOS development build) para cache e fila offline do SOS (RNF de offline).
+ * IMPORTANTE: Tokens (access/refresh) nunca devem ser salvos no SQLite; utilize sempre `expo-secure-store`.
  */
 export async function getSosDatabase() {
   if (sqliteDb) {

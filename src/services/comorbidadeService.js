@@ -1,4 +1,5 @@
-import { runtimeConfig } from '../config/runtime';
+import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 // Lista inicial padrão baseada no prontuário do Figma/Template para fallback resiliente em dev
 export const INITIAL_COMORBIDITIES = [
@@ -14,11 +15,12 @@ export const INITIAL_COMORBIDITIES = [
  */
 export async function listarComorbidades(idosoId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/comorbidades`, {
@@ -45,12 +47,13 @@ export async function listarComorbidades(idosoId, token = null) {
  */
 export async function adicionarComorbidades(idosoId, novasComorbidades, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/comorbidades`, {
@@ -79,11 +82,12 @@ export async function adicionarComorbidades(idosoId, novasComorbidades, token = 
  */
 export async function removerComorbidade(idosoId, nomeComorbidade, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const encodedNome = encodeURIComponent(nomeComorbidade);

@@ -29,6 +29,7 @@
     },
     "scheme": "seniorapp",
     "plugins": [
+      "expo-secure-store",
       "expo-sqlite",
       "expo-web-browser",
       [

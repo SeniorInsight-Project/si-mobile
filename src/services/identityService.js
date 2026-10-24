@@ -1,4 +1,5 @@
-import { runtimeConfig } from '../config/runtime';
+import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 function gerarCodigoLocal() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -10,11 +11,12 @@ function montarQrPayload(idosoId, codigo) {
 
 export async function gerarCodigoIdentidade(idosoId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/identity/idosos/${idosoId}/codigo`, {
       method: 'POST',

@@ -1,4 +1,5 @@
-import { runtimeConfig } from '../config/runtime';
+import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 export const INITIAL_ELDERLIES = [
   {
@@ -24,8 +25,9 @@ function normalizarIdoso(idoso) {
 
 export async function listarIdososDoFamiliar(familiarId = 'familiar-dev', token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = { Accept: 'application/json' };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/familiares/${familiarId}/idosos`, {
       method: 'GET',
@@ -59,11 +61,12 @@ export async function salvarCadastroIdoso(dadosIdoso, token = null) {
   };
 
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos`, {
       method: 'POST',
@@ -108,11 +111,12 @@ export async function atualizarDadosIdoso(idosoId, dadosIdoso, token = null) {
   };
 
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}`, {
       method: 'PUT',

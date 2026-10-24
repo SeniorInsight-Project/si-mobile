@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 /**
  * Lista inicial padrão de rotinas de medicamentos baseada no template visual do Figma (HU26).
@@ -161,8 +162,9 @@ export function enriquecerDadosVisuais(rotina) {
  */
 export async function listarRotinas(idosoId, dataReferencia = null, apenasAtivos = false, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = { Accept: 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const params = new URLSearchParams();
     if (dataReferencia) params.append('data', dataReferencia);
@@ -200,11 +202,12 @@ export async function confirmarIngestao(rotinaId, dadosConfirmacao = {}, token =
   const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const bodyPayload = {
       dataHoraIngestao: dadosConfirmacao.dataHoraIngestao || agora.toISOString(),
@@ -246,11 +249,12 @@ export async function confirmarIngestao(rotinaId, dadosConfirmacao = {}, token =
  */
 export async function criarRotina(idosoId, dadosRotina, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`, {
       method: 'POST',
@@ -296,11 +300,12 @@ export async function criarRotina(idosoId, dadosRotina, token = null) {
  */
 export async function atualizarRotina(rotinaId, dadosAtualizacao, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`, {
       method: 'PUT',
@@ -329,8 +334,9 @@ export async function atualizarRotina(rotinaId, dadosAtualizacao, token = null) 
  */
 export async function removerRotina(rotinaId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = { Accept: 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`, {
       method: 'DELETE',

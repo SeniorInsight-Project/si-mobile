@@ -1,4 +1,19 @@
-import { runtimeConfig } from '../config/runtime';
+import { runtimeConfig } from '../config/runtime.js';
+import {
+  salvarTokens,
+  obterAccessToken,
+  obterRefreshToken,
+  obterTokens,
+  limparTokens,
+} from './tokenStorageService.js';
+
+export {
+  salvarTokens,
+  obterAccessToken,
+  obterRefreshToken,
+  obterTokens,
+  limparTokens,
+};
 
 export async function loginWithGoogle(idToken) {
   try {
@@ -21,9 +36,22 @@ export async function loginWithGoogle(idToken) {
       throw new Error(data.message || 'Falha na autenticação com o Google.');
     }
 
+    // Guarda access/refresh tokens exclusivamente no expo-secure-store (nunca em SQLite ou memória persistida)
+    await salvarTokens({
+      accessToken: data.accessToken || data.access_token || null,
+      refreshToken: data.refreshToken || data.refresh_token || null,
+    });
+
     return data; // Retorna accessToken, tokenType e perfilCompleto
   } catch (error) {
     console.error('Erro detalhado no login SSO:', error.message);
     throw error; // Propaga o erro para a tela tratar
   }
+}
+
+/**
+ * Encerra a sessão local removendo os tokens do `expo-secure-store`.
+ */
+export async function logout() {
+  return await limparTokens();
 }

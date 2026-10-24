@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 // Estado local para fallback resiliente / offline
 let alarmesLocais = [];
@@ -31,13 +32,14 @@ export async function dispararSos(
   token = null
 ) {
   const agora = new Date().toISOString();
+  const authToken = await resolverTokenAutorizacao(token);
 
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
   if (idempotencyKey) {
     headers['Idempotency-Key'] = idempotencyKey;
@@ -88,12 +90,13 @@ export async function atualizarStatusAlarme(alarmeId, novoStatus, observacao = '
   const agora = new Date().toISOString();
 
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}/status`, {
@@ -124,8 +127,9 @@ export async function atualizarStatusAlarme(alarmeId, novoStatus, observacao = '
  */
 export async function obterAlarme(alarmeId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}`, {
       method: 'GET',
@@ -147,8 +151,9 @@ export async function obterAlarme(alarmeId, token = null) {
  */
 export async function listarAlarmesIdoso(idosoId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
       method: 'GET',

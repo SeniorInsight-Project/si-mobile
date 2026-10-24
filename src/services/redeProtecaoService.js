@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime.js';
+import { resolverTokenAutorizacao } from './tokenStorageService.js';
 
 /**
  * Membros iniciais baseados fielmente no protótipo do Figma ("Rede Familiar de Apoio")
@@ -177,11 +178,12 @@ function normalizarMembroBackend(membro) {
  */
 export async function listarMembrosRede(idosoId, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rede`, {
@@ -213,12 +215,13 @@ export async function listarMembrosRede(idosoId, token = null) {
  */
 export async function gerarConvite(idosoId, dadosConvite, token = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(token);
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites`, {
@@ -265,11 +268,12 @@ export async function gerarConvite(idosoId, dadosConvite, token = null) {
  */
 export async function aceitarConvite(tokenConvite, tokenAutenticacao = null) {
   try {
+    const authToken = await resolverTokenAutorizacao(tokenAutenticacao);
     const headers = {
       'Accept': 'application/json',
     };
-    if (tokenAutenticacao) {
-      headers['Authorization'] = `Bearer ${tokenAutenticacao}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const encodedToken = encodeURIComponent(tokenConvite);
