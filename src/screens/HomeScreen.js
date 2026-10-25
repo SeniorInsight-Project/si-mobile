@@ -15,8 +15,13 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
+import DeviceStatusModal from '../components/DeviceStatusModal';
 import { atualizarStatusAlarme } from '../services/alarmeSosService';
 import { listarIdososDoFamiliar } from '../services/elderlyService';
+import {
+  buscarStatusDispositivo,
+  verificarPerdaDados,
+} from '../services/deviceStatusService';
 import { typography } from '../theme';
 
 function calcularIdade(dataNascimento) {
@@ -39,6 +44,9 @@ export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = '
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState(null);
   const [idosos, setIdosos] = useState([]);
   const [loadingIdosos, setLoadingIdosos] = useState(false);
+  const [deviceStatus, setDeviceStatus] = useState(null);
+  const [modalDeviceVisible, setModalDeviceVisible] = useState(false);
+  const [perdaDados, setPerdaDados] = useState(null);
 
   // Lista dos idosos do familiar (HU-008)
   useEffect(() => {
@@ -46,7 +54,16 @@ export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = '
       try {
         setLoadingIdosos(true);
         const data = await listarIdososDoFamiliar(familiarId);
-        setIdosos(Array.isArray(data) ? data : []);
+        const lista = Array.isArray(data) ? data : [];
+        setIdosos(lista);
+
+        // Carrega status do celular do idoso ativo (HU-027 e HU-028)
+        const idosoAlvo = lista[0]?.idosoId || 'e3b0c442-98fc-1c14-9afc-432100000001';
+        const nomeAlvo = lista[0]?.nome || 'Dona Maria';
+        const status = await buscarStatusDispositivo(idosoAlvo);
+        setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
+        const checagemPerda = verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3);
+        setPerdaDados(checagemPerda);
       } catch (error) {
         console.warn('Erro ao carregar idosos na Home:', error.message);
       } finally {
@@ -149,6 +166,26 @@ export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = '
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* AVISO DE PERDA DE DADOS (HU-028) */}
+        {perdaDados && perdaDados.semDados && (
+          <TouchableOpacity
+            style={styles.dataLossAlertBanner}
+            onPress={() => setModalDeviceVisible(true)}
+            activeOpacity={0.8}
+            accessibilityLabel="Aviso de ausência de dados do idoso. Toque para verificar o status do celular."
+            accessibilityRole="button"
+          >
+            <View style={styles.dataLossIconCircle}>
+              <Icon name="warning" size={20} color="#B51C13" />
+            </View>
+            <View style={styles.dataLossTextWrapper}>
+              <Text style={styles.dataLossTitle}>Aviso de Conexão</Text>
+              <Text style={styles.dataLossMessage}>{perdaDados.mensagem}</Text>
+            </View>
+            <Icon name="chevron_right" size={20} color="#B51C13" />
+          </TouchableOpacity>
+        )}
+
         {/* CARD 1: IDOSOS DA FAMÍLIA (HU-008), um resumo por idoso (rx=32, #FFFFFF) */}
         {loadingIdosos ? (
           <ActivityIndicator color="#031753" size="small" style={{ marginBottom: 18 }} />
@@ -184,17 +221,45 @@ export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = '
                 </View>
               </View>
 
-              {/* Badges empilhados verticalmente à direita conforme o .fig */}
-              <View style={styles.elderlyBadgesRight}>
+              {/* Badges empilhados verticalmente à direita com toque para ver status do celular (HU-027) */}
+              <TouchableOpacity
+                style={styles.elderlyBadgesRight}
+                onPress={() => setModalDeviceVisible(true)}
+                activeOpacity={0.7}
+                accessibilityLabel="Ver status do celular do idoso"
+                accessibilityRole="button"
+              >
                 <View style={styles.telemetryPill}>
-                  <Icon name="wifi" size={13} color="#10B981" />
-                  <Text style={styles.telemetryText}>Conectado</Text>
+                  <Icon
+                    name="wifi"
+                    size={13}
+                    color={perdaDados?.semDados ? '#D97706' : '#10B981'}
+                  />
+                  <Text
+                    style={[
+                      styles.telemetryText,
+                      perdaDados?.semDados && { color: '#92400E' },
+                    ]}
+                  >
+                    {perdaDados?.semDados ? 'Atrasado' : 'Conectado'}
+                  </Text>
                 </View>
                 <View style={styles.telemetryPill}>
-                  <Icon name="bolt" size={13} color="#10B981" />
-                  <Text style={styles.telemetryText}>88%</Text>
+                  <Icon
+                    name="battery_full"
+                    size={13}
+                    color={(deviceStatus?.nivelBateria ?? 62) <= 20 ? '#B51C13' : '#10B981'}
+                  />
+                  <Text
+                    style={[
+                      styles.telemetryText,
+                      (deviceStatus?.nivelBateria ?? 62) <= 20 && { color: '#B51C13' },
+                    ]}
+                  >
+                    {deviceStatus?.nivelBateria ?? 62}%
+                  </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             </TouchableOpacity>
           ))
         )}
@@ -371,6 +436,14 @@ export default function HomeScreen({ onNavigate, onSelectElderly, familiarId = '
         />
       </ScrollView>
 
+      {/* MODAL DE STATUS DO CELULAR DO IDOSO (HU-027) */}
+      <DeviceStatusModal
+        visible={modalDeviceVisible}
+        status={deviceStatus}
+        perdaDados={perdaDados}
+        onClose={() => setModalDeviceVisible(false)}
+      />
+
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
       <BottomNavBar currentScreen="Home" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -382,6 +455,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 100,
+  },
+  dataLossAlertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBE5',
+    borderWidth: 1.5,
+    borderColor: '#FFCDC2',
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    gap: 12,
+  },
+  dataLossIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dataLossTextWrapper: {
+    flex: 1,
+  },
+  dataLossTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+    fontFamily: typography.fontFamily.heading,
+  },
+  dataLossMessage: {
+    fontSize: 12,
+    color: '#650001',
+    fontFamily: typography.fontFamily.body,
+    marginTop: 2,
+    lineHeight: 16,
   },
   elderlySummaryCard: {
     flexDirection: 'row',

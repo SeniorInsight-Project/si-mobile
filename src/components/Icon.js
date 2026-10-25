@@ -55,6 +55,13 @@ import {
   msAssignment,
   msPerson,
   msLocalHospital,
+  msSmartphone,
+  msBatteryFull,
+  msBatteryAlert,
+  msBatteryLow,
+  msWarning,
+  msInfo,
+  msSync,
 } from '@material-symbols-react-native/rounded-400';
 
 const ICON_MAP = {
@@ -125,6 +132,17 @@ const ICON_MAP = {
   water_drop: msWaterDrop,
   droplet: msWaterDrop,
   droplets: msWaterDrop,
+  battery_full: msBatteryFull,
+  battery_alert: msBatteryAlert,
+  battery_low: msBatteryLow,
+  smartphone: msSmartphone,
+  cellphone: msSmartphone,
+  mobile: msSmartphone,
+  phone_android: msSmartphone,
+  warning: msWarning,
+  alert: msWarning,
+  info: msInfo,
+  sync: msSync,
 
   // Communication & Utils
   call: msCall,
