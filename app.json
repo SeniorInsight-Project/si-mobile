@@ -30,6 +30,7 @@
     },
     "scheme": "seniorinsight",
     "plugins": [
+      "expo-secure-store",
       "expo-sqlite",
       "expo-web-browser",
       "expo-notifications",

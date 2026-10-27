@@ -1,7 +1,7 @@
 {
   "name": "health-monitoring-mobile-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index.ts",
   "dependencies": {
     "@material-symbols-react-native/rounded-400": "^1.0.0",
     "expo": "~57.0.24",
@@ -12,6 +12,7 @@
     "expo-linking": "~57.0.11",
     "expo-location": "~57.0.21",
     "expo-notifications": "~57.0.22",
+    "expo-secure-store": "~57.0.4",
     "expo-sqlite": "^57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
@@ -28,10 +29,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/services/__tests__/*.test.js"
+    "test": "node --test src/services/__tests__/*.test.ts"
   },
   "private": true,
   "devDependencies": {
-    "@expo/ngrok": "^4.1.3"
+    "@expo/ngrok": "^4.1.3",
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2"
   }
 }
