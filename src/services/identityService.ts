@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface CodigoIdentidadeResponse {
   codigo: string;
@@ -22,7 +23,8 @@ export async function gerarCodigoIdentidade(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/identity/idosos/${idosoId}/codigo`, {
       method: 'POST',

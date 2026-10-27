@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface Idoso {
   idosoId: string;
@@ -46,7 +47,8 @@ export async function listarIdososDoFamiliar(
 ): Promise<Idoso[]> {
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/familiares/${familiarId}/idosos`, {
       method: 'GET',
@@ -87,7 +89,8 @@ export async function salvarCadastroIdoso(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos`, {
       method: 'POST',
@@ -140,7 +143,8 @@ export async function atualizarDadosIdoso(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers.Authorization = 'Bearer ' + token;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}`, {
       method: 'PUT',

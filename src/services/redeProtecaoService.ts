@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface HistoricoRecenteMembro {
   data: string;
@@ -358,8 +359,9 @@ export async function listarMembrosRede(
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rede`, {
@@ -451,8 +453,9 @@ export async function gerarConvite(
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites`, {
@@ -551,8 +554,9 @@ export async function aceitarConvite(
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
-    if (tokenAutenticacao) {
-      headers['Authorization'] = `Bearer ${tokenAutenticacao}`;
+    const authToken = await resolverTokenAutorizacao(tokenAutenticacao);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const encodedToken = encodeURIComponent(tokenConvite);
@@ -632,7 +636,8 @@ export async function listarConvitesPendentes(
 ): Promise<ConvitePendente[]> {
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites/pendentes`, {
       method: 'GET',
       headers,
@@ -658,7 +663,8 @@ export async function cancelarConvite(
 ): Promise<boolean> {
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
       method: 'DELETE',
       headers,
@@ -681,7 +687,8 @@ export async function editarConvite(
 ): Promise<ConvitePendente | null> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
       method: 'PUT',
       headers,

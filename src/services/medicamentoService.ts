@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { resolverTokenAutorizacao } from './tokenStorageService';
 import {
   obterRotinasDoCache,
   salvarRotinasNoCache,
@@ -234,7 +235,8 @@ export async function listarRotinas(
 ): Promise<RotinaMedicamento[]> {
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const params = new URLSearchParams();
     if (dataReferencia) params.append('data', dataReferencia);
@@ -337,7 +339,8 @@ export async function confirmarIngestao(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const bodyPayload = {
       dataHoraIngestao: statusDesejado === 'TOMADO' ? (dadosConfirmacao.dataHoraIngestao || agora.toISOString()) : null,
@@ -408,7 +411,8 @@ export async function criarRotina(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(
       `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
@@ -488,7 +492,8 @@ export async function atualizarRotina(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(
       `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
@@ -535,7 +540,8 @@ export async function removerRotina(
 ): Promise<boolean> {
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(
       `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,

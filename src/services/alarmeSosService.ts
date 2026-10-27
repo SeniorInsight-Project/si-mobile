@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface AlarmeEmergencia {
   id: string;
@@ -62,8 +63,9 @@ export async function dispararSos(
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const authToken = await resolverTokenAutorizacao(token);
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
   if (idempotencyKey) {
     headers['Idempotency-Key'] = idempotencyKey;
@@ -122,8 +124,9 @@ export async function atualizarStatusAlarme(
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}/status`, {
@@ -158,7 +161,8 @@ export async function obterAlarme(
 ): Promise<AlarmeEmergencia | null> {
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}`, {
       method: 'GET',
@@ -184,7 +188,8 @@ export async function listarAlarmesIdoso(
 ): Promise<AlarmeEmergencia[]> {
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
     const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
       method: 'GET',
