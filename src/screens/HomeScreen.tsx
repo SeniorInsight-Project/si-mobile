@@ -24,6 +24,8 @@ import {
   ResultadoPerdaDados,
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
+import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
+import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
 import { typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
@@ -45,12 +47,14 @@ export interface HomeScreenProps {
   onNavigate?: (screen: string) => void;
   onSelectElderly?: (idosoId: string) => void;
   familiarId?: string;
+  plano?: string;
 }
 
 export default function HomeScreen({
   onNavigate,
   onSelectElderly,
   familiarId = 'familiar-dev',
+  plano = 'PREMIUM',
 }: HomeScreenProps) {
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
@@ -60,6 +64,8 @@ export default function HomeScreen({
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
   const [telemetria, setTelemetria] = useState<EstadoAtual | null>(null);
+  const [scoreData, setScoreData] = useState<ScoreBemEstar | null>(null);
+  const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
 
   // Lista dos idosos do familiar (HU-008)
   useEffect(() => {
@@ -81,6 +87,10 @@ export default function HomeScreen({
         // Carrega estado atual da telemetria (HU-031)
         const estadoTelemetria = await buscarEstadoAtual(idosoAlvo);
         setTelemetria(estadoTelemetria);
+
+        // Carrega semáforo do bem-estar e score de risco (HU-032 e HU-033)
+        const scoreResult = await buscarScoreBemEstar(idosoAlvo, plano);
+        setScoreData(scoreResult);
       } catch (error: any) {
         console.warn('Erro ao carregar idosos na Home:', error?.message);
       } finally {
@@ -294,71 +304,207 @@ export default function HomeScreen({
           </TouchableOpacity>
         )}
 
-        {/* CARD 2: SEMÁFORO DO BEM-ESTAR (#E8F8F0, rx=32) */}
-        <View style={styles.semaforoCard}>
-          <View style={styles.semaforoGlow} />
-
-          <View style={styles.semaforoHeader}>
-            <View style={styles.semaforoTitleGroup}>
-              <View style={styles.semaforoIconBadge}>
-                <Icon name="vital_signs" size={18} color="#003B26" />
+        {/* CARD 2: SEMÁFORO DO BEM-ESTAR (HU-032, HU-033, RN-008, RN-016, RN-017) */}
+        {scoreData?.requerPremium ? (
+          /* PAYWALL NO PLANO FREE (HU-032 / HU-034 Cenário 3 / RN-014) */
+          <View style={styles.paywallCard}>
+            <View style={styles.paywallHeader}>
+              <View style={styles.paywallIconCircle}>
+                <Icon name="vital_signs" size={20} color="#7C3AED" />
               </View>
-              <Text style={styles.semaforoTitle}>Semáforo do Bem-Estar</Text>
+              <View style={styles.paywallTag}>
+                <Text style={styles.paywallTagText}>PLANO PREMIUM</Text>
+              </View>
             </View>
-            <View style={styles.tempoRealBadge}>
-              <Text style={styles.tempoRealTag}>TEMPO REAL</Text>
+            <Text style={styles.paywallTitle}>Semáforo do Bem-Estar com IA</Text>
+            <Text style={styles.paywallMessage}>{scoreData.beneficioPaywall}</Text>
+            <TouchableOpacity
+              style={styles.paywallButton}
+              onPress={() => onNavigate && onNavigate('Subscription')}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Experimentar plano Premium por 14 dias grátis"
+            >
+              <Text style={styles.paywallButtonText}>Experimentar 14 Dias Grátis</Text>
+              <Icon name="chevron_right" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ) : scoreData?.rotinaEmConstrucao ? (
+          /* POUCO HISTÓRICO - CONHECENDO A ROTINA (HU-032 Cenário 3 / RN-016) */
+          <View style={styles.rotinaCard}>
+            <View style={styles.rotinaHeader}>
+              <View style={styles.rotinaIconCircle}>
+                <Icon name="psychology" size={20} color="#1E40AF" />
+              </View>
+              <View style={styles.rotinaBadge}>
+                <Text style={styles.rotinaBadgeText}>CALIBRANDO IA</Text>
+              </View>
+            </View>
+            <Text style={styles.rotinaTitle}>{scoreData.mensagemRotina}</Text>
+            <Text style={styles.rotinaSubtext}>
+              A IA do SeniorInsight precisa de pelo menos 3 dias de dados para estabelecer
+              uma linha de base confiável e prevenir falsos alarmes.
+            </Text>
+            <View style={styles.rotinaProgressTrack}>
+              <View
+                style={[
+                  styles.rotinaProgressFill,
+                  { width: `${scoreData.progressoPercentual || 33}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.rotinaDaysLabel}>
+              {scoreData.diasComDados} de 3 dias de monitoramento concluídos
+            </Text>
+          </View>
+        ) : (
+          /* SEMÁFORO COM FAIXAS DINÂMICAS DA RN-008 E TOQUE PARA O MOTIVO (HU-033) */
+          <View
+            style={[
+              styles.semaforoCard,
+              {
+                backgroundColor: scoreData?.faixa?.corFundo || '#E8F8F0',
+                borderColor: scoreData?.faixa?.corBorda || '#B8ECD3',
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.semaforoGlow,
+                { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+              ]}
+            />
+
+            <View style={styles.semaforoHeader}>
+              <View style={styles.semaforoTitleGroup}>
+                <View style={styles.semaforoIconBadge}>
+                  <Icon
+                    name="vital_signs"
+                    size={18}
+                    color={scoreData?.faixa?.corTexto || '#003B26'}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.semaforoTitle,
+                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                  ]}
+                >
+                  Semáforo do Bem-Estar
+                </Text>
+              </View>
+              <View style={styles.tempoRealBadge}>
+                <Text
+                  style={[
+                    styles.tempoRealTag,
+                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                  ]}
+                >
+                  TEMPO REAL
+                </Text>
+              </View>
+            </View>
+
+            {/* Card branco interno tocável para ver motivo em linguagem simples (HU-033) */}
+            <TouchableOpacity
+              style={styles.statusInnerCard}
+              onPress={() => setModalSemaforoVisible(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`Semáforo: ${scoreData?.faixa?.titulo || 'Estável'}. Toque para entender o motivo.`}
+            >
+              <View
+                style={[
+                  styles.statusOuterCircle,
+                  { backgroundColor: scoreData?.faixa?.corFundo || '#E8F8F0' },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.statusInnerCircle,
+                    { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                  ]}
+                >
+                  <Icon
+                    name={scoreData?.faixa?.icone || 'check'}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.statusTextsCol}>
+                <View style={styles.statusTagRow}>
+                  <View
+                    style={[
+                      styles.statusLiveDot,
+                      { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                    ]}
+                  />
+                  <Text style={styles.statusTagLabel}>STATUS ATUAL</Text>
+                  <View
+                    style={[
+                      styles.scoreInlinePill,
+                      { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                    ]}
+                  >
+                    <Text style={styles.scoreInlinePillText}>
+                      Score {scoreData?.score ?? 18}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.statusMainLabel,
+                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                  ]}
+                >
+                  {resgateAtivo
+                    ? 'Alerta em Atendimento'
+                    : scoreData?.faixa?.titulo || 'Tudo bem agora'}
+                </Text>
+                <Text style={styles.statusSubLabel}>
+                  {resgateAtivo
+                    ? 'Protocolo familiar em andamento'
+                    : scoreData?.explicacao?.fatores?.[0] ||
+                      'Nenhuma anomalia detectada nas últimas 6h'}
+                </Text>
+
+                <View style={styles.touchHintRow}>
+                  <Text style={styles.touchHintText}>Toque para ver o motivo</Text>
+                  <Icon name="chevron_right" size={14} color="#64748B" />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Submétricas: Batimentos e Último Remédio */}
+            <View style={styles.semaforoSubCards}>
+              <View style={styles.semaforoSubCard}>
+                <View style={styles.subCardHeader}>
+                  <Icon name="favorite" size={14} color="#D83729" />
+                  <Text style={styles.subCardTitle}>Batimentos</Text>
+                </View>
+                <View style={styles.subCardValueRow}>
+                  <Text style={styles.subCardValue}>
+                    {telemetria?.frequenciaCardiaca ?? 74}
+                  </Text>
+                  <Text style={styles.subCardUnit}>bpm</Text>
+                </View>
+              </View>
+
+              <View style={styles.semaforoSubCard}>
+                <View style={styles.subCardHeader}>
+                  <Icon name="schedule" size={14} color="#2D418A" />
+                  <Text style={styles.subCardTitle}>Último Remédio</Text>
+                </View>
+                <View style={styles.subCardValueRow}>
+                  <Text style={styles.subCardValue}>10:02</Text>
+                  <Text style={styles.remedioStatusTag}>Tomado</Text>
+                </View>
+              </View>
             </View>
           </View>
-
-          {/* Card branco interno: Ícone verde duplo à esquerda + textos à direita */}
-          <View style={styles.statusInnerCard}>
-            <View style={styles.statusOuterCircle}>
-              <View style={styles.statusInnerCircle}>
-                <Icon name="check" size={20} color="#FFFFFF" />
-              </View>
-            </View>
-
-            <View style={styles.statusTextsCol}>
-              <View style={styles.statusTagRow}>
-                <View style={styles.statusLiveDot} />
-                <Text style={styles.statusTagLabel}>STATUS ATUAL</Text>
-              </View>
-              <Text style={styles.statusMainLabel}>
-                {resgateAtivo ? 'Alerta em Atendimento' : 'Estável & Seguro'}
-              </Text>
-              <Text style={styles.statusSubLabel}>
-                {resgateAtivo
-                  ? 'Protocolo familiar em andamento'
-                  : 'Nenhuma anomalia detectada nas últimas 6h'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Submétricas: Batimentos e Último Remédio */}
-          <View style={styles.semaforoSubCards}>
-            <View style={styles.semaforoSubCard}>
-              <View style={styles.subCardHeader}>
-                <Icon name="favorite" size={14} color="#D83729" />
-                <Text style={styles.subCardTitle}>Batimentos</Text>
-              </View>
-              <View style={styles.subCardValueRow}>
-                <Text style={styles.subCardValue}>74</Text>
-                <Text style={styles.subCardUnit}>bpm</Text>
-              </View>
-            </View>
-
-            <View style={styles.semaforoSubCard}>
-              <View style={styles.subCardHeader}>
-                <Icon name="schedule" size={14} color="#2D418A" />
-                <Text style={styles.subCardTitle}>Último Remédio</Text>
-              </View>
-              <View style={styles.subCardValueRow}>
-                <Text style={styles.subCardValue}>10:02</Text>
-                <Text style={styles.remedioStatusTag}>Tomado</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        )}
 
         {/* CARD 3: LOCALIZAÇÃO EM TEMPO REAL (rx=32, #FFFFFF) */}
         <View style={styles.mapCard}>
@@ -530,6 +676,13 @@ export default function HomeScreen({
         status={deviceStatus}
         perdaDados={perdaDados}
         onClose={() => setModalDeviceVisible(false)}
+      />
+
+      {/* MODAL EXPLICATIVO DO SEMÁFORO DO BEM-ESTAR (HU-033 e RN-017) */}
+      <SemaforoMotivoModal
+        visible={modalSemaforoVisible}
+        scoreData={scoreData}
+        onClose={() => setModalSemaforoVisible(false)}
       />
 
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
@@ -791,6 +944,159 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#64748B',
+    fontFamily: typography.fontFamily.body,
+  },
+  scoreInlinePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 9999,
+    marginLeft: 6,
+  },
+  scoreInlinePillText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    fontFamily: typography.fontFamily.heading,
+  },
+  touchHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  touchHintText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    fontFamily: typography.fontFamily.body,
+  },
+  paywallCard: {
+    backgroundColor: '#F5F3FF',
+    borderRadius: 32,
+    padding: 20,
+    marginBottom: 18,
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+  },
+  paywallHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paywallIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paywallTag: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  paywallTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#6D28D9',
+    fontFamily: typography.fontFamily.heading,
+  },
+  paywallTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#4C1D95',
+    marginBottom: 6,
+    fontFamily: typography.fontFamily.heading,
+  },
+  paywallMessage: {
+    fontSize: 13,
+    color: '#6D28D9',
+    lineHeight: 18,
+    marginBottom: 16,
+    fontFamily: typography.fontFamily.body,
+  },
+  paywallButton: {
+    height: 52,
+    backgroundColor: '#6D28D9',
+    borderRadius: 26,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paywallButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.heading,
+  },
+  rotinaCard: {
+    backgroundColor: '#E6F3FA',
+    borderRadius: 32,
+    padding: 20,
+    marginBottom: 18,
+    borderWidth: 1.5,
+    borderColor: '#C4E4F5',
+  },
+  rotinaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rotinaIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rotinaBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  rotinaBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E40AF',
+    fontFamily: typography.fontFamily.heading,
+  },
+  rotinaTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1E3A8A',
+    marginBottom: 6,
+    fontFamily: typography.fontFamily.heading,
+  },
+  rotinaSubtext: {
+    fontSize: 12,
+    color: '#3B82F6',
+    lineHeight: 17,
+    marginBottom: 14,
+    fontFamily: typography.fontFamily.body,
+  },
+  rotinaProgressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#DBEAFE',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  rotinaProgressFill: {
+    height: '100%',
+    backgroundColor: '#2563EB',
+    borderRadius: 4,
+  },
+  rotinaDaysLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E40AF',
     fontFamily: typography.fontFamily.body,
   },
   semaforoSubCards: {
