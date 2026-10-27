@@ -62,6 +62,7 @@ export default function MedicineTimelineCard({
   onConfirm,
   onEdit,
   onTogglePause,
+  onDelete,
   loadingAction = false,
 }) {
   const isTomado = item.statusHoje === 'TOMADO';
@@ -160,7 +161,7 @@ export default function MedicineTimelineCard({
               <View style={styles.titleAndBadgeCol}>
                 <View style={styles.nameRow}>
                   <Text style={styles.medName} numberOfLines={1}>
-                    {item.medicamentoNome}
+                    {item.medicamentoNome || item.nomeMedicamento || 'Medicamento'}
                   </Text>
                   {isProximo && (
                     <View style={styles.nextBadge}>
@@ -190,6 +191,14 @@ export default function MedicineTimelineCard({
                 onPress={() => onConfirm && onConfirm(item)}
                 activeOpacity={0.8}
                 disabled={loadingAction}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: isTomado }}
+                accessibilityLabel={
+                  isTomado
+                    ? `Dose de ${item.medicamentoNome || item.nomeMedicamento || 'medicamento'} tomada. Toque para desmarcar.`
+                    : `Marcar dose de ${item.medicamentoNome || item.nomeMedicamento || 'medicamento'} como tomada.`
+                }
               >
                 {loadingAction ? (
                   <ActivityIndicator
@@ -230,49 +239,54 @@ export default function MedicineTimelineCard({
           <View style={styles.takenBanner}>
             <Icon name="check_circle" size={14} color="#059669" />
             <Text style={styles.takenText}>
-              Tomado com sucesso às {item.horarioIngestaoHoje || '08:05'}
+              {item.horarioIngestaoHoje
+                ? `Tomado com sucesso às ${item.horarioIngestaoHoje}`
+                : 'Tomado com sucesso hoje'}
             </Text>
           </View>
         )}
 
-        {/* Botões de Ação quando for o Próximo ou quando o usuário quiser editar */}
-        {!isTomado && isProximo && (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.confirmBtn}
-              onPress={() => onConfirm && onConfirm(item)}
-              activeOpacity={0.8}
-              disabled={loadingAction}
-            >
-              <Icon name="check" size={14} color="#003B26" />
-              <Text style={styles.confirmBtnText}>Confirmar</Text>
-            </TouchableOpacity>
+        {/* Botões de Ação */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => onEdit && onEdit(item)}
+            activeOpacity={0.8}
+          >
+            <Icon name="edit" size={14} color="#131E3D" />
+            <Text style={styles.editBtnText}>Editar</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => onEdit && onEdit(item)}
-              activeOpacity={0.8}
+          <TouchableOpacity
+            style={[styles.pauseBtn, isPausado && styles.pauseBtnActive]}
+            onPress={() => onTogglePause && onTogglePause(item)}
+            activeOpacity={0.8}
+            disabled={loadingAction}
+          >
+            <Icon
+              name={isPausado ? 'play_arrow' : 'pause'}
+              size={14}
+              color={isPausado ? '#059669' : '#64748B'}
+            />
+            <Text
+              style={[
+                styles.pauseBtnText,
+                isPausado && styles.pauseBtnTextActive,
+              ]}
             >
-              <Icon name="edit" size={14} color="#131E3D" />
-              <Text style={styles.editBtnText}>Editar</Text>
-            </TouchableOpacity>
+              {isPausado ? 'Retomar' : 'Pausar'}
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.pauseBtn}
-              onPress={() => onTogglePause && onTogglePause(item)}
-              activeOpacity={0.8}
-            >
-              <Icon
-                name={isPausado ? 'play' : 'pause'}
-                size={14}
-                color="#64748B"
-              />
-              <Text style={styles.pauseBtnText}>
-                {isPausado ? 'Retomar' : 'Pausar'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => onDelete && onDelete(item)}
+            activeOpacity={0.8}
+          >
+            <Icon name="delete" size={14} color="#BA1A1A" />
+            <Text style={styles.deleteBtnText}>Excluir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -481,30 +495,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  confirmBtn: {
+  editBtn: {
     flex: 1,
     height: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#E8F8F0',
-    borderRadius: 12,
-  },
-  confirmBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
-  },
-  editBtn: {
-    height: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
     backgroundColor: '#F5F7FA',
-    paddingHorizontal: 12,
     borderRadius: 12,
   },
   editBtnText: {
@@ -514,19 +512,41 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.heading,
   },
   pauseBtn: {
+    flex: 1,
     height: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#F5F7FA',
-    paddingHorizontal: 12,
     borderRadius: 12,
+  },
+  pauseBtnActive: {
+    backgroundColor: '#E8F8F0',
   },
   pauseBtnText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
+  },
+  pauseBtnTextActive: {
+    color: '#059669',
+  },
+  deleteBtn: {
+    flex: 1,
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+  },
+  deleteBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#BA1A1A',
     fontFamily: typography.fontFamily.heading,
   },
 });
