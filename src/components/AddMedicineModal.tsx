@@ -13,8 +13,10 @@ import {
   Alert,
 } from 'react-native';
 import Icon from './Icon';
+import Checkbox from './Checkbox';
 import { colors, typography, shadows, rounded } from '../theme';
 import { RotinaMedicamento } from '../services/medicamentoService';
+import { formatarHorarioInput, normalizarHorario } from '../services/timeFormat';
 
 const FORMAT_OPTIONS = [
   { id: 'comprimido', label: 'Comprimido', icon: 'medication' },
@@ -35,6 +37,7 @@ const FREQUENCY_OPTIONS = [
 ];
 
 export interface MedicinePayload {
+  nomeMedicamento: string;
   medicamentoNome: string;
   dosagem: string;
   tipoFormato: string;
@@ -70,11 +73,12 @@ export default function AddMedicineModal({
   const [frequencia, setFrequencia] = useState('1x ao dia (Diário)');
   const [instrucoes, setInstrucoes] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [termoAceito, setTermoAceito] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (initialData) {
-      setNome(initialData.medicamentoNome || '');
+      setNome(initialData.medicamentoNome || initialData.nomeMedicamento || '');
       setDosagem(initialData.dosagem || '');
       setFormato(initialData.tipoFormato || 'comprimido');
       setHorario(initialData.horario || '08:00');
@@ -90,10 +94,15 @@ export default function AddMedicineModal({
       setInstrucoes('');
       setObservacoes('');
     }
+    setTermoAceito(false);
     setErrorMessage('');
   }, [initialData, visible]);
 
   const handleSave = () => {
+    if (!termoAceito) {
+      setErrorMessage('É obrigatório aceitar o termo de responsabilidade para salvar.');
+      return;
+    }
     if (!nome.trim()) {
       setErrorMessage('Por favor, informe o nome do medicamento.');
       return;
@@ -102,16 +111,18 @@ export default function AddMedicineModal({
       setErrorMessage('Por favor, informe a dosagem.');
       return;
     }
-    if (!horario.trim()) {
-      setErrorMessage('Por favor, informe o horário da dose.');
+    const horarioNormalizado = normalizarHorario(horario);
+    if (!horarioNormalizado) {
+      setErrorMessage('Horário inválido. Utilize o formato HH:mm (entre 00:00 e 23:59).');
       return;
     }
 
     const payload: MedicinePayload = {
+      nomeMedicamento: nome.trim(),
       medicamentoNome: nome.trim(),
       dosagem: dosagem.trim(),
       tipoFormato: formato,
-      horario: horario.trim(),
+      horario: horarioNormalizado,
       frequencia,
       instrucoes: instrucoes.trim() || 'Tomar conforme prescrição',
       observacoes: observacoes.trim(),
@@ -273,8 +284,10 @@ export default function AddMedicineModal({
                 placeholder="08:00"
                 placeholderTextColor={colors.textMuted}
                 value={horario}
+                keyboardType="numeric"
                 onChangeText={(text) => {
-                  setHorario(text);
+                  const formatado = formatarHorarioInput(horario, text);
+                  setHorario(formatado);
                   if (errorMessage) setErrorMessage('');
                 }}
                 maxLength={5}
@@ -364,12 +377,30 @@ export default function AddMedicineModal({
               />
             </View>
 
+            {/* Caixa do Termo de Responsabilidade (RN-004 e HU-056 Cenário 3) */}
+            <View style={styles.termoBox}>
+              <Checkbox
+                isChecked={termoAceito}
+                onToggle={() => {
+                  setTermoAceito((prev) => !prev);
+                  if (errorMessage) setErrorMessage('');
+                }}
+              >
+                <Text style={styles.termoText}>
+                  Declaro que as informações e dosagens cadastradas foram prescritas por profissional médico habilitado e assumo total responsabilidade pela sua exatidão.
+                </Text>
+              </Checkbox>
+            </View>
+
             {/* Botões de Ação */}
             <View style={styles.actionButtonsContainer}>
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[
+                  styles.saveButton,
+                  (!termoAceito || loading) && styles.saveButtonDisabled,
+                ]}
                 onPress={handleSave}
-                disabled={loading}
+                disabled={!termoAceito || loading}
                 activeOpacity={0.85}
               >
                 {loading ? (
@@ -588,6 +619,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.tier2,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#94A3B8',
+    opacity: 0.65,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  termoBox: {
+    backgroundColor: colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: rounded.card,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  termoText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    fontFamily: typography.fontFamily.body,
   },
   buttonInnerRow: {
     flexDirection: 'row',

@@ -54,7 +54,16 @@ import {
   msVaccines,
   msAssignment,
   msPerson,
+  msPersonAdd,
   msLocalHospital,
+  msDragIndicator,
+  msDragHandle,
+  msKeyboardArrowDown,
+  msKeyboardArrowUp,
+  msHourglassTop,
+  msShare,
+  msHistory,
+  msSwapVert,
 } from '@material-symbols-react-native/rounded-400';
 
 const ICON_MAP: Record<string, MsIconDefinition> = {
@@ -69,6 +78,10 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   arrow_back: msArrowBack,
   back: msArrowBack,
   chevron_right: msChevronRight,
+  keyboard_arrow_down: msKeyboardArrowDown,
+  keyboard_arrow_up: msKeyboardArrowUp,
+  chevron_down: msKeyboardArrowDown,
+  chevron_up: msKeyboardArrowUp,
 
   // Health & Monitoring
   vital_signs: msVitalSigns,
@@ -88,8 +101,8 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   users: msGroups,
   person: msPerson,
   user: msPerson,
-  person_add: msPerson,
-  user_plus: msPerson,
+  person_add: msPersonAdd,
+  user_plus: msPersonAdd,
 
   // Actions & Feedback
   check: msCheck,
@@ -105,6 +118,14 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   edit: msEdit,
   play: msPlayArrow,
   pause: msPause,
+  drag_indicator: msDragIndicator,
+  drag_handle: msDragHandle,
+  reorder: msDragIndicator,
+  swap_vert: msSwapVert,
+  share: msShare,
+  history: msHistory,
+  hourglass_top: msHourglassTop,
+  hourglass: msHourglassTop,
 
   // Sensors & Telemetry
   location: msLocationOn,
@@ -147,6 +168,7 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   camera: msPhotoCamera,
   photo_camera: msPhotoCamera,
   help: msHelp,
+  help_outline: msHelp,
   chat: msChat,
   message: msChat,
   stethoscope: msStethoscope,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,105 +6,28 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  Share,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import Icon from '../components/Icon';
-import { gerarConvite, ConviteInput } from '../services/redeProtecaoService';
+import {
+  listarMembrosRede,
+  gerarConvite,
+  listarConvitesPendentes,
+  cancelarConvite,
+  editarConvite,
+  INITIAL_MEMBERS,
+  ConviteInput,
+  ConvitePendente,
+  MembroRede,
+} from '../services/redeProtecaoService';
 import { typography } from '../theme';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
-
-interface MembroRedeDisplay {
-  id: string;
-  nome: string;
-  iniciais: string;
-  avatarBg: string;
-  avatarCor: string;
-  subtitulo: string;
-  categoria: string;
-  badgeTexto: string;
-  badgeBg: string;
-  badgeCor: string;
-  online: boolean;
-  infoIcon: string;
-  infoTexto: string;
-  infoDestaque: boolean;
-  acoes: string[];
-}
-
-const MEMBROS_REDE: MembroRedeDisplay[] = [
-  {
-    id: '1',
-    nome: 'Carlos Silva',
-    iniciais: 'CS',
-    avatarBg: '#EBF5FF',
-    avatarCor: '#031753',
-    subtitulo: 'Filho • A 1.2 km de distância',
-    categoria: 'Proximos',
-    badgeTexto: 'Plantão',
-    badgeBg: '#E8F8F0',
-    badgeCor: '#003B26',
-    online: true,
-    infoIcon: 'notifications',
-    infoTexto: 'Recebe alertas SOS críticos',
-    infoDestaque: true,
-    acoes: ['call_primary', 'whatsapp_primary', 'history'],
-  },
-  {
-    id: '2',
-    nome: 'Roberta Santos',
-    iniciais: 'RS',
-    avatarBg: '#E8F8F0',
-    avatarCor: '#003B26',
-    subtitulo: 'Filha • A 3.8 km de distância',
-    categoria: 'Proximos',
-    badgeTexto: 'Família',
-    badgeBg: '#EBF5FF',
-    badgeCor: '#2D418A',
-    online: true,
-    infoIcon: 'medication',
-    infoTexto: 'Notificações de medicação ativas',
-    infoDestaque: false,
-    acoes: ['call', 'whatsapp'],
-  },
-  {
-    id: '3',
-    nome: 'Lucas Silva',
-    iniciais: 'LS',
-    avatarBg: '#F2F4F7',
-    avatarCor: '#475467',
-    subtitulo: 'Neto • A 8.5 km de distância',
-    categoria: 'Todos',
-    badgeTexto: 'Apoio',
-    badgeBg: '#F2F4F7',
-    badgeCor: '#64748B',
-    online: false,
-    infoIcon: 'schedule',
-    infoTexto: 'Contato secundário de fim de semana',
-    infoDestaque: false,
-    acoes: ['call', 'whatsapp'],
-  },
-  {
-    id: '4',
-    nome: 'Enfª Juliana Costa',
-    iniciais: 'JC',
-    avatarBg: '#FFEBE7',
-    avatarCor: '#B51C13',
-    subtitulo: 'Cuidadora Diurna • Turno Seg–Sex',
-    categoria: 'Saude',
-    badgeTexto: 'Especialista',
-    badgeBg: '#FFEBE7',
-    badgeCor: '#B51C13',
-    online: true,
-    infoIcon: 'assignment',
-    infoTexto: 'Acesso ao prontuário e rotina',
-    infoDestaque: false,
-    acoes: ['call', 'prontuario'],
-  },
-];
 
 export interface FamilyScreenProps {
   onNavigate?: (screen: string) => void;
@@ -116,33 +39,137 @@ export default function FamilyScreen({
   idosoId = DEFAULT_IDOSO_ID,
 }: FamilyScreenProps) {
   const [filtroAtivo, setFiltroAtivo] = useState<string>('Todos');
+  const [membros, setMembros] = useState<MembroRede[]>(INITIAL_MEMBERS);
+  const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
+  const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);
+  const [conviteParaEditar, setConviteParaEditar] = useState<ConvitePendente | null>(null);
   const [submittingInvite, setSubmittingInvite] = useState<boolean>(false);
 
-  const membrosFiltrados = MEMBROS_REDE.filter((m) => {
+  const carregarDados = async () => {
+    try {
+      setCarregandoMembros(true);
+      const [listaMembros, listaPendentes] = await Promise.all([
+        listarMembrosRede(idosoId),
+        listarConvitesPendentes(idosoId),
+      ]);
+      if (Array.isArray(listaMembros) && listaMembros.length > 0) {
+        setMembros(listaMembros);
+      }
+      if (Array.isArray(listaPendentes)) {
+        setConvitesPendentes(listaPendentes);
+      }
+    } catch (err: any) {
+      console.warn('[FamilyScreen] Erro ao carregar dados:', err?.message);
+    } finally {
+      setCarregandoMembros(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarDados();
+  }, [idosoId]);
+
+  const totalMembros = membros.length;
+  const totalProximos = membros.filter(
+    (m) => (m.categoria || '').toLowerCase() === 'proximos'
+  ).length;
+  const totalSaude = membros.filter(
+    (m) => (m.categoria || '').toLowerCase() === 'saude'
+  ).length;
+  const totalPendentes = convitesPendentes.length;
+
+  // Limite da RN-012: até 5 familiares
+  const totalFamiliares = membros.filter(
+    (m) => m.papelAcesso !== 'MEDICO' && m.badgeTipo !== 'especialista'
+  ).length;
+  const limiteAtingido = totalFamiliares >= 5;
+
+  const membroPlantao =
+    membros.find((m) => m.isPlantao || m.badgeTipo === 'plantao') || membros[0];
+
+  const membrosFiltrados = membros.filter((m) => {
+    const cat = (m.categoria || '').toLowerCase();
     if (filtroAtivo === 'Todos') return true;
-    if (filtroAtivo === 'Proximos') return m.categoria === 'Proximos';
-    if (filtroAtivo === 'Saude') return m.categoria === 'Saude';
+    if (filtroAtivo === 'Proximos') return cat === 'proximos';
+    if (filtroAtivo === 'Saude') return cat === 'saude';
     return true;
   });
 
   const handleConvidar = () => {
+    if (limiteAtingido) {
+      Alert.alert(
+        'Limite de Familiares',
+        'Limite de 5 familiares atingido. Para convidar outro membro, remova um familiar existente.'
+      );
+      return;
+    }
+    setConviteParaEditar(null);
     setModalInviteVisible(true);
   };
 
   const handleEnviarConvite = async (dadosConvite: ConviteInput) => {
     try {
       setSubmittingInvite(true);
-      await gerarConvite(idosoId, dadosConvite);
-      setModalInviteVisible(false);
-      Alert.alert(
-        'Convite Enviado',
-        `Um convite seguro (válido por 48h) foi enviado para ${dadosConvite.email}.`
-      );
+      const resultado = await gerarConvite(idosoId, dadosConvite);
+      await carregarDados();
+      return resultado;
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Não foi possível enviar o convite.');
+      Alert.alert('Erro ao Enviar Convite', err?.message || 'Não foi possível enviar o convite.');
+      throw err;
     } finally {
       setSubmittingInvite(false);
+    }
+  };
+
+  const handleEditarConvite = (convite: ConvitePendente) => {
+    setConviteParaEditar(convite);
+    setModalInviteVisible(true);
+  };
+
+  const handleSalvarEdicaoConvite = async (conviteId: string, novosDados: Partial<ConviteInput>) => {
+    try {
+      await editarConvite(idosoId, conviteId, novosDados);
+      await carregarDados();
+      Alert.alert('Sucesso', 'Informações do convite atualizadas.');
+    } catch (err: any) {
+      Alert.alert('Erro', err?.message || 'Não foi possível atualizar o convite.');
+    }
+  };
+
+  const handleCancelarConvite = (convite: ConvitePendente) => {
+    Alert.alert(
+      'Cancelar Convite',
+      `Deseja realmente cancelar o convite enviado para ${convite.emailDestinatario}? O link de acesso deixará de funcionar imediatamente.`,
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, Cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelarConvite(idosoId, convite.id);
+              await carregarDados();
+              Alert.alert('Convite Cancelado', 'O convite foi cancelado e removido.');
+            } catch (err: any) {
+              Alert.alert('Erro', 'Não foi possível cancelar o convite.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCompartilharConvite = async (convite: ConvitePendente) => {
+    try {
+      const link = convite.linkConvite || `seniorinsight://convite/${convite.token}`;
+      await Share.share({
+        title: 'Convite para Rede de Cuidados SeniorInsight',
+        message: `Olá! Você foi convidado para a Rede de Cuidados de ${convite.nomeIdoso || 'Dona Maria Silva'} no SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,
+        url: link,
+      });
+    } catch (err: any) {
+      Alert.alert('Erro ao compartilhar', err?.message);
     }
   };
 
@@ -162,12 +189,10 @@ export default function FamilyScreen({
         {/* CARD 1: RESUMO DA REDE DE CUIDADO FAMILIAR (rx=32, #FFFFFF) */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
-            <View style={styles.circleConnectedRow}>
-              <View style={styles.connectedDot} />
-              <Text style={styles.circleConnectedLabel}>CÍRCULO CONECTADO</Text>
-            </View>
             <View style={styles.activeMembersPill}>
-              <Text style={styles.activeMembersText}>4 Membros Ativos</Text>
+              <Text style={styles.activeMembersText}>
+                {carregandoMembros ? 'Atualizando...' : `${totalMembros} Membros Ativos`}
+              </Text>
             </View>
           </View>
 
@@ -188,10 +213,10 @@ export default function FamilyScreen({
             </View>
             <View style={styles.onDutyTexts}>
               <Text style={styles.onDutyTitle}>
-                Plantão Atual: Carlos Silva
+                Plantão Atual: {membroPlantao?.nome || 'Carlos Silva'}
               </Text>
               <Text style={styles.onDutySub}>
-                Resposta rápida estimada em 4 min
+                {membroPlantao?.statusLabel || 'Resposta rápida estimada em 4 min'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -213,7 +238,7 @@ export default function FamilyScreen({
                 filtroAtivo === 'Todos' && styles.filterPillTextActive,
               ]}
             >
-              Todos (4)
+              Todos ({totalMembros})
             </Text>
           </TouchableOpacity>
 
@@ -231,7 +256,7 @@ export default function FamilyScreen({
                 filtroAtivo === 'Proximos' && styles.filterPillTextActive,
               ]}
             >
-              Próximos (2)
+              Próximos ({totalProximos})
             </Text>
           </TouchableOpacity>
 
@@ -249,14 +274,112 @@ export default function FamilyScreen({
                 filtroAtivo === 'Saude' && styles.filterPillTextActive,
               ]}
             >
-              Saúde (1)
+              Saúde ({totalSaude})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filtroAtivo === 'Pendentes' && styles.filterPillActive,
+            ]}
+            onPress={() => setFiltroAtivo('Pendentes')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                filtroAtivo === 'Pendentes' && styles.filterPillTextActive,
+              ]}
+            >
+              Pendentes ({totalPendentes})
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* LISTA DE CARDS DOS MEMBROS */}
-        <View style={styles.membersList}>
-          {membrosFiltrados.map((membro) => (
+        {/* LISTA DE CARDS (MEMBROS ATIVOS OU CONVITES PENDENTES) */}
+        {filtroAtivo === 'Pendentes' ? (
+          <View style={styles.membersList}>
+            {convitesPendentes.length === 0 ? (
+              <View style={styles.emptyPendingCard}>
+                <View style={styles.emptyPendingIconCircle}>
+                  <Icon name="mail" size={32} color="#94A3B8" />
+                </View>
+                <Text style={styles.emptyPendingTitle}>Nenhum Convite Pendente</Text>
+                <Text style={styles.emptyPendingSubtitle}>
+                  Todos os convites enviados foram aceitos ou expiraram. Toque no botão abaixo para convidar um novo familiar.
+                </Text>
+              </View>
+            ) : (
+              convitesPendentes.map((convite) => (
+                <View key={convite.id} style={styles.pendingInviteCard}>
+                  {/* Topo do card: Avatar + Email + Status */}
+                  <View style={styles.pendingHeaderRow}>
+                    <View style={styles.pendingAvatarWrapper}>
+                      <View style={styles.pendingAvatar}>
+                        <Icon name="mail" size={20} color="#0284C7" />
+                      </View>
+                    </View>
+
+                    <View style={styles.pendingHeaderInfo}>
+                      <Text style={styles.pendingName} numberOfLines={1}>
+                        {convite.emailDestinatario}
+                      </Text>
+                      <Text style={styles.pendingSubtitle}>
+                        {convite.grauParentescoSugerido} • {convite.papelLabel || 'Cuidador(a)'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.pendingStatusBadge}>
+                      <Icon name="schedule" size={11} color="#B45309" style={{ marginRight: 3 }} />
+                      <Text style={styles.pendingStatusText}>Aguardando</Text>
+                    </View>
+                  </View>
+
+                  {/* Detalhes de Expiração */}
+                  <View style={styles.pendingInfoRow}>
+                    <Icon name="hourglass_top" size={13} color="#64748B" style={{ marginRight: 6 }} />
+                    <Text style={styles.pendingInfoText}>
+                      Expira em {convite.validadeHorasRestantes || 48}h • Link de uso único
+                    </Text>
+                  </View>
+
+                  {/* Ações: Editar, Reenviar Link e Cancelar */}
+                  <View style={styles.pendingActionsRow}>
+                    <TouchableOpacity
+                      style={styles.pendingBtnEdit}
+                      onPress={() => handleEditarConvite(convite)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="edit" size={14} color="#031753" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnEditText}>Editar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.pendingBtnShare}
+                      onPress={() => handleCompartilharConvite(convite)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="share" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnShareText}>Reenviar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.pendingBtnCancel}
+                      onPress={() => handleCancelarConvite(convite)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="delete" size={14} color="#DC2626" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnCancelText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        ) : (
+          <View style={styles.membersList}>
+            {membrosFiltrados.map((membro) => (
             <View key={membro.id} style={styles.memberCard}>
               {/* Topo do Card: Avatar + Nome + Badge de Papel */}
               <View style={styles.memberHeaderRow}>
@@ -319,7 +442,7 @@ export default function FamilyScreen({
               <View style={styles.memberBottomBar}>
                 <View style={styles.memberInfoLeft}>
                   <Icon
-                    name={membro.infoIcon}
+                    name={membro.infoIcon ?? ''}
                     size={15}
                     color={membro.infoDestaque ? '#031753' : '#64748B'}
                   />
@@ -335,7 +458,7 @@ export default function FamilyScreen({
                 </View>
 
                 <View style={styles.memberActionsRight}>
-                  {membro.acoes.map((acao) => {
+                  {membro.acoes.map((acao: string) => {
                     if (acao === 'call_primary') {
                       return (
                         <TouchableOpacity
@@ -448,44 +571,55 @@ export default function FamilyScreen({
             </View>
           ))}
         </View>
+      )}
 
-        {/* CARD DE SEQUÊNCIA DE CHAMADA SOS (#FFF1EC, rx=28) */}
-        <TouchableOpacity
-          style={styles.sosSequenceCard}
-          onPress={() => onNavigate && onNavigate('EmergencyContacts')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.sosSequenceIconCircle}>
-            <Icon name="crisis_alert" size={18} color="#B51C13" />
-          </View>
-          <View style={styles.sosSequenceTexts}>
-            <Text style={styles.sosSequenceTitle}>
-              Sequência de Chamada SOS
-            </Text>
-            <Text style={styles.sosSequenceSub}>
-              Em caso de alarme: Carlos → Roberta → Lucas → SAMU 192
-            </Text>
-          </View>
-        </TouchableOpacity>
+      {/* CARD DE SEQUÊNCIA DE CHAMADA SOS (#FFF1EC, rx=28) */}
+      <TouchableOpacity
+        style={styles.sosSequenceCard}
+        onPress={() => onNavigate && onNavigate('EmergencyContacts')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.sosSequenceIconCircle}>
+          <Icon name="crisis_alert" size={18} color="#B51C13" />
+        </View>
+        <View style={styles.sosSequenceTexts}>
+          <Text style={styles.sosSequenceTitle}>
+            Sequência de Chamada SOS
+          </Text>
+          <Text style={styles.sosSequenceSub}>
+            Em caso de alarme: Carlos → Roberta → Lucas → SAMU 192
+          </Text>
+        </View>
+      </TouchableOpacity>
 
-        {/* BOTÃO PRIMÁRIO: CONVIDAR NOVO MEMBRO (#D83729, height 56, rx=28) */}
-        <TouchableOpacity
-          style={styles.inviteCtaButton}
-          onPress={handleConvidar}
-          activeOpacity={0.85}
-        >
-          <Icon name="person_add" size={20} color="#FFFFFF" />
-          <Text style={styles.inviteCtaText}>Convidar Novo Membro</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      {/* BOTÃO PRIMÁRIO: CONVIDAR NOVO MEMBRO (#D83729, height 56, rx=28) */}
+      <TouchableOpacity
+        style={[
+          styles.inviteCtaButton,
+          limiteAtingido && styles.inviteCtaButtonDisabled,
+        ]}
+        onPress={handleConvidar}
+        activeOpacity={0.85}
+      >
+        <Icon name="person_add" size={20} color="#FFFFFF" />
+        <Text style={styles.inviteCtaText}>
+          {limiteAtingido ? 'Limite de 5 Familiares Atingido' : 'Convidar Novo Membro'}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
 
-      {/* MODAL DE CONVITE DE NOVO MEMBRO (HU16) */}
-      <InviteMemberModal
-        visible={modalInviteVisible}
-        onClose={() => setModalInviteVisible(false)}
-        onSendInvite={handleEnviarConvite}
-        loading={submittingInvite}
-      />
+    {/* MODAL DE CONVITE / EDIÇÃO DE NOVO MEMBRO (HU16) */}
+    <InviteMemberModal
+      visible={modalInviteVisible}
+      conviteParaEditar={conviteParaEditar}
+      onClose={() => {
+        setModalInviteVisible(false);
+        setConviteParaEditar(null);
+      }}
+      onSendInvite={handleEnviarConvite}
+      onEditInvite={handleSalvarEdicaoConvite}
+      loading={submittingInvite}
+    />
 
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
       <BottomNavBar currentScreen="Family" onNavigate={onNavigate} />
@@ -801,5 +935,161 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     fontFamily: typography.fontFamily.heading,
+  },
+  inviteCtaButtonDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowColor: '#94A3B8',
+    shadowOpacity: 0.1,
+  },
+  pendingInviteCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    marginBottom: 4,
+  },
+  pendingHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  pendingAvatarWrapper: {
+    marginRight: 12,
+  },
+  pendingAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pendingHeaderInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  pendingName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  pendingSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  pendingStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pendingStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  pendingInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  pendingInfoText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  pendingActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pendingBtnEdit: {
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBtnEditText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#031753',
+  },
+  pendingBtnShare: {
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0F2FE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBtnShareText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  pendingBtnCancel: {
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: '#FEE2E2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBtnCancelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  emptyPendingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    marginVertical: 12,
+  },
+  emptyPendingIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyPendingTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyPendingSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

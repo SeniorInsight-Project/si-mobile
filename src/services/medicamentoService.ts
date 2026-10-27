@@ -1,4 +1,11 @@
 import { runtimeConfig } from '../config/runtime';
+import {
+  obterRotinasDoCache,
+  salvarRotinasNoCache,
+  atualizarStatusDoseCache,
+  removerRotinaCache,
+} from './medicamentoDatabase';
+import { agendarLembretesMedicacao } from './notificacaoMedicamentoService';
 
 export interface RotinaMedicamento {
   id: string;
@@ -36,14 +43,15 @@ export interface ConfirmacaoIngestaoInput {
 export interface ConfirmacaoIngestaoResponse {
   rotinaId: string;
   status: string;
-  dataHoraIngestao: string;
+  dataHoraIngestao: string | null;
   observacao: string;
+  horarioIngestaoHoje?: string | null;
   sucesso?: boolean;
   [key: string]: any;
 }
 
 /**
- * Lista inicial padrão de rotinas de medicamentos baseada no template visual do Figma (HU26).
+ * Lista inicial padrão de rotinas de medicamentos baseada no template visual do Figma (HU26 / HU-056).
  * Fornece fallback resiliente em ambiente de desenvolvimento ou offline.
  */
 export const INITIAL_MEDICINES: RotinaMedicamento[] = [
@@ -53,6 +61,7 @@ export const INITIAL_MEDICINES: RotinaMedicamento[] = [
     idosoNome: 'Dona Maria Aparecida',
     medicamentoId: 'med-db-001',
     medicamentoNome: 'Losartana 50mg',
+    nomeMedicamento: 'Losartana 50mg',
     dosagem: '1 comprimido • Uso contínuo',
     instrucoes: 'Tomar com 1 copo de água',
     horario: '08:00',
@@ -74,6 +83,7 @@ export const INITIAL_MEDICINES: RotinaMedicamento[] = [
     idosoNome: 'Dona Maria Aparecida',
     medicamentoId: 'med-db-002',
     medicamentoNome: 'Vitamina D3',
+    nomeMedicamento: 'Vitamina D3',
     dosagem: '2.000 UI • 1 cápsula gelatinosa',
     instrucoes: 'Junto ao café da manhã',
     horario: '10:00',
@@ -95,6 +105,7 @@ export const INITIAL_MEDICINES: RotinaMedicamento[] = [
     idosoNome: 'Dona Maria Aparecida',
     medicamentoId: 'med-db-003',
     medicamentoNome: 'Metformina 850mg',
+    nomeMedicamento: 'Metformina 850mg',
     dosagem: '1 comprimido • Controle glicêmico',
     instrucoes: 'Logo após o almoço',
     horario: '14:00',
@@ -116,6 +127,7 @@ export const INITIAL_MEDICINES: RotinaMedicamento[] = [
     idosoNome: 'Dona Maria Aparecida',
     medicamentoId: 'med-db-004',
     medicamentoNome: 'Sinvastatina 20mg',
+    nomeMedicamento: 'Sinvastatina 20mg',
     dosagem: '1 comprimido • Uso noturno',
     instrucoes: 'Antes de dormir',
     horario: '20:00',
@@ -140,27 +152,28 @@ let localMedicinesStore: RotinaMedicamento[] = [...INITIAL_MEDICINES];
  * Auxiliar para enriquecer objetos de rotina com dados visuais (ícones, emojis e cores de thumbnail)
  */
 export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Record<string, any>): RotinaMedicamento {
-  const nomeLower = (rotina.medicamentoNome || '').toLowerCase();
+  const nome = rotina.medicamentoNome || rotina.nomeMedicamento || '';
+  const nomeLower = nome.toLowerCase();
   const dosagemLower = (rotina.dosagem || '').toLowerCase();
   const instrucoesLower = (rotina.instrucoes || '').toLowerCase();
 
   let thumbEmoji = '💊';
   let corFundoThumb = '#EBF3FE';
-  let tipoFormato = 'comprimido';
+  let tipoFormato = rotina.tipoFormato || 'comprimido';
 
-  if (nomeLower.includes('xarope') || dosagemLower.includes('ml') || dosagemLower.includes('copo')) {
+  if (nomeLower.includes('xarope') || dosagemLower.includes('ml') || dosagemLower.includes('copo') || tipoFormato === 'xarope') {
     thumbEmoji = '🧴';
     corFundoThumb = '#FEF3EC';
     tipoFormato = 'xarope';
-  } else if (nomeLower.includes('colírio') || nomeLower.includes('colirio') || dosagemLower.includes('gota') || instrucoesLower.includes('olho')) {
+  } else if (nomeLower.includes('colírio') || nomeLower.includes('colirio') || dosagemLower.includes('gota') || instrucoesLower.includes('olho') || tipoFormato === 'gotas') {
     thumbEmoji = '💧';
     corFundoThumb = '#F4EEFD';
-    tipoFormato = 'colirio';
-  } else if (nomeLower.includes('insulina') || nomeLower.includes('inje') || dosagemLower.includes('ui')) {
+    tipoFormato = 'gotas';
+  } else if (nomeLower.includes('insulina') || nomeLower.includes('inje') || dosagemLower.includes('ui') || tipoFormato === 'injecao') {
     thumbEmoji = '💉';
     corFundoThumb = '#FEE2E2';
     tipoFormato = 'injecao';
-  } else if (nomeLower.includes('enalapril') || nomeLower.includes('verde')) {
+  } else if (nomeLower.includes('enalapril') || nomeLower.includes('verde') || tipoFormato === 'comprimido') {
     thumbEmoji = '💊';
     corFundoThumb = '#E8F8F0';
     tipoFormato = 'comprimido';
@@ -189,7 +202,6 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
 
   return {
     id: rotina.id || `med-local-${Date.now()}`,
-    medicamentoNome: rotina.medicamentoNome || rotina.nomeMedicamento || '',
     dosagem: rotina.dosagem || '',
     instrucoes: rotina.instrucoes || '',
     horario: rotina.horario || '08:00',
@@ -199,16 +211,19 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
     horarioIngestaoHoje: rotina.horarioIngestaoHoje ?? null,
     isProximo: rotina.isProximo ?? false,
     ...rotina,
+    medicamentoNome: nome,
+    nomeMedicamento: nome,
     thumbEmoji: rotina.thumbEmoji || thumbEmoji,
     corFundoThumb: rotina.corFundoThumb || corFundoThumb,
-    tipoFormato: rotina.tipoFormato || tipoFormato,
+    tipoFormato,
     iconeTipo,
     corIcone,
   };
 }
 
 /**
- * Lista as rotinas diárias de medicamentos do idoso (HU26).
+ * Lista as rotinas diárias de medicamentos do idoso (HU-056 / HU26 / RF-038).
+ * Tenta buscar no Gateway (backend Spring Boot); caso indisponível, recorre ao SQLite local.
  * Endpoint: GET /api/v1/idosos/{idosoId}/rotinas-medicamentos?data=YYYY-MM-DD&apenasAtivos=false
  */
 export async function listarRotinas(
@@ -226,42 +241,97 @@ export async function listarRotinas(
     if (apenasAtivos) params.append('apenasAtivos', 'true');
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos${queryString}`, {
-      method: 'GET',
-      headers,
-    });
+    const response = await fetch(
+      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos${queryString}`,
+      {
+        method: 'GET',
+        headers,
+      }
+    );
 
-    if (!response.ok) {
-      console.warn(`[medicamentoService] Falha ao listar rotinas (${response.status}). Retornando dados locais.`);
-      return localMedicinesStore.map(enriquecerDadosVisuais);
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const enriquecidos = data.map(enriquecerDadosVisuais);
+        localMedicinesStore = enriquecidos;
+        // Salva de forma transparente no cache SQLite local para funcionamento offline
+        await salvarRotinasNoCache(idosoId, enriquecidos);
+        // Agenda lembretes locais sem bloquear a interface
+        agendarLembretesMedicacao(enriquecidos).catch(() => {});
+        return enriquecidos;
+      }
     }
-
-    const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(enriquecerDadosVisuais);
-    }
-
-    return localMedicinesStore.map(enriquecerDadosVisuais);
   } catch (error: any) {
-    console.warn('[medicamentoService] Backend inacessível. Usando fallback de rotinas:', error?.message);
-    return localMedicinesStore.map(enriquecerDadosVisuais);
+    console.warn('[medicamentoService] Backend inacessível. Recorrendo à base local SQLite:', error?.message);
   }
+
+  // Fallback 1: Recupera do SQLite local (Offline-first / RF-038)
+  try {
+    const cached = await obterRotinasDoCache(idosoId);
+    if (Array.isArray(cached) && cached.length > 0) {
+      const rotinasCache = cached.map(enriquecerDadosVisuais);
+      localMedicinesStore = rotinasCache;
+      return rotinasCache;
+    }
+  } catch (cacheErr: any) {
+    console.warn('[medicamentoService] Erro ao carregar cache SQLite:', cacheErr?.message);
+  }
+
+  // Fallback 2: Dados em memória pré-carregados
+  const fallback = localMedicinesStore.map(enriquecerDadosVisuais);
+  // Garante que o cache SQLite seja populado com os dados iniciais
+  salvarRotinasNoCache(idosoId, fallback).catch(() => {});
+  agendarLembretesMedicacao(fallback).catch(() => {});
+  return fallback;
 }
 
 /**
- * Confirma a ingestão de um medicamento na rotina (HU26).
+ * Confirma a ingestão de um medicamento na rotina (HU-056 / HU-059 / RF-039).
+ * Aceita as assinaturas:
+ * 1) confirmarIngestao(idosoId, rotinaId, observacao)
+ * 2) confirmarIngestao(rotinaId, dadosConfirmacao, token)
+ *
  * Endpoint: POST /api/v1/rotinas-medicamentos/{rotinaId}/confirmar-ingestao
  */
 export async function confirmarIngestao(
-  rotinaId: string,
-  dadosConfirmacao: ConfirmacaoIngestaoInput | string = {},
+  arg1: string,
+  arg2: ConfirmacaoIngestaoInput | string | null = null,
+  arg3: ConfirmacaoIngestaoInput | string | null = null,
   token: string | null = null
 ): Promise<ConfirmacaoIngestaoResponse> {
   const agora = new Date();
-  const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const confirmacaoObj: ConfirmacaoIngestaoInput =
-    typeof dadosConfirmacao === 'object' && dadosConfirmacao !== null ? dadosConfirmacao : {};
 
+  // Normalização de parâmetros flexíveis
+  let rotinaId: string;
+  let dadosConfirmacao: ConfirmacaoIngestaoInput = {};
+
+  if (typeof arg2 === 'string' && arg2.length > 0) {
+    // Assinatura: (idosoId, rotinaId, observacao ou objeto de dados)
+    rotinaId = arg2;
+    dadosConfirmacao = typeof arg3 === 'string' ? { observacao: arg3 } : (arg3 || {});
+  } else {
+    // Assinatura: (rotinaId, dadosConfirmacao, token)
+    rotinaId = arg1;
+    dadosConfirmacao = typeof arg2 === 'string' ? { observacao: arg2 } : (arg2 || {});
+    if (typeof arg3 === 'string') token = arg3;
+  }
+
+  const statusDesejado = dadosConfirmacao.status || 'TOMADO';
+  const horaFormatada = statusDesejado === 'TOMADO'
+    ? agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  // 1. Atualização imediata no store local em memória
+  atualizarStatusLocal(rotinaId, statusDesejado, horaFormatada);
+
+  // 2. Atualização imediata no SQLite local (Offline-first)
+  try {
+    await atualizarStatusDoseCache(rotinaId, statusDesejado, horaFormatada);
+  } catch (dbErr: any) {
+    console.warn('[medicamentoService] Falha ao persistir status no SQLite:', dbErr?.message);
+  }
+
+  // 3. Envio ao Gateway Spring Boot
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -270,41 +340,48 @@ export async function confirmarIngestao(
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const bodyPayload = {
-      dataHoraIngestao: confirmacaoObj.dataHoraIngestao || agora.toISOString(),
-      dataReferencia: confirmacaoObj.dataReferencia || agora.toISOString().split('T')[0],
-      observacao: confirmacaoObj.observacao || 'Confirmado via aplicativo SeniorInsight',
-      status: confirmacaoObj.status || 'TOMADO',
+      dataHoraIngestao: statusDesejado === 'TOMADO' ? (dadosConfirmacao.dataHoraIngestao || agora.toISOString()) : null,
+      dataReferencia: dadosConfirmacao.dataReferencia || agora.toISOString().split('T')[0],
+      observacao: dadosConfirmacao.observacao || (statusDesejado === 'TOMADO' ? 'Confirmado via aplicativo SeniorInsight' : 'Dose desmarcada'),
+      status: statusDesejado,
     };
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}/confirmar-ingestao`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(bodyPayload),
-    });
+    const response = await fetch(
+      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}/confirmar-ingestao`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bodyPayload),
+      }
+    );
 
-    if (!response.ok) {
-      console.warn(`[medicamentoService] Status ${response.status} na API ao confirmar ingestão. Atualizando store local.`);
-    } else {
+    if (response.ok) {
       const data = await response.json();
-      atualizarStatusLocal(rotinaId, 'TOMADO', horaFormatada);
-      return data;
+      return {
+        sucesso: true,
+        rotinaId,
+        status: data.status || statusDesejado,
+        horarioIngestaoHoje: horaFormatada,
+        ...data,
+      };
     }
   } catch (error: any) {
-    console.warn('[medicamentoService] Erro de rede ao confirmar ingestão. Registrando localmente:', error?.message);
+    console.warn('[medicamentoService] Falha de conexão ao confirmar ingestão. Mantido no SQLite:', error?.message);
   }
 
-  // Fallback / Atualização otimista no store local
-  atualizarStatusLocal(rotinaId, 'TOMADO', horaFormatada);
+  // Resposta resiliente com garantia de sucesso para atualizar o estado do React
   return {
+    sucesso: true,
     rotinaId,
-    status: 'TOMADO',
-    dataHoraIngestao: agora.toISOString(),
-    observacao: confirmacaoObj.observacao || 'Confirmado com sucesso',
+    status: statusDesejado,
+    horarioIngestaoHoje: horaFormatada,
+    dataHoraIngestao: statusDesejado === 'TOMADO' ? agora.toISOString() : null,
+    observacao: dadosConfirmacao.observacao || 'Atualizado localmente com sucesso',
   };
 }
 
 /**
- * Cria uma nova rotina de medicamento para o idoso (HU26).
+ * Cria uma nova rotina de medicamento para o idoso (HU-056 / RN-004).
  * Endpoint: POST /api/v1/idosos/{idosoId}/rotinas-medicamentos
  */
 export async function criarRotina(
@@ -312,6 +389,20 @@ export async function criarRotina(
   dadosRotina: Partial<RotinaMedicamento> & Record<string, any>,
   token: string | null = null
 ): Promise<RotinaMedicamento> {
+  const nomeMed = (dadosRotina.nomeMedicamento || dadosRotina.medicamentoNome || '').trim();
+
+  const payloadGateway = {
+    nomeMedicamento: nomeMed,
+    medicamentoNome: nomeMed,
+    dosagem: dadosRotina.dosagem,
+    instrucoes: dadosRotina.instrucoes || 'Tomar conforme prescrição',
+    horario: dadosRotina.horario || '08:00',
+    frequencia: dadosRotina.frequencia || '1x ao dia (Diário)',
+    diasSemana: dadosRotina.diasSemana || 'TODOS',
+    tipoFormato: dadosRotina.tipoFormato || 'comprimido',
+    observacoes: dadosRotina.observacoes || '',
+  };
+
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -319,46 +410,66 @@ export async function criarRotina(
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(dadosRotina),
-    });
+    const response = await fetch(
+      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payloadGateway),
+      }
+    );
 
     if (response.ok) {
       const novaRotina = await response.json();
-      localMedicinesStore.push(enriquecerDadosVisuais(novaRotina));
-      return enriquecerDadosVisuais(novaRotina);
+      const enriquecida = enriquecerDadosVisuais({
+        ...novaRotina,
+        medicamentoNome: novaRotina.medicamentoNome || nomeMed,
+        nomeMedicamento: novaRotina.medicamentoNome || nomeMed,
+        tipoFormato: dadosRotina.tipoFormato || novaRotina.tipoFormato,
+      });
+
+      localMedicinesStore = localMedicinesStore.filter((r) => r.id !== enriquecida.id);
+      localMedicinesStore.push(enriquecida);
+      localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
+
+      await salvarRotinasNoCache(idosoId, localMedicinesStore);
+      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+      return enriquecida;
     }
-    console.warn(`[medicamentoService] Resposta ${response.status} ao criar rotina. Criando no store local.`);
   } catch (error: any) {
-    console.warn('[medicamentoService] Falha de conexão ao criar rotina. Criando localmente:', error?.message);
+    console.warn('[medicamentoService] Falha de conexão ao criar rotina. Criando no SQLite local:', error?.message);
   }
 
-  // Fallback offline: adiciona à lista local com identificador gerado
+  // Fallback offline resiliente
   const novaRotinaLocal = enriquecerDadosVisuais({
-    id: `med-local-${Date.now()}`,
+    id: `med-local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
     idosoId,
-    medicamentoNome: dadosRotina.nomeMedicamento || dadosRotina.medicamentoNome || '',
+    medicamentoNome: nomeMed,
+    nomeMedicamento: nomeMed,
     dosagem: dadosRotina.dosagem || '',
     instrucoes: dadosRotina.instrucoes || 'Conforme orientação médica',
-    horario: dadosRotina.horario || '12:00',
+    horario: dadosRotina.horario || '08:00',
     frequencia: dadosRotina.frequencia || '1x ao dia (Diário)',
     diasSemana: dadosRotina.diasSemana || 'TODOS',
+    tipoFormato: dadosRotina.tipoFormato || 'comprimido',
+    observacoes: dadosRotina.observacoes || '',
     ativo: true,
     statusHoje: 'PENDENTE',
     horarioIngestaoHoje: null,
     isProximo: false,
   });
 
+  localMedicinesStore = localMedicinesStore.filter((r) => r.id !== novaRotinaLocal.id);
   localMedicinesStore.push(novaRotinaLocal);
-  // Reordena cronologicamente
-  localMedicinesStore.sort((a, b) => a.horario.localeCompare(b.horario));
+  localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
+
+  await salvarRotinasNoCache(idosoId, localMedicinesStore);
+  agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
   return novaRotinaLocal;
 }
 
 /**
- * Atualiza os dados de uma rotina de medicamento existente (HU26).
+ * Atualiza os dados de uma rotina de medicamento existente (HU-056 / RN-004).
  * Endpoint: PUT /api/v1/rotinas-medicamentos/{rotinaId}
  */
 export async function atualizarRotina(
@@ -366,6 +477,12 @@ export async function atualizarRotina(
   dadosAtualizacao: Partial<RotinaMedicamento> & Record<string, any>,
   token: string | null = null
 ): Promise<RotinaMedicamento> {
+  const nomeMed = (dadosAtualizacao.nomeMedicamento || dadosAtualizacao.medicamentoNome || '').trim();
+  const dadosNormalizados = {
+    ...dadosAtualizacao,
+    ...(nomeMed ? { nomeMedicamento: nomeMed, medicamentoNome: nomeMed } : {}),
+  };
+
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -373,29 +490,43 @@ export async function atualizarRotina(
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(dadosAtualizacao),
-    });
+    const response = await fetch(
+      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(dadosNormalizados),
+      }
+    );
 
     if (response.ok) {
       const atualizada = await response.json();
       atualizarStoreLocal(rotinaId, atualizada);
-      return enriquecerDadosVisuais(atualizada);
+      const enriquecida = enriquecerDadosVisuais(atualizada);
+      if (enriquecida.idosoId) {
+        salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
+      }
+      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+      return enriquecida;
     }
   } catch (error: any) {
-    console.warn('[medicamentoService] Falha de conexão ao atualizar rotina:', error?.message);
+    console.warn('[medicamentoService] Falha ao atualizar rotina no backend:', error?.message);
   }
 
-  // Atualização no store local
-  atualizarStoreLocal(rotinaId, dadosAtualizacao);
+  // Atualização no store local e SQLite
+  atualizarStoreLocal(rotinaId, dadosNormalizados);
   const itemAtualizado = localMedicinesStore.find((r) => r.id === rotinaId);
-  return enriquecerDadosVisuais(itemAtualizado || dadosAtualizacao);
+  const enriquecida = enriquecerDadosVisuais(itemAtualizado || dadosNormalizados);
+
+  if (enriquecida.idosoId) {
+    salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
+  }
+  agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+  return enriquecida;
 }
 
 /**
- * Remove uma rotina de medicamento (HU26).
+ * Remove uma rotina de medicamento (HU-056).
  * Endpoint: DELETE /api/v1/rotinas-medicamentos/{rotinaId}
  */
 export async function removerRotina(
@@ -406,13 +537,18 @@ export async function removerRotina(
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`, {
-      method: 'DELETE',
-      headers,
-    });
+    const response = await fetch(
+      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
+      {
+        method: 'DELETE',
+        headers,
+      }
+    );
 
     if (response.ok || response.status === 204) {
       localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
+      await removerRotinaCache(rotinaId);
+      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
       return true;
     }
   } catch (error: any) {
@@ -420,23 +556,24 @@ export async function removerRotina(
   }
 
   localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
+  await removerRotinaCache(rotinaId);
+  agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
   return true;
 }
 
 /**
  * Auxiliar para atualizar o status e horário de ingestão no cache local
  */
-function atualizarStatusLocal(rotinaId: string, status: string, horarioIngestao: string): void {
+function atualizarStatusLocal(rotinaId: string, status: string, horarioIngestao: string | null): void {
   localMedicinesStore = localMedicinesStore.map((item) => {
     if (item.id === rotinaId) {
-      return {
+      const atualizado = {
         ...item,
         statusHoje: status,
         horarioIngestaoHoje: horarioIngestao,
         isProximo: false,
-        iconeTipo: status === 'TOMADO' ? 'check' : item.iconeTipo,
-        corIcone: status === 'TOMADO' ? '#10B981' : item.corIcone,
       };
+      return enriquecerDadosVisuais(atualizado);
     }
     return item;
   });
@@ -449,15 +586,17 @@ function atualizarStoreLocal(
   rotinaId: string,
   novosDados: Partial<RotinaMedicamento> & Record<string, any>
 ): void {
+  const nomeMed = novosDados.nomeMedicamento || novosDados.medicamentoNome;
   localMedicinesStore = localMedicinesStore.map((item) => {
     if (item.id === rotinaId) {
       return {
         ...item,
         ...novosDados,
-        medicamentoNome: novosDados.nomeMedicamento || novosDados.medicamentoNome || item.medicamentoNome,
+        medicamentoNome: nomeMed || item.medicamentoNome,
+        nomeMedicamento: nomeMed || item.nomeMedicamento,
       };
     }
     return item;
   });
-  localMedicinesStore.sort((a, b) => a.horario.localeCompare(b.horario));
+  localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
 }

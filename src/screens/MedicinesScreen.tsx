@@ -70,45 +70,67 @@ export default function MedicinesScreen({
     carregar();
   }, [idosoId, selectedDayObj]);
 
-  const { tomadosCount, totalCount, percentualConcluido } = useMemo(() => {
-    if (!rotinas || rotinas.length === 0) {
-      return { tomadosCount: 4, totalCount: 5, percentualConcluido: 80 };
-    }
-    const tomados = rotinas.filter((r) => r.statusHoje === 'TOMADO').length;
-    const pct = Math.round((tomados / rotinas.length) * 100);
-    return {
-      tomadosCount: tomados > 1 ? tomados : 4,
-      totalCount: rotinas.length > 4 ? rotinas.length : 5,
-      percentualConcluido: pct > 25 ? pct : 80,
-    };
+  const rotinasUnicas = useMemo(() => {
+    const map = new Map();
+    rotinas.forEach((r) => {
+      if (r && r.id) map.set(r.id, r);
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      (a.horario || '').localeCompare(b.horario || '')
+    );
   }, [rotinas]);
+
+  const { tomadosCount, totalCount, percentualConcluido } = useMemo(() => {
+    if (!rotinasUnicas || rotinasUnicas.length === 0) {
+      return { tomadosCount: 0, totalCount: 0, percentualConcluido: 0 };
+    }
+    const ativos = rotinasUnicas.filter((r) => r.ativo !== false);
+    const tomados = ativos.filter((r) => r.statusHoje === 'TOMADO').length;
+    const total = ativos.length;
+    const pct = total > 0 ? Math.round((tomados / total) * 100) : 0;
+    return {
+      tomadosCount: tomados,
+      totalCount: total,
+      percentualConcluido: pct,
+    };
+  }, [rotinasUnicas]);
 
   const handleConfirmDose = async (rotina: RotinaMedicamento) => {
     try {
       setActionLoadingId(rotina.id);
-      const res = await confirmarIngestao(
-        idosoId,
-        rotina.id,
-        'Familiar confirmou dose no app.'
-      );
-      if (res && res.sucesso) {
+      const isTomado = rotina.statusHoje === 'TOMADO';
+      const novoStatus = isTomado ? 'PENDENTE' : 'TOMADO';
+      const obs = isTomado
+        ? 'Dose desmarcada pelo familiar.'
+        : 'Familiar confirmou dose no app.';
+
+      const res = await confirmarIngestao(idosoId, rotina.id, {
+        status: novoStatus,
+        observacao: obs,
+      });
+
+      if (res && (res.sucesso || res.status === novoStatus)) {
         setRotinas((prev) =>
           prev.map((item) =>
             item.id === rotina.id
               ? {
                   ...item,
-                  statusHoje: 'TOMADO',
-                  horarioIngestaoHoje: new Date().toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }),
+                  statusHoje: novoStatus,
+                  horarioIngestaoHoje:
+                    novoStatus === 'TOMADO'
+                      ? res.horarioIngestaoHoje ||
+                        new Date().toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : null,
                 }
               : item
           )
         );
       }
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Falha ao confirmar dose.');
+      Alert.alert('Erro', err?.message || 'Falha ao alterar status da dose.');
     } finally {
       setActionLoadingId(null);
     }
@@ -155,7 +177,10 @@ export default function MedicinesScreen({
         Alert.alert('Sucesso', 'Medicamento atualizado com sucesso!');
       } else {
         const criado = await criarRotina(idosoId, payload);
-        setRotinas((prev) => [...prev, criado]);
+        setRotinas((prev) => {
+          const filtrados = prev.filter((r) => r.id !== criado.id);
+          return [...filtrados, criado];
+        });
         Alert.alert('Sucesso', 'Medicamento cadastrado na rotina!');
       }
       setModalVisible(false);
@@ -179,10 +204,27 @@ export default function MedicinesScreen({
       Alert.alert('Sucesso', 'Medicamento removido da rotina.');
     } catch (err: any) {
       console.warn('Erro ao remover rotina:', err?.message);
+      Alert.alert('Erro', 'Não foi possível remover o medicamento.');
     } finally {
       setActionLoadingId(null);
       setEditingRoutine(null);
     }
+  };
+
+  const handleDeleteFromCard = (rotina: RotinaMedicamento) => {
+    const nome = rotina.medicamentoNome || rotina.nomeMedicamento || 'este medicamento';
+    Alert.alert(
+      'Excluir Medicamento',
+      `Tem certeza que deseja remover ${nome} da rotina diária?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => handleDeleteRoutine(rotina.id),
+        },
+      ]
+    );
   };
 
   return (
@@ -269,7 +311,7 @@ export default function MedicinesScreen({
               size="large"
               style={{ marginVertical: 30 }}
             />
-          ) : rotinas.length === 0 ? (
+          ) : rotinasUnicas.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={{ marginBottom: 10 }}>
                 <Icon name="medication" size={36} color="#94A3B8" />
@@ -281,14 +323,15 @@ export default function MedicinesScreen({
               </Text>
             </View>
           ) : (
-            rotinas.map((item, index) => (
+            rotinasUnicas.map((item, index) => (
               <MedicineTimelineCard
                 key={item.id}
                 item={item}
-                isLast={index === rotinas.length - 1}
+                isLast={index === rotinasUnicas.length - 1}
                 onConfirm={handleConfirmDose}
                 onEdit={handleOpenEditModal}
                 onTogglePause={handleTogglePause}
+                onDelete={handleDeleteFromCard}
                 loadingAction={actionLoadingId === item.id}
               />
             ))
