@@ -23,6 +23,7 @@ import {
   StatusDispositivo,
   ResultadoPerdaDados,
 } from '../services/deviceStatusService';
+import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
 import { typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
@@ -58,6 +59,7 @@ export default function HomeScreen({
   const [deviceStatus, setDeviceStatus] = useState<(StatusDispositivo & { nomeIdoso: string }) | null>(null);
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
+  const [telemetria, setTelemetria] = useState<EstadoAtual | null>(null);
 
   // Lista dos idosos do familiar (HU-008)
   useEffect(() => {
@@ -75,6 +77,10 @@ export default function HomeScreen({
         setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
         const checagemPerda = verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3);
         setPerdaDados(checagemPerda);
+
+        // Carrega estado atual da telemetria (HU-031)
+        const estadoTelemetria = await buscarEstadoAtual(idosoAlvo);
+        setTelemetria(estadoTelemetria);
       } catch (error: any) {
         console.warn('Erro ao carregar idosos na Home:', error?.message);
       } finally {
@@ -385,55 +391,126 @@ export default function HomeScreen({
           />
         </View>
 
-        {/* CARD 4: MÉTRICAS DE SAÚDE (PASSOS E GLICEMIA) */}
-        <View style={styles.metricsGrid}>
-          {/* Card Passos (#FFF1EC, rx=28) */}
-          <View style={styles.passosCard}>
-            <View style={styles.metricHeaderRow}>
-              <View style={styles.metricIconCircleWhite}>
-                <Icon name="walk" size={18} color="#B51C13" />
-              </View>
-              <View style={styles.metaBadge}>
-                <Text style={styles.metaBadgeText}>Meta 4k</Text>
-              </View>
+        {/* SEÇÃO ESTADO ATUAL CONSOLIDADO DO DIA (HU-031 / RF-025) */}
+        <View style={styles.telemetrySection}>
+          <View style={styles.telemetrySectionHeader}>
+            <View style={styles.telemetrySectionTitleRow}>
+              <Icon name="monitor_heart" size={18} color="#031753" />
+              <Text style={styles.telemetrySectionTitle}>Estado Atual do Dia</Text>
             </View>
-            <Text style={styles.metricLabelPeach}>Passos Hoje</Text>
-            <View style={styles.metricValueRow}>
-              <Text style={styles.metricValueLarge}>3.420</Text>
-              <Text style={styles.metricUnitPeach}>passos</Text>
-            </View>
-            <View style={styles.progressBarTrack}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: '85%', backgroundColor: '#D83729' },
-                ]}
+            <View
+              style={[
+                styles.telemetrySyncBadge,
+                telemetria?.semDadosRecentes && styles.telemetrySyncBadgeAlerta,
+              ]}
+              accessibilityLabel={`Status de atualização: ${telemetria?.textoAtualizacao || 'Carregando'}`}
+            >
+              <Icon
+                name={telemetria?.semDadosRecentes ? 'warning' : 'schedule'}
+                size={12}
+                color={telemetria?.semDadosRecentes ? '#92400E' : '#047857'}
               />
+              <Text
+                style={[
+                  styles.telemetrySyncText,
+                  telemetria?.semDadosRecentes && styles.telemetrySyncTextAlerta,
+                ]}
+              >
+                {telemetria?.textoAtualizacao || 'Carregando...'}
+              </Text>
             </View>
           </View>
 
-          {/* Card Glicemia (#EBF5FF, rx=28) */}
-          <View style={styles.glicemiaCard}>
-            <View style={styles.metricHeaderRow}>
-              <View style={styles.metricIconCircleWhite}>
-                <Icon name="water_drop" size={18} color="#031753" />
+          <View style={styles.metricsGrid}>
+            {/* Card Passos (#FFF1EC, rx=28) */}
+            <View
+              style={styles.passosCard}
+              accessibilityLabel={
+                telemetria?.semDadosRecentes
+                  ? 'Passos hoje: Sem dados recentes'
+                  : `Passos hoje: ${telemetria?.passosHoje ?? 0} passos. Meta de 4 mil passos.`
+              }
+            >
+              <View style={styles.metricHeaderRow}>
+                <View style={styles.metricIconCircleWhite}>
+                  <Icon name="walk" size={18} color="#B51C13" />
+                </View>
+                <View style={styles.metaBadge}>
+                  <Text style={styles.metaBadgeText}>Meta 4k</Text>
+                </View>
               </View>
-              <View style={styles.otimaBadge}>
-                <Text style={styles.otimaBadgeText}>Ótima</Text>
+              <Text style={styles.metricLabelPeach}>Passos Hoje</Text>
+
+              {telemetria?.semDadosRecentes ? (
+                <View style={styles.semDadosWrapper}>
+                  <Text style={styles.semDadosText}>Sem dados recentes</Text>
+                  <Text style={styles.semDadosSubtext}>Aguardando sincronização</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.metricValueRow}>
+                    <Text style={styles.metricValueLarge}>
+                      {(telemetria?.passosHoje ?? 0).toLocaleString('pt-BR')}
+                    </Text>
+                    <Text style={styles.metricUnitPeach}>passos</Text>
+                  </View>
+                  <View style={styles.progressBarTrack}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${Math.min(100, Math.round((telemetria?.progressoPassos ?? 0) * 100))}%`,
+                          backgroundColor: '#D83729',
+                        },
+                      ]}
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+
+            {/* Card Batimentos (#EBF5FF, rx=28) - Substitui Glicemia (HU-031) */}
+            <View
+              style={styles.batimentosCard}
+              accessibilityLabel={
+                telemetria?.semDadosRecentes
+                  ? 'Frequência cardíaca: Sem dados recentes'
+                  : `Frequência cardíaca: ${telemetria?.frequenciaCardiaca ?? 0} batimentos por minuto.`
+              }
+            >
+              <View style={styles.metricHeaderRow}>
+                <View style={styles.metricIconCircleWhite}>
+                  <Icon name="favorite" size={18} color="#031753" />
+                </View>
+                <View style={styles.otimaBadge}>
+                  <Text style={styles.otimaBadgeText}>
+                    {telemetria?.statusCardiovascular || 'Normal'}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.metricLabelSky}>Glicemia</Text>
-            <View style={styles.metricValueRow}>
-              <Text style={styles.metricValueLarge}>98</Text>
-              <Text style={styles.metricUnitSky}>mg/dL</Text>
-            </View>
-            <View style={styles.progressBarTrack}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: '70%', backgroundColor: '#031753' },
-                ]}
-              />
+              <Text style={styles.metricLabelSky}>Último Batimento</Text>
+
+              {telemetria?.semDadosRecentes ? (
+                <View style={styles.semDadosWrapper}>
+                  <Text style={styles.semDadosText}>Sem dados recentes</Text>
+                  <Text style={styles.semDadosSubtext}>Aguardando leitura</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.metricValueRow}>
+                    <Text style={styles.metricValueLarge}>
+                      {telemetria?.frequenciaCardiaca ?? '--'}
+                    </Text>
+                    <Text style={styles.metricUnitSky}>bpm</Text>
+                  </View>
+                  <View style={styles.repousoRow}>
+                    <Icon name="vital_signs" size={12} color="#475569" />
+                    <Text style={styles.repousoText}>
+                      Repouso: {telemetria?.frequenciaCardiacaRepouso ?? 64} bpm
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -929,22 +1006,104 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
+  telemetrySection: {
+    marginBottom: 18,
+  },
+  telemetrySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  telemetrySectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  telemetrySectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#131E3D',
+    fontFamily: typography.fontFamily.heading,
+  },
+  telemetrySyncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  telemetrySyncBadgeAlerta: {
+    backgroundColor: '#FFF8E7',
+    borderColor: '#FDE68A',
+  },
+  telemetrySyncText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#047857',
+    fontFamily: typography.fontFamily.heading,
+  },
+  telemetrySyncTextAlerta: {
+    color: '#92400E',
+  },
   metricsGrid: {
     flexDirection: 'row',
     gap: 14,
-    marginBottom: 18,
   },
   passosCard: {
     flex: 1,
     backgroundColor: '#FFF1EC',
     borderRadius: 28,
     padding: 16,
+    minHeight: 148,
+    justifyContent: 'space-between',
+  },
+  batimentosCard: {
+    flex: 1,
+    backgroundColor: '#EBF5FF',
+    borderRadius: 28,
+    padding: 16,
+    minHeight: 148,
+    justifyContent: 'space-between',
   },
   glicemiaCard: {
     flex: 1,
     backgroundColor: '#EBF5FF',
     borderRadius: 28,
     padding: 16,
+  },
+  semDadosWrapper: {
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  semDadosText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+    fontFamily: typography.fontFamily.heading,
+  },
+  semDadosSubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    fontFamily: typography.fontFamily.body,
+  },
+  repousoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  repousoText: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '600',
+    fontFamily: typography.fontFamily.body,
   },
   metricHeaderRow: {
     flexDirection: 'row',
