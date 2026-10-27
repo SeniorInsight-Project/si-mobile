@@ -13,16 +13,23 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
+import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
 import {
   listarMembrosRede,
   gerarConvite,
+  gerarConviteMedico,
+  recusarConvite,
+  descartarConviteRecusado,
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
   INITIAL_MEMBERS,
+  LIMITE_MEDICOS_RN012,
+  LIMITE_FAMILIARES_RN012,
   ConviteInput,
   ConvitePendente,
+  DadosConviteMedicoInput,
   MembroRede,
 } from '../services/redeProtecaoService';
 import { typography } from '../theme';
@@ -30,21 +37,33 @@ import { typography } from '../theme';
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
 export interface FamilyScreenProps {
-  onNavigate?: (screen: string) => void;
+  onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
   idosoId?: string;
+  isFamiliarAdmin?: boolean | string;
+  papelAcesso?: string;
 }
 
 export default function FamilyScreen({
   onNavigate,
   idosoId = DEFAULT_IDOSO_ID,
+  isFamiliarAdmin = true,
+  papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
+  const isAdmin = Boolean(
+    isFamiliarAdmin === true ||
+    isFamiliarAdmin === 'true' ||
+    String(papelAcesso || '').toUpperCase() === 'ADMIN' ||
+    String(papelAcesso || '').toUpperCase() === 'ADMINISTRADOR'
+  );
   const [filtroAtivo, setFiltroAtivo] = useState<string>('Todos');
   const [membros, setMembros] = useState<MembroRede[]>(INITIAL_MEMBERS);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
   const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);
+  const [modalDoctorInviteVisible, setModalDoctorInviteVisible] = useState<boolean>(false);
   const [conviteParaEditar, setConviteParaEditar] = useState<ConvitePendente | null>(null);
   const [submittingInvite, setSubmittingInvite] = useState<boolean>(false);
+  const [submittingDoctorInvite, setSubmittingDoctorInvite] = useState<boolean>(false);
 
   const carregarDados = async () => {
     try {
@@ -70,20 +89,33 @@ export default function FamilyScreen({
     carregarDados();
   }, [idosoId]);
 
+  // Contagem e filtros de médicos e familiares (RN-012)
+  const medicosVinculados = membros.filter(
+    (m) => (m.papelAcesso === 'MEDICO' || m.tipoMembro === 'MEDICO') && (m.crm || m.grauParentesco === 'Médico' || m.grauParentesco === 'Médico(a)')
+  );
+  const convitesMedicosPendentes = convitesPendentes.filter(
+    (c) => c.status === 'PENDENTE' && (c.papelAcessoSugerido === 'MEDICO' || c.crm || c.tipoMembro === 'MEDICO')
+  );
+  const convitesMedicosRecusados = convitesPendentes.filter(
+    (c) => c.status === 'RECUSADO' && (c.papelAcessoSugerido === 'MEDICO' || c.crm || c.tipoMembro === 'MEDICO')
+  );
+
+  const totalMedicos = medicosVinculados.length + convitesMedicosPendentes.length;
+  const limiteMedicosAtingido = totalMedicos >= LIMITE_MEDICOS_RN012;
+
+  const totalFamiliares = membros.filter(
+    (m) => m.papelAcesso !== 'MEDICO' && m.badgeTipo !== 'especialista'
+  ).length;
+  const limiteAtingido = totalFamiliares >= LIMITE_FAMILIARES_RN012;
+
   const totalMembros = membros.length;
   const totalProximos = membros.filter(
     (m) => (m.categoria || '').toLowerCase() === 'proximos'
   ).length;
   const totalSaude = membros.filter(
     (m) => (m.categoria || '').toLowerCase() === 'saude'
-  ).length;
+  ).length + convitesMedicosPendentes.length + convitesMedicosRecusados.length;
   const totalPendentes = convitesPendentes.length;
-
-  // Limite da RN-012: até 5 familiares
-  const totalFamiliares = membros.filter(
-    (m) => m.papelAcesso !== 'MEDICO' && m.badgeTipo !== 'especialista'
-  ).length;
-  const limiteAtingido = totalFamiliares >= 5;
 
   const membroPlantao =
     membros.find((m) => m.isPlantao || m.badgeTipo === 'plantao') || membros[0];
@@ -125,6 +157,60 @@ export default function FamilyScreen({
   const handleEditarConvite = (convite: ConvitePendente) => {
     setConviteParaEditar(convite);
     setModalInviteVisible(true);
+  };
+
+  const handleConvidarMedico = () => {
+    if (!isAdmin) {
+      Alert.alert(
+        'Acesso Restrito',
+        'Somente o Familiar Administrador tem permissão para convidar o médico do idoso.'
+      );
+      return;
+    }
+    if (limiteMedicosAtingido) {
+      Alert.alert(
+        'Limite de Médicos',
+        'Limite de 2 médicos atingido'
+      );
+      return;
+    }
+    setModalDoctorInviteVisible(true);
+  };
+
+  const handleEnviarConviteMedico = async (dadosMedico: DadosConviteMedicoInput) => {
+    try {
+      setSubmittingDoctorInvite(true);
+      const resultado = await gerarConviteMedico(idosoId, dadosMedico, {
+        papelUsuario: papelAcesso,
+        isAdmin,
+      });
+      await carregarDados();
+      return resultado;
+    } catch (err: any) {
+      Alert.alert('Erro ao Enviar Convite', err?.message || 'Não foi possível enviar o convite para o médico.');
+      throw err;
+    } finally {
+      setSubmittingDoctorInvite(false);
+    }
+  };
+
+  const handleSimularRecusaMedico = async (conviteId: string) => {
+    try {
+      await recusarConvite(idosoId, conviteId);
+      await carregarDados();
+      Alert.alert('Convite Recusado', 'O médico recusou o convite. O status na rede foi atualizado.');
+    } catch (err: any) {
+      Alert.alert('Erro', 'Não foi possível atualizar o status do convite.');
+    }
+  };
+
+  const handleDescartarRecusado = async (conviteId: string) => {
+    try {
+      await descartarConviteRecusado(idosoId, conviteId);
+      await carregarDados();
+    } catch (err: any) {
+      console.warn('Erro ao descartar convite recusado:', err?.message);
+    }
   };
 
   const handleSalvarEdicaoConvite = async (conviteId: string, novosDados: Partial<ConviteInput>) => {
@@ -297,6 +383,49 @@ export default function FamilyScreen({
           </TouchableOpacity>
         </View>
 
+        {/* BANNER DE ACESSO RÁPIDO AO CONVITE DE MÉDICO NA ABA TODOS (HU-016) */}
+        {isAdmin && filtroAtivo === 'Todos' && (
+          <TouchableOpacity
+            style={styles.adminMainDoctorBanner}
+            onPress={handleConvidarMedico}
+            activeOpacity={0.85}
+          >
+            <View style={styles.adminMainDoctorIconCircle}>
+              <Icon name="stethoscope" size={20} color="#031753" />
+            </View>
+            <View style={styles.adminMainDoctorTexts}>
+              <Text style={styles.adminMainDoctorTitle}>
+                Convidar Médico do Idoso (HU-016)
+              </Text>
+              <Text style={styles.adminMainDoctorSub}>
+                {limiteMedicosAtingido
+                  ? 'Limite de 2 médicos atingido (RN-012)'
+                  : `Cadastrar médico de referência via CRM • ${totalMedicos}/2 médicos`}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.adminMainDoctorBtn,
+                limiteMedicosAtingido && styles.adminMainDoctorBtnDisabled,
+              ]}
+            >
+              <Icon
+                name={limiteMedicosAtingido ? 'block' : 'add'}
+                size={16}
+                color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
+              />
+              <Text
+                style={[
+                  styles.adminMainDoctorBtnText,
+                  limiteMedicosAtingido && styles.adminMainDoctorBtnTextDisabled,
+                ]}
+              >
+                {limiteMedicosAtingido ? 'Limite' : 'Convidar'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* LISTA DE CARDS (MEMBROS ATIVOS OU CONVITES PENDENTES) */}
         {filtroAtivo === 'Pendentes' ? (
           <View style={styles.membersList}>
@@ -379,6 +508,215 @@ export default function FamilyScreen({
           </View>
         ) : (
           <View style={styles.membersList}>
+            {/* BANNER DO CORPO CLÍNICO (EXIBIDO NA ABA SAÚDE) */}
+            {filtroAtivo === 'Saude' && (
+              <View style={styles.doctorHeaderCard}>
+                <View style={styles.doctorHeaderTopRow}>
+                  <View style={styles.doctorHeaderIconBadge}>
+                    <Icon name="stethoscope" size={22} color="#031753" />
+                  </View>
+                  <View style={styles.doctorHeaderTexts}>
+                    <Text style={styles.doctorHeaderTitle}>Corpo Clínico & Médicos</Text>
+                    <Text style={styles.doctorHeaderSubtitle}>
+                      Acesso aos relatórios semanais de saúde (RN-012)
+                    </Text>
+                  </View>
+                  <View style={[styles.doctorCountBadge, limiteMedicosAtingido && styles.doctorCountBadgeAlert]}>
+                    <Text style={[styles.doctorCountBadgeText, limiteMedicosAtingido && styles.doctorCountBadgeTextAlert]}>
+                      {totalMedicos}/2 Médicos
+                    </Text>
+                  </View>
+                </View>
+
+                {isAdmin && (
+                  <TouchableOpacity
+                    style={[
+                      styles.doctorInviteTopButton,
+                      limiteMedicosAtingido && styles.doctorInviteTopButtonDisabled,
+                    ]}
+                    onPress={handleConvidarMedico}
+                    activeOpacity={0.85}
+                  >
+                    <Icon
+                      name={limiteMedicosAtingido ? 'block' : 'add'}
+                      size={16}
+                      color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.doctorInviteTopButtonText,
+                        limiteMedicosAtingido && styles.doctorInviteTopButtonTextDisabled,
+                      ]}
+                    >
+                      {limiteMedicosAtingido ? 'Limite de 2 médicos atingido' : '+ Convidar Novo Médico'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* ESTADO 3: CARDS DE MÉDICOS QUE RECUSARAM O CONVITE (HU-017 Cenário 2) */}
+            {(filtroAtivo === 'Saude' || filtroAtivo === 'Todos') &&
+              convitesMedicosRecusados.map((convite) => (
+                <View key={convite.id} style={styles.doctorRejectedCard}>
+                  <View style={styles.doctorRejectedHeader}>
+                    <View style={styles.doctorRejectedAvatar}>
+                      <Icon name="person_off" size={20} color="#DC2626" />
+                    </View>
+                    <View style={styles.doctorRejectedInfo}>
+                      <Text style={styles.doctorRejectedName}>
+                        {convite.nomeMedico || convite.emailDestinatario}
+                      </Text>
+                      <Text style={styles.doctorRejectedSub}>
+                        {convite.crm ? `CRM ${convite.crm}` : 'Médico de Referência'} • Convite Rejeitado
+                      </Text>
+                    </View>
+                    <View style={styles.doctorRejectedBadge}>
+                      <Icon name="cancel" size={11} color="#DC2626" style={{ marginRight: 3 }} />
+                      <Text style={styles.doctorRejectedBadgeText}>Recusado</Text>
+                    </View>
+                  </View>
+
+                  {/* ALERTA OBRIGATÓRIO HU-017: O MÉDICO RECUSOU O CONVITE */}
+                  <View style={styles.doctorRejectedAlertBox}>
+                    <Icon name="error" size={16} color="#B91C1C" style={{ marginRight: 8 }} />
+                    <Text style={styles.doctorRejectedAlertText}>
+                      O médico recusou o convite
+                    </Text>
+                  </View>
+
+                  <Text style={styles.doctorRejectedHelpText}>
+                    O profissional optou por não se vincular à rede de monitoramento deste paciente no momento.
+                  </Text>
+
+                  <View style={styles.doctorRejectedActions}>
+                    {isAdmin && (
+                      <TouchableOpacity
+                        style={styles.doctorRejectedBtnReinvite}
+                        onPress={() => {
+                          if (limiteMedicosAtingido) {
+                            Alert.alert('Limite de Médicos', 'Limite de 2 médicos atingido');
+                            return;
+                          }
+                          setModalDoctorInviteVisible(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Icon name="refresh" size={14} color="#031753" style={{ marginRight: 4 }} />
+                        <Text style={styles.doctorRejectedBtnReinviteText}>Convidar Outro</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.doctorRejectedBtnDismiss}
+                      onPress={() => handleDescartarRecusado(convite.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="delete" size={14} color="#64748B" style={{ marginRight: 4 }} />
+                      <Text style={styles.doctorRejectedBtnDismissText}>Descartar Aviso</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+            {/* ESTADO 2: CARDS DE MÉDICOS PENDENTES NA ABA SAÚDE (HU-016 Cenário 1) */}
+            {filtroAtivo === 'Saude' &&
+              convitesMedicosPendentes.map((convite) => (
+                <View key={convite.id} style={styles.doctorPendingCard}>
+                  <View style={styles.pendingHeaderRow}>
+                    <View style={styles.doctorPendingAvatarWrapper}>
+                      <View style={styles.doctorPendingAvatar}>
+                        <Icon name="stethoscope" size={20} color="#D97706" />
+                      </View>
+                    </View>
+                    <View style={styles.pendingHeaderInfo}>
+                      <Text style={styles.pendingName} numberOfLines={1}>
+                        {convite.nomeMedico || convite.emailDestinatario}
+                      </Text>
+                      <Text style={styles.pendingSubtitle}>
+                        {convite.crm ? `CRM ${convite.crm}` : 'Médico(a)'} • Aguardando Aceite
+                      </Text>
+                    </View>
+                    <View style={styles.pendingStatusBadge}>
+                      <Icon name="hourglass_top" size={11} color="#B45309" style={{ marginRight: 3 }} />
+                      <Text style={styles.pendingStatusText}>Pendente</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.pendingInfoRow}>
+                    <Icon name="schedule" size={13} color="#64748B" style={{ marginRight: 6 }} />
+                    <Text style={styles.pendingInfoText}>
+                      Expira em {convite.validadeHorasRestantes || 72}h • Link de uso único
+                    </Text>
+                  </View>
+
+                  <View style={styles.pendingActionsRow}>
+                    <TouchableOpacity
+                      style={styles.pendingBtnDebug}
+                      onPress={async () => {
+                        try {
+                          const novoVinculado = {
+                            id: `med-${Date.now()}`,
+                            nome: convite.nomeMedico || 'Dr. Convidado',
+                            nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
+                            crm: convite.crm || '123456/SP',
+                            grauParentesco: 'Médico',
+                            papelAcesso: 'MEDICO',
+                            tipoMembro: 'MEDICO',
+                            categoria: 'saude',
+                            badgeTexto: 'Médico Vinculado',
+                            badgeTipo: 'especialista',
+                            online: true,
+                            telefone: '+55 11 98888-7777',
+                            email: convite.emailDestinatario,
+                            acoes: ['call', 'prontuario'],
+                          };
+                          setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
+                          await cancelarConvite(idosoId, convite.id);
+                          await carregarDados();
+                          Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
+                        } catch (e) {
+                          console.warn(e);
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.pendingBtnRejectDebug}
+                      onPress={() => handleSimularRecusaMedico(convite.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.pendingBtnShare}
+                      onPress={() => handleCompartilharConvite(convite)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="share" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnShareText}>Reenviar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.pendingBtnCancel}
+                      onPress={() => handleCancelarConvite(convite)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="delete" size={14} color="#DC2626" style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingBtnCancelText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+            {/* ESTADO 1: CARDS DE MEMBROS E MÉDICOS VINCULADOS */}
             {membrosFiltrados.map((membro) => (
             <View key={membro.id} style={styles.memberCard}>
               {/* Topo do Card: Avatar + Nome + Badge de Papel */}
@@ -592,20 +930,64 @@ export default function FamilyScreen({
         </View>
       </TouchableOpacity>
 
-      {/* BOTÃO PRIMÁRIO: CONVIDAR NOVO MEMBRO (#D83729, height 56, rx=28) */}
-      <TouchableOpacity
-        style={[
-          styles.inviteCtaButton,
-          limiteAtingido && styles.inviteCtaButtonDisabled,
-        ]}
-        onPress={handleConvidar}
-        activeOpacity={0.85}
-      >
-        <Icon name="person_add" size={20} color="#FFFFFF" />
-        <Text style={styles.inviteCtaText}>
-          {limiteAtingido ? 'Limite de 5 Familiares Atingido' : 'Convidar Novo Membro'}
-        </Text>
-      </TouchableOpacity>
+      {/* BOTÕES DE CONVITE INFERIORES (FAMILIAR E MÉDICO HU-016) */}
+      {isAdmin ? (
+        <View style={styles.inviteButtonsRow}>
+          <TouchableOpacity
+            style={[
+              styles.inviteCtaHalfButton,
+              styles.inviteCtaFamily,
+              limiteAtingido && styles.inviteCtaButtonDisabled,
+            ]}
+            onPress={handleConvidar}
+            activeOpacity={0.85}
+          >
+            <Icon name="person_add" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={styles.inviteCtaHalfText}>
+              {limiteAtingido ? 'Limite Família' : '+ Familiar'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.inviteCtaHalfButton,
+              styles.inviteCtaDoctor,
+              limiteMedicosAtingido && styles.doctorInviteCtaButtonDisabled,
+            ]}
+            onPress={handleConvidarMedico}
+            activeOpacity={0.85}
+          >
+            <Icon
+              name="stethoscope"
+              size={18}
+              color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.inviteCtaHalfText,
+                limiteMedicosAtingido && styles.doctorInviteCtaButtonTextDisabled,
+              ]}
+            >
+              {limiteMedicosAtingido ? 'Limite 2 Médicos' : '+ Médico (CRM)'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.inviteCtaButton,
+            limiteAtingido && styles.inviteCtaButtonDisabled,
+          ]}
+          onPress={handleConvidar}
+          activeOpacity={0.85}
+        >
+          <Icon name="person_add" size={20} color="#FFFFFF" />
+          <Text style={styles.inviteCtaText}>
+            {limiteAtingido ? 'Limite de 5 Familiares Atingido' : 'Convidar Novo Membro'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
 
     {/* MODAL DE CONVITE / EDIÇÃO DE NOVO MEMBRO (HU16) */}
@@ -618,7 +1000,31 @@ export default function FamilyScreen({
       }}
       onSendInvite={handleEnviarConvite}
       onEditInvite={handleSalvarEdicaoConvite}
+      onOpenDoctorInvite={() => {
+        setModalInviteVisible(false);
+        handleConvidarMedico();
+      }}
       loading={submittingInvite}
+    />
+
+    {/* MODAL DE CONVITE DO MÉDICO DO IDOSO (HU-016) */}
+    <InviteDoctorModal
+      visible={modalDoctorInviteVisible}
+      limiteAtingido={limiteMedicosAtingido}
+      totalMedicos={totalMedicos}
+      onClose={() => setModalDoctorInviteVisible(false)}
+      onSendDoctorInvite={handleEnviarConviteMedico}
+      onOpenAcceptInvite={(token: string) => {
+        setModalDoctorInviteVisible(false);
+        if (onNavigate) {
+          onNavigate('AcceptInvite', { token });
+        }
+      }}
+      onSimulateReject={(conviteId: string) => {
+        setModalDoctorInviteVisible(false);
+        handleSimularRecusaMedico(conviteId);
+      }}
+      loading={submittingDoctorInvite}
     />
 
       {/* BARRA INFERIOR DE NAVEGAÇÃO */}
@@ -1091,5 +1497,349 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  doctorHeaderCard: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  doctorHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  doctorHeaderIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EBF5FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  doctorHeaderTexts: {
+    flex: 1,
+  },
+  doctorHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#031753',
+  },
+  doctorHeaderSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  doctorCountBadge: {
+    backgroundColor: '#E0F2FE',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  doctorCountBadgeAlert: {
+    backgroundColor: '#FEE2E2',
+  },
+  doctorCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  doctorCountBadgeTextAlert: {
+    color: '#DC2626',
+  },
+  doctorInviteTopButton: {
+    backgroundColor: '#031753',
+    height: 40,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    shadowColor: '#031753',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  doctorInviteTopButtonDisabled: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  doctorInviteTopButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  doctorInviteTopButtonTextDisabled: {
+    color: '#DC2626',
+  },
+  doctorInviteCtaButton: {
+    backgroundColor: '#031753',
+    shadowColor: '#031753',
+  },
+  doctorPendingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  doctorPendingAvatarWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorPendingAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBtnDebug: {
+    flex: 1.1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#059669',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBtnDebugText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  pendingBtnRejectDebug: {
+    flex: 1.1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DC2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorRejectedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  doctorRejectedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  doctorRejectedAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  doctorRejectedInfo: {
+    flex: 1,
+  },
+  doctorRejectedName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  doctorRejectedSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  doctorRejectedBadge: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  doctorRejectedBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  doctorRejectedAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F2',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    marginBottom: 8,
+  },
+  doctorRejectedAlertText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#B91C1C',
+  },
+  doctorRejectedHelpText: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginBottom: 12,
+  },
+  doctorRejectedActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  doctorRejectedBtnReinvite: {
+    flex: 1.2,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EBF5FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorRejectedBtnReinviteText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#031753',
+  },
+  doctorRejectedBtnDismiss: {
+    flex: 1,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorRejectedBtnDismissText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  adminMainDoctorBanner: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    shadowColor: '#0369A1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  adminMainDoctorIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EBF5FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  adminMainDoctorTexts: {
+    flex: 1,
+  },
+  adminMainDoctorTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#031753',
+  },
+  adminMainDoctorSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  adminMainDoctorBtn: {
+    backgroundColor: '#031753',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  adminMainDoctorBtnDisabled: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  adminMainDoctorBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  adminMainDoctorBtnTextDisabled: {
+    color: '#DC2626',
+  },
+  inviteButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  inviteCtaHalfButton: {
+    flex: 1,
+    height: 54,
+    borderRadius: 27,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inviteCtaFamily: {
+    backgroundColor: '#D83729',
+    shadowColor: '#D83729',
+  },
+  inviteCtaDoctor: {
+    backgroundColor: '#031753',
+    shadowColor: '#031753',
+  },
+  inviteCtaHalfText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  doctorInviteCtaButtonDisabled: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  doctorInviteCtaButtonTextDisabled: {
+    color: '#DC2626',
   },
 });

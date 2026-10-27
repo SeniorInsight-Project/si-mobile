@@ -55,6 +55,7 @@ export interface InviteMemberModalProps {
   onClose: () => void;
   onSendInvite: (dados: DadosConviteInput) => Promise<ConviteResponse | void> | void;
   onEditInvite?: (conviteId: string, dados: DadosConviteInput) => Promise<unknown> | void;
+  onOpenDoctorInvite?: () => void;
   conviteParaEditar?: (ConvitePendente & { email?: string; grauParentesco?: string; papelAcesso?: string }) | null;
   loading?: boolean;
 }
@@ -64,6 +65,7 @@ export default function InviteMemberModal({
   onClose,
   onSendInvite,
   onEditInvite,
+  onOpenDoctorInvite,
   conviteParaEditar = null,
   loading = false,
 }: InviteMemberModalProps) {
@@ -306,6 +308,34 @@ export default function InviteMemberModal({
                       );
                     })}
                   </View>
+
+                  {/* ATALHO/AVISO QUANDO SELECIONADO MÉDICO(A) */}
+                  {(grauParentesco === 'Médico(a)' || grauParentesco === 'Médico') && onOpenDoctorInvite && (
+                    <View style={styles.doctorRedirectCard}>
+                      <View style={styles.doctorRedirectHeader}>
+                        <Icon name="stethoscope" size={18} color="#031753" style={{ marginRight: 6 }} />
+                        <Text style={styles.doctorRedirectTitle}>
+                          Convidar Médico do Idoso (CRM)
+                        </Text>
+                      </View>
+                      <Text style={styles.doctorRedirectSub}>
+                        Para que o profissional acerte e visualize relatórios clínicos, utilize o formulário específico com registro CRM (HU-016).
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.doctorRedirectBtn}
+                        onPress={() => {
+                          onClose && onClose();
+                          onOpenDoctorInvite();
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Icon name="stethoscope" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.doctorRedirectBtnText}>
+                          Abrir Formulário do Médico
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
                 {/* SELETOR DE PAPEL / PERMISSÃO */}
@@ -750,5 +780,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#475569',
+  },
+  doctorRedirectCard: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  doctorRedirectHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  doctorRedirectTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#031753',
+  },
+  doctorRedirectSub: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  doctorRedirectBtn: {
+    backgroundColor: '#031753',
+    height: 38,
+    borderRadius: 19,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorRedirectBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

@@ -1,6 +1,12 @@
 import { runtimeConfig } from '../config/runtime';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
+/**
+ * Limites da Rede de Proteção conforme RN-012 do DRS
+ */
+export const LIMITE_MEDICOS_RN012 = 2;
+export const LIMITE_FAMILIARES_RN012 = 5;
+
 export interface HistoricoRecenteMembro {
   data: string;
   descricao: string;
@@ -23,6 +29,10 @@ export interface MembroRede {
   infoIcon?: string;
   infoTexto?: string;
   infoDestaque?: boolean;
+  crm?: string | null;
+  especialidade?: string | null;
+  tipoMembro?: string;
+  statusMedico?: string | null;
   verificado: boolean;
   grauParentesco: string;
   papelAcesso: string;
@@ -50,6 +60,29 @@ export interface DadosConviteInput {
 }
 
 export type ConviteInput = DadosConviteInput;
+
+export interface DadosConviteMedicoInput {
+  nome: string;
+  crm: string;
+  email: string;
+  mensagemPersonalizada?: string;
+}
+
+export interface GerarConviteMedicoOptions {
+  papelUsuario?: string;
+  token?: string | null;
+  ignorarLimite?: boolean;
+  isAdmin?: boolean;
+}
+
+export interface ContagemMedicos {
+  totalMedicos: number;
+  limiteAtingido: boolean;
+  limiteMaximo: number;
+  medicosVinculados: MembroRede[];
+  medicosPendentes: ConvitePendente[];
+  medicosRecusados: ConvitePendente[];
+}
 
 export interface ConviteResponse {
   id: string;
@@ -311,8 +344,14 @@ function normalizarMembroBackend(membro: any): MembroRede {
     ? ['call', 'prontuario']
     : ['call', 'whatsapp'];
 
+  const ehMedico = membro.papelAcesso === 'MEDICO' || Boolean(membro.crm) || membro.tipoMembro === 'MEDICO';
+  const crmFormatado = membro.crm ? `CRM ${membro.crm}` : null;
+  const subtitulo = crmFormatado
+    ? `${membro.grauParentesco || 'Médico(a)'} • ${crmFormatado}`
+    : `${membro.grauParentesco || 'Familiar'} • Conectado à rede`;
+
   return {
-    id: membro.vinculoId || membro.familiarId || `mem-${Math.random()}`,
+    id: membro.vinculoId || membro.familiarId || membro.id || `mem-${Math.random()}`,
     vinculoId: membro.vinculoId,
     usuarioId: membro.usuarioId,
     nome: nomeCompleto,
@@ -320,30 +359,34 @@ function normalizarMembroBackend(membro: any): MembroRede {
     iniciais,
     avatarBg,
     avatarCor,
-    subtitulo: `${membro.grauParentesco || 'Familiar'} • Conectado à rede`,
-    verificado: membro.papelAcesso === 'ADMIN' || membro.papelAcesso === 'MEDICO',
-    grauParentesco: membro.grauParentesco || 'Familiar',
-    papelAcesso: membro.papelAcesso || 'CUIDADOR',
-    papelLabel: `${membro.papelAcesso} (${membro.grauParentesco || 'Familiar'})`,
+    subtitulo,
+    verificado: membro.papelAcesso === 'ADMIN' || ehMedico,
+    grauParentesco: membro.grauParentesco || (ehMedico ? 'Médico(a)' : 'Familiar'),
+    crm: membro.crm || null,
+    especialidade: membro.especialidade || (ehMedico ? 'Médico de Referência' : null),
+    tipoMembro: ehMedico ? 'MEDICO' : 'FAMILIAR',
+    statusMedico: ehMedico ? (membro.statusMedico || 'VINCULADO') : null,
+    papelAcesso: membro.papelAcesso || (ehMedico ? 'MEDICO' : 'CUIDADOR'),
+    papelLabel: membro.papelLabel || (ehMedico ? `Médico(a) (${crmFormatado || 'Especialista'})` : `${membro.papelAcesso} (${membro.grauParentesco || 'Familiar'})`),
     badgeTipo,
-    badgeTexto,
+    badgeTexto: ehMedico && !membro.badgeTexto ? 'Médico Vinculado' : (membro.badgeTexto || badgeTexto),
     badgeBg,
     badgeCor,
     online: true,
     statusConexao: 'ONLINE',
-    statusLabel: 'Conectado à rede de proteção',
-    statusIcone: 'location',
-    infoIcon: isPlantao ? 'notifications' : 'schedule',
-    infoTexto: isPlantao ? 'Recebe alertas SOS críticos' : 'Notificações de cuidado ativas',
+    statusLabel: ehMedico ? (membro.statusLabel || 'Acompanhamento semanal ativo') : 'Conectado à rede de proteção',
+    statusIcone: ehMedico ? 'stethoscope' : 'location',
+    infoIcon: isPlantao ? 'notifications' : ehMedico ? 'description' : 'schedule',
+    infoTexto: isPlantao ? 'Recebe alertas SOS críticos' : ehMedico ? 'Relatório semanal de saúde ativo' : 'Notificações de cuidado ativas',
     infoDestaque: isPlantao,
     telefone: membro.telefone || '+55 11 98765-4321',
     email: membro.email || '',
-    avatarUrl: null,
-    acoesTexto: 'Conectado recentemente',
+    avatarUrl: membro.avatarUrl || null,
+    acoesTexto: ehMedico ? 'Corpo clínico de Dona Maria' : 'Conectado recentemente',
     acoes,
     isPlantao,
-    categoria,
-    historicoRecente: [],
+    categoria: ehMedico ? 'saude' : categoria,
+    historicoRecente: membro.historicoRecente || [],
   };
 }
 
@@ -405,6 +448,26 @@ export const CONVITES_PENDENTES_INICIAIS: ConvitePendente[] = [
     criadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     dataExpiracao: new Date(Date.now() + 46 * 60 * 60 * 1000).toISOString(),
     validadeHorasRestantes: 46,
+  },
+  {
+    id: 'conv-med-rec-01',
+    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
+    nomeIdoso: 'Dona Maria Silva',
+    nomeMedico: 'Dra. Camila Souza',
+    crm: '987654/SP',
+    emailDestinatario: 'camila.souza@geriatria.med.br',
+    papelAcessoSugerido: 'MEDICO',
+    papelLabel: 'Médico(a) Especialista',
+    grauParentescoSugerido: 'Médico(a)',
+    tipoMembro: 'MEDICO',
+    mensagemPersonalizada: 'Convite para acompanhar os relatórios semanais de saúde de Dona Maria.',
+    token: 'tok-camila-recusado',
+    linkConvite: 'seniorinsight://convite/tok-camila-recusado',
+    status: 'RECUSADO',
+    mensagemRecusa: 'O médico recusou o convite',
+    criadoEm: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    recusadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    validadeHorasRestantes: 48,
   },
 ];
 
@@ -711,5 +774,181 @@ export async function editarConvite(
   }
   return null;
 }
+
+/**
+ * Obtém a contagem de médicos ativos/vinculados e convites pendentes conforme RN-012 (HU-016).
+ * Regra RN-012: Limite máximo de até 2 médicos por idoso na rede de proteção.
+ */
+export async function obterContagemMedicos(idosoId: string): Promise<ContagemMedicos> {
+  const membros = await listarMembrosRede(idosoId);
+  const medicosVinculados = membros.filter(
+    (m) => (m.papelAcesso === 'MEDICO' || m.tipoMembro === 'MEDICO') && (m.crm || m.grauParentesco === 'Médico' || m.grauParentesco === 'Médico(a)')
+  );
+
+  const pendentes = await listarConvitesPendentes(idosoId);
+  const medicosPendentes = pendentes.filter(
+    (c) => c.status === 'PENDENTE' && (c.papelAcessoSugerido === 'MEDICO' || c.crm || c.tipoMembro === 'MEDICO')
+  );
+
+  const medicosRecusados = pendentes.filter(
+    (c) => c.status === 'RECUSADO' && (c.papelAcessoSugerido === 'MEDICO' || c.crm || c.tipoMembro === 'MEDICO')
+  );
+
+  const totalMedicos = medicosVinculados.length + medicosPendentes.length;
+
+  return {
+    totalMedicos,
+    limiteAtingido: totalMedicos >= LIMITE_MEDICOS_RN012,
+    limiteMaximo: LIMITE_MEDICOS_RN012,
+    medicosVinculados,
+    medicosPendentes,
+    medicosRecusados,
+  };
+}
+
+/**
+ * Gera convite de uso único para Médico de Referência do Idoso válido por 72h (HU-016 / RF-008).
+ * Apenas o Familiar Administrador pode convidar médicos.
+ * Se o limite de 2 médicos da RN-012 for atingido, bloqueia e retorna erro.
+ */
+export async function gerarConviteMedico(
+  idosoId: string,
+  dadosMedico: DadosConviteMedicoInput,
+  options: GerarConviteMedicoOptions = {}
+): Promise<ConvitePendente> {
+  const { papelUsuario = 'ADMIN', token = null, ignorarLimite = false } = options;
+
+  if (papelUsuario !== 'ADMIN' && !options.isAdmin) {
+    throw new Error('Apenas o Familiar Administrador tem permissão para convidar médicos.');
+  }
+
+  if (!dadosMedico?.nome || !dadosMedico.nome.trim()) {
+    throw new Error('O nome do médico é obrigatório.');
+  }
+
+  if (!dadosMedico?.crm || !dadosMedico.crm.trim()) {
+    throw new Error('O CRM do médico é obrigatório.');
+  }
+
+  const emailDestinatario = (dadosMedico?.email || '').trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailDestinatario || !emailRegex.test(emailDestinatario)) {
+    throw new Error('Por favor, informe um endereço de e-mail válido para o médico.');
+  }
+
+  if (!ignorarLimite) {
+    const contagem = await obterContagemMedicos(idosoId);
+    if (contagem.totalMedicos >= LIMITE_MEDICOS_RN012) {
+      throw new Error('Limite de 2 médicos atingido');
+    }
+  }
+
+  const tokenSimulado = `med-${Math.random().toString(36).substring(2, 12)}`;
+  const dataExpiracao = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
+  const novoConvite: ConvitePendente = {
+    id: `convite-med-${Date.now()}`,
+    idosoId,
+    nomeIdoso: 'Dona Maria Silva',
+    nomeMedico: dadosMedico.nome.trim(),
+    crm: dadosMedico.crm.trim().toUpperCase(),
+    emailDestinatario,
+    token: tokenSimulado,
+    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
+    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
+    papelAcessoSugerido: 'MEDICO',
+    papelLabel: 'Médico(a) de Referência',
+    grauParentescoSugerido: 'Médico(a)',
+    tipoMembro: 'MEDICO',
+    mensagemPersonalizada: dadosMedico.mensagemPersonalizada || 'Convite para acompanhar os relatórios semanais e dados clínicos de Dona Maria no SeniorInsight.',
+    status: 'PENDENTE',
+    dataExpiracao,
+    criadoEm: new Date().toISOString(),
+    validadeHorasRestantes: 72,
+    mensagemSimulacao: `Convite de 72h enviado para o Dr(a). ${dadosMedico.nome.trim()} (CRM ${dadosMedico.crm.trim().toUpperCase()}).`,
+  };
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const authToken = await resolverTokenAutorizacao(token);
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email: emailDestinatario,
+        papelAcesso: 'MEDICO',
+        grauParentesco: 'Médico(a)',
+        nomeMedico: dadosMedico.nome.trim(),
+        crm: dadosMedico.crm.trim().toUpperCase(),
+        mensagemPersonalizada: novoConvite.mensagemPersonalizada,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const formatado: ConvitePendente = {
+        ...novoConvite,
+        ...data,
+        nomeMedico: dadosMedico.nome.trim(),
+        crm: dadosMedico.crm.trim().toUpperCase(),
+        validadeHorasRestantes: 72,
+      };
+      convitesPendentesEmMemoria = [formatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
+      return formatado;
+    }
+  } catch (err: any) {
+    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite médico, ativando fallback local:', err?.message);
+  }
+
+  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
+  return novoConvite;
+}
+
+/**
+ * Marca um convite de médico como recusado (HU-017 Cenário 2).
+ * Exibe a mensagem: "O médico recusou o convite"
+ */
+export async function recusarConvite(
+  idosoId: string,
+  conviteId: string,
+  motivo = 'O médico recusou o convite'
+): Promise<ConvitePendente> {
+  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId || c.token === conviteId);
+  if (idx !== -1) {
+    convitesPendentesEmMemoria[idx] = {
+      ...convitesPendentesEmMemoria[idx],
+      status: 'RECUSADO',
+      mensagemRecusa: motivo,
+      recusadoEm: new Date().toISOString(),
+    };
+    return convitesPendentesEmMemoria[idx];
+  }
+
+  const mockRecusa: ConvitePendente = {
+    id: conviteId || `conv-rec-${Date.now()}`,
+    idosoId,
+    status: 'RECUSADO',
+    mensagemRecusa: motivo,
+    nomeMedico: 'Dr. Convidado',
+    crm: '000000/SP',
+    emailDestinatario: 'medico@recusou.com',
+    papelAcessoSugerido: 'MEDICO',
+    tipoMembro: 'MEDICO',
+    recusadoEm: new Date().toISOString(),
+  };
+  convitesPendentesEmMemoria = [mockRecusa, ...convitesPendentesEmMemoria];
+  return mockRecusa;
+}
+
+/**
+ * Descarta ou remove a notificação de convite recusado da visualização da família.
+ */
+export async function descartarConviteRecusado(idosoId: string, conviteId: string): Promise<boolean> {
+  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
+  return true;
+}
+
 
 

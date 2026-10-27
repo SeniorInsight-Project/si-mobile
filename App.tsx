@@ -93,7 +93,14 @@ export default function App() {
       case 'Medicines':
         return <MedicinesScreen onNavigate={setTelaAtual} />;
       case 'Family':
-        return <FamilyScreen onNavigate={setTelaAtual} idosoId={idosoSelecionadoId} />;
+        return (
+          <FamilyScreen
+            onNavigate={setTelaAtual}
+            idosoId={idosoSelecionadoId}
+            isFamiliarAdmin={papelAcessoAtual === 'ADMIN'}
+            papelAcesso={papelAcessoAtual}
+          />
+        );
       case 'EmergencyContacts':
         return <EmergencyContactsScreen onNavigate={setTelaAtual} />;
       case 'AcceptInvite':
