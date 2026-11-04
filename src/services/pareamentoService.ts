@@ -1,3 +1,9 @@
+import type {
+  CodigoPareamento,
+  GerarCodigoPareamentoRequest,
+  ResgatarCodigoPareamentoRequest,
+  ResultadoPareamentoApi,
+} from '../types/api';
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 import { papeisDoToken, salvarSessao, type RespostaTokens } from './authSession';
 import { marcarAparelhoPareado } from './aparelhoPareadoService';
@@ -187,11 +193,8 @@ export interface DependenciasPareamento {
   timeoutMs?: number;
 }
 
-interface RespostaResgate {
-  perfil: { id: string; nome: string };
-  sessaoAparelhoId: string;
-  tokens: { accessToken: string; refreshToken: string; expiresIn: number };
-}
+/** ResultadoPareamento do contrato identity-v1. */
+type RespostaResgate = ResultadoPareamentoApi;
 
 /** Idoso: troca o código por uma sessão. Salva os tokens e devolve quem é o idoso. */
 export async function parearComCodigo(
@@ -212,7 +215,11 @@ export async function parearComCodigo(
   try {
     resposta = await cliente.post<RespostaResgate>(
       '/api/v1/identity/pareamentos/resgates',
-      { codigo, identificadorAparelho: aparelho.identificador, plataforma: aparelho.plataforma },
+      {
+        codigo,
+        identificadorAparelho: aparelho.identificador,
+        plataforma: aparelho.plataforma,
+      } satisfies ResgatarCodigoPareamentoRequest,
       { autenticado: false, signal }
     );
   } catch (erro) {
@@ -234,11 +241,8 @@ export async function parearComCodigo(
   };
 }
 
-interface RespostaCodigo {
-  codigo: string;
-  qrCodeConteudo: string;
-  expiraEm: string;
-}
+/** CodigoPareamento do contrato identity-v1. */
+type RespostaCodigo = CodigoPareamento;
 
 /** Quanto falta para o código vencer, para a tela do familiar. */
 export interface Validade {
@@ -270,7 +274,7 @@ export async function gerarCodigoPareamento(
   try {
     const r = await cliente.post<RespostaCodigo>(
       '/api/v1/identity/pareamentos/codigos',
-      { nomeIdoso: dados.nomeIdoso, ...(dados.idosoId ? { idosoId: dados.idosoId } : {}) },
+      { nomeIdoso: dados.nomeIdoso, ...(dados.idosoId ? { idosoId: dados.idosoId } : {}) } satisfies GerarCodigoPareamentoRequest,
       { signal }
     );
     // Só exibe o que o servidor gerou e no formato do contrato; resposta incompleta vira erro, nunca um código local.

@@ -30,7 +30,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --env-file=.env.test --import ./scripts/resolver-ts.mjs --test src/services/__tests__/*.test.ts"
+    "test": "node --env-file=.env.test --import ./scripts/resolver-ts.mjs --test src/services/__tests__/*.test.ts",
+    "contratos:sincronizar": "node scripts/sincronizar-contratos.mjs"
   },
   "private": true,
   "devDependencies": {

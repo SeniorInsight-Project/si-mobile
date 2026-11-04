@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import type { ConviteRede, ConviteRedeRequest } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
 /**
@@ -84,18 +85,12 @@ export interface ContagemMedicos {
   medicosRecusados: ConvitePendente[];
 }
 
-export interface ConviteResponse {
-  id: string;
-  idosoId: string;
-  nomeIdoso?: string;
-  emailDestinatario?: string;
+/** ConviteRede do contrato care-v1; o app sempre tem o token (vem da API ou do fallback local). */
+export interface ConviteResponse extends Omit<ConviteRede, 'token' | 'status' | 'emailDestinatario'> {
   token: string;
-  papelAcessoSugerido?: string;
-  grauParentescoSugerido?: string;
+  emailDestinatario?: string;
+  /** StatusConvite do contrato; string porque o fallback local também grava aqui. */
   status: string;
-  dataExpiracao: string;
-  criadoEm: string;
-  mensagemSimulacao?: string;
   [key: string]: any;
 }
 
@@ -529,7 +524,7 @@ export async function gerarConvite(
         papelAcesso: dadosConvite.papelAcesso || 'CUIDADOR',
         grauParentesco: dadosConvite.grauParentesco || 'Familiar',
         mensagemPersonalizada: dadosConvite.mensagemPersonalizada || 'Olá, junte-se à rede de cuidados familiar no SeniorInsight.',
-      }),
+      } satisfies ConviteRedeRequest),
     });
 
     if (!response.ok) {

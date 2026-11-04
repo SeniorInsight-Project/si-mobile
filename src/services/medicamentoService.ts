@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import type { ConfirmarIngestaoRequest } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 import {
   obterRotinasDoCache,
@@ -34,12 +35,8 @@ export interface RotinaMedicamento {
 
 export type RotinaMedicamentoInput = Partial<RotinaMedicamento>;
 
-export interface ConfirmacaoIngestaoInput {
-  dataHoraIngestao?: string;
-  dataReferencia?: string;
-  observacao?: string;
-  status?: string;
-}
+/** ConfirmarIngestaoRequest do contrato care-v1. */
+export type ConfirmacaoIngestaoInput = ConfirmarIngestaoRequest;
 
 export interface ConfirmacaoIngestaoResponse {
   rotinaId: string;
