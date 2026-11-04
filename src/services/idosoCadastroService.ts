@@ -1,4 +1,4 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 import type { Idoso } from './elderlyService';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
 

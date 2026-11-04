@@ -10,14 +10,14 @@ import {
   salvarConsentimentos,
   ConsentimentoError,
   ROTA_CONSENTIMENTOS,
-  Consentimentos,
+  type Consentimentos,
 } from '../consentimentoService';
 import { ApiError } from '../apiClient';
 import {
   classificarSincronizacao,
   montarPassos,
   obterEstadoConexao,
-  EstadoConexao,
+  type EstadoConexao,
 } from '../relogioService';
 
 const com = (parcial: Partial<Consentimentos>): Consentimentos => ({ ...CONSENTIMENTO_PADRAO, ...parcial });

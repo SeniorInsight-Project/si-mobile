@@ -10,7 +10,7 @@ import {
   saudacaoIdoso,
   montarMensagemCompartilhamento,
   PareamentoError,
-  Aparelho,
+  type Aparelho,
 } from '../pareamentoService';
 import { ApiError } from '../apiClient';
 
