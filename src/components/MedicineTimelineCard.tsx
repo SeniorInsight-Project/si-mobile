@@ -65,6 +65,8 @@ export interface MedicineTimelineCardProps {
   onTogglePause?: (item: RotinaMedicamento) => void;
   onDelete?: (item: RotinaMedicamento) => void;
   loadingAction?: boolean;
+  /** Visão do idoso: só confirma a dose; editar, pausar e excluir são do Familiar Administrador (RN-004). */
+  somenteConfirmar?: boolean;
 }
 
 export default function MedicineTimelineCard({
@@ -74,6 +76,7 @@ export default function MedicineTimelineCard({
   onEdit,
   onTogglePause,
   onDelete,
+  somenteConfirmar = false,
   loadingAction = false,
 }: MedicineTimelineCardProps) {
   const isTomado = item.statusHoje === 'TOMADO';
@@ -258,6 +261,7 @@ export default function MedicineTimelineCard({
         )}
 
         {/* Botões de Ação */}
+        {!somenteConfirmar && (
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={styles.editBtn}
@@ -298,6 +302,7 @@ export default function MedicineTimelineCard({
             <Text style={styles.deleteBtnText}>Excluir</Text>
           </TouchableOpacity>
         </View>
+        )}
       </View>
     </View>
   );

@@ -12,6 +12,7 @@ import {
 import Constants from 'expo-constants';
 import Icon from './Icon';
 import { typography, shadows } from '../theme';
+import { usePapel } from '../context/PapelContext';
 
 const TOP_INSET =
   Platform.OS === 'android'
@@ -58,9 +59,12 @@ export default function AppHeader({
     ]);
   };
 
+  const papel = usePapel();
   const handleNotificationPress = () => {
     if (onPressNotification) {
       onPressNotification();
+    } else if (papel === 'FAMILIAR' && onNavigate) {
+      onNavigate('Alerts');
     } else {
       Alert.alert('Notificações', 'Sem novos alertas críticos no momento.');
     }

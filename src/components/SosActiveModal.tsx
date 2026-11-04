@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import Icon from './Icon';
 import { colors, typography, shadows, rounded } from '../theme';
@@ -23,10 +24,12 @@ export interface SosActiveModalProps {
   primeiroContato?: ContatoEmergencia | null;
   onClose: () => void;
   onCancelAlarme?: (idOrKey?: string) => void;
+  /** Familiar que assumiu o resgate (RN-009). Só vem do servidor; sem ele o cartão não aparece. */
+  socorrista?: { nome: string; assumiuEm?: string } | null;
 }
 
 /**
- * Modal / Tela "Chamando sua família" (HU-063, HU-064 e RN-009).
+ * Tela cheia "Pedido de Socorro" / "Chamando sua família" (Figma "Idoso - SOS Acionado"; HU-063, HU-064, RN-009).
  * - Exibe feedback imediato do SOS disparado.
  * - Suporta cancelamento em até 10 segundos ("Foi engano", HU-064).
  * - Após 10 segundos, exibe "Ajuda a caminho".
@@ -39,6 +42,7 @@ export default function SosActiveModal({
   primeiroContato,
   onClose,
   onCancelAlarme,
+  socorrista,
 }: SosActiveModalProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [segundosCancelamento, setSegundosCancelamento] = useState(10);
@@ -118,341 +122,203 @@ export default function SosActiveModal({
     }
   };
 
-  const horaFormatada = alarme?.criadoEm
-    ? new Date(alarme.criadoEm).toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const formatarHora = (valor?: string) =>
+    (valor ? new Date(valor) : new Date()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const isOffline = filaStatus?.status === 'PENDENTE_OFFLINE';
   const isTimeout = filaStatus?.status === 'EXPIRADO';
   const tempoRestante = filaStatus?.tempoRestanteSegundos ?? 60;
+  const primeiroNome = (socorrista?.nome || '').split(' ')[0];
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          {/* Ícone pulsante de sirene / emergência */}
-          <Animated.View
-            style={[
-              styles.iconWrapper,
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          >
-            <View style={[styles.iconCircle, isTimeout && styles.iconCircleTimeout]}>
-              <Icon name="crisis_alert" size={40} color="#FFFFFF" />
-            </View>
-          </Animated.View>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.screen}>
+        <View style={styles.topBar}>
+          <Text style={styles.topEyebrow}>CUIDADO ATIVO</Text>
+          <Text style={styles.topTitle}>Pedido de Socorro</Text>
+        </View>
 
-          {/* Cabeçalho da Tela: "Chamando sua família" (HU-063) */}
-          <Text style={styles.alertTag}>EMERGÊNCIA ACIONADA</Text>
-          <Text style={styles.title}>Chamando sua família</Text>
-          <Text style={styles.subtitle}>
-            Sua localização aproximada e pedido de socorro estão sendo enviados para sua rede de apoio.
-          </Text>
-
-          {/* Card de Status de Envio e Conexão */}
-          <View style={styles.statusBox}>
-            {isTimeout ? (
-              <View style={styles.alertOfflineBox}>
-                <Icon name="warning" size={20} color="#B51C13" />
-                <View style={styles.alertOfflineTextWrapper}>
-                  <Text style={styles.alertOfflineTitle}>Sem conexão após 60 segundos</Text>
-                  <Text style={styles.alertOfflineSub}>
-                    Não conseguimos enviar via internet. Ligue diretamente para o seu cuidador abaixo.
-                  </Text>
-                </View>
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* Cartão principal: botão SOS pulsante e estado do envio */}
+          <View style={styles.heroCard}>
+            <Animated.View style={[styles.sosHalo, { transform: [{ scale: pulseAnim }] }]}>
+              <View style={[styles.sosButton, isTimeout && styles.sosButtonTimeout]}>
+                <Icon name="crisis_alert" size={36} color={colors.white} />
+                <Text style={styles.sosButtonText}>SOS</Text>
+                <Text style={styles.sosButtonSub}>EMERGÊNCIA</Text>
               </View>
-            ) : isOffline ? (
-              <View style={styles.alertWarningBox}>
-                <ActivityIndicator size="small" color="#D97706" />
-                <View style={styles.alertOfflineTextWrapper}>
-                  <Text style={styles.alertWarningTitle}>Tentando conectar pela internet...</Text>
-                  <Text style={styles.alertWarningSub}>
-                    Reenviando automaticamente ({tempoRestante}s restantes)
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.statusRow}>
-                <Icon name="check_circle" size={18} color="#16A34A" />
-                <Text style={styles.statusText}>
-                  Família notificada com alta prioridade
-                </Text>
-              </View>
-            )}
+            </Animated.View>
 
-            <View style={styles.statusRow}>
-              <Icon name="schedule" size={16} color="#64748B" />
-              <Text style={styles.statusText}>
-                Horário do chamado: <Text style={styles.bold}>{horaFormatada}</Text>
-              </Text>
-            </View>
-
-            <View style={styles.statusRow}>
-              <Icon name="person" size={16} color="#64748B" />
-              <Text style={styles.statusText}>
-                1º socorrista: <Text style={styles.bold}>{contatoPadrao.nome}</Text> ({contatoPadrao.parentesco || 'Familiar'})
-              </Text>
-            </View>
+            <Text style={styles.heroTitle}>
+              {isTimeout ? 'Sem conexão' : isOffline ? 'Tentando enviar' : 'Chamando sua família'}
+            </Text>
+            <Text style={styles.heroSub} testID="sos-subtitulo">
+              {isTimeout
+                ? 'Não conseguimos enviar pela internet. Ligue para o seu contato abaixo.'
+                : isOffline
+                  ? `Reenviando sozinho (${tempoRestante} s restantes).`
+                  : 'Seu pedido foi enviado com a sua localização.'}
+            </Text>
           </View>
 
-          {/* Botão de Cancelamento em 10 segundos (HU-064 / RN-009) */}
+          {/* Foi engano: 10 s (RN-009 / HU-064) */}
           {segundosCancelamento > 0 ? (
             <TouchableOpacity
-              style={styles.cancel10Button}
+              style={styles.cancelButton}
               onPress={handleFoiEngano}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              testID="sos-foi-engano"
             >
-              <Icon name="cancel" size={20} color="#FFFFFF" />
-              <Text style={styles.cancel10ButtonText}>
-                Foi engano (Cancelar em {segundosCancelamento}s)
-              </Text>
+              <Icon name="close" size={20} color={colors.coralDark} />
+              <Text style={styles.cancelText}>Foi engano ({segundosCancelamento} s)</Text>
             </TouchableOpacity>
-          ) : (
-            <View style={styles.ajudaCaminhoBanner}>
-              <Icon name="health_and_safety" size={22} color="#031753" />
-              <Text style={styles.ajudaCaminhoText}>Ajuda a caminho</Text>
-              <Text style={styles.ajudaCaminhoSub}>
-                Fique calmo(a), seus familiares já foram avisados!
+          ) : isOffline || isTimeout ? null : (
+            // Só garante "ajuda a caminho" quando o pedido realmente saiu: offline a família ainda não sabe.
+            <View style={styles.helpBanner} testID="sos-ajuda-caminho">
+              <Icon name="health_and_safety" size={22} color={colors.primary} />
+              <View style={styles.flex}>
+                <Text style={styles.helpTitle}>Ajuda a caminho</Text>
+                <Text style={styles.helpSub}>Fique calmo(a), seus familiares já foram avisados.</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Familiar que assumiu o resgate (RN-009) */}
+          {socorrista && (
+            <View style={styles.rescueCard} testID="sos-socorrista">
+              <View style={styles.rescueHeader}>
+                <Icon name="directions_car" size={24} color={colors.successDark} />
+                <View style={styles.flex}>
+                  <Text style={styles.rescueTitle}>{primeiroNome} está a caminho</Text>
+                  <Text style={styles.rescueSub}>
+                    Ele assumiu o chamado às {formatarHora(socorrista.assumiuEm)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.rescueBody}>
+                Fique onde está, se puder. A localização é enviada só enquanto o chamado está aberto.
               </Text>
             </View>
           )}
 
-          {/* Botão para ligar para o 1º contato de emergência (Cenário 3 / Fallback) */}
+          {/* Sem conexão */}
+          {isTimeout && (
+            <View style={styles.offlineBox}>
+              <Icon name="warning" size={20} color={colors.coralDark} />
+              <Text style={styles.offlineText}>Sem conexão após 60 segundos.</Text>
+            </View>
+          )}
+          {isOffline && !isTimeout && (
+            <View style={styles.retryBox}>
+              <ActivityIndicator size="small" color={colors.amber.text} />
+              <Text style={styles.retryText}>Tentando conectar pela internet...</Text>
+            </View>
+          )}
+
+          <View style={styles.infoBox}>
+            <Icon name="call" size={18} color={colors.primary} />
+            <Text style={styles.infoText}>
+              Sem internet? O app tenta por 60 s e depois abre o discador com o seu contato de emergência.
+            </Text>
+          </View>
+
           <TouchableOpacity
             style={[styles.callButton, isTimeout && styles.callButtonUrgent]}
             onPress={handleLigarContato}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            testID="sos-ligar"
           >
-            <Icon name="call" size={20} color="#FFFFFF" />
-            <Text style={styles.callButtonText}>
-              Ligar para {contatoPadrao.nome}
-            </Text>
+            <Icon name="call" size={22} color={colors.white} />
+            <Text style={styles.callText}>Ligar para {contatoPadrao.nome}</Text>
           </TouchableOpacity>
 
-          {/* Minimizar modal mantendo o socorro ativo */}
-          <TouchableOpacity
-            style={styles.minimizeButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.minimizeText}>Fechar e Manter Chamado Ativo</Text>
+          <TouchableOpacity style={styles.minimize} onPress={onClose} activeOpacity={0.7} accessibilityRole="button" testID="sos-minimizar">
+            <Text style={styles.minimizeText}>Fechar e manter o chamado ativo</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(3, 23, 83, 0.78)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  flex: { flex: 1 },
+  screen: { flex: 1, backgroundColor: colors.canvasBase },
+  topBar: {
+    paddingTop: 44,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  modalCard: {
-    width: '100%',
-    maxWidth: 390,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 24,
+  topEyebrow: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, letterSpacing: 0.6, fontFamily: typography.fontFamily.heading },
+  topTitle: { fontSize: 20, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  content: { padding: 16, paddingBottom: 32, gap: 16 },
+  heroCard: {
     alignItems: 'center',
+    backgroundColor: colors.peachBg,
+    borderWidth: 1,
+    borderColor: colors.peachBorder,
+    borderRadius: 28,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  sosHalo: { width: 168, height: 168, borderRadius: 84, backgroundColor: colors.peachBorder, alignItems: 'center', justifyContent: 'center' },
+  sosButton: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: colors.coralDark,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadows.tier3,
   },
-  iconWrapper: {
-    marginBottom: 14,
-  },
-  iconCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#B51C13',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.tier2,
-    borderWidth: 4,
-    borderColor: '#FEE2E2',
-  },
-  iconCircleTimeout: {
-    backgroundColor: '#DC2626',
-  },
-  alertTag: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#B51C13',
-    letterSpacing: 1.2,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  title: {
-    ...typography.headlineMedium,
-    color: '#031753',
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 6,
-    fontSize: 24,
-  },
-  subtitle: {
-    ...typography.bodyMedium,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-    paddingHorizontal: 10,
-  },
-  statusBox: {
-    width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 16,
+  sosButtonTimeout: { backgroundColor: colors.errorBright },
+  sosButtonText: { fontSize: 32, fontWeight: '800', color: colors.white, fontFamily: typography.fontFamily.heading },
+  sosButtonSub: { fontSize: 14, fontWeight: '600', color: colors.white, fontFamily: typography.fontFamily.body },
+  heroTitle: { marginTop: 8, fontSize: 28, fontWeight: '800', color: colors.coralDark, textAlign: 'center', fontFamily: typography.fontFamily.heading },
+  heroSub: { fontSize: 18, lineHeight: 26, fontWeight: '600', color: colors.onSurface, textAlign: 'center', fontFamily: typography.fontFamily.body },
+  cancelButton: {
+    minHeight: 64,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  statusRow: {
+    borderColor: colors.peachBorder,
+    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
-  statusText: {
-    ...typography.bodySmall,
-    color: '#334155',
-    flex: 1,
-  },
-  bold: {
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  alertOfflineBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FEF2F2',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-  },
-  alertOfflineTextWrapper: {
-    flex: 1,
-  },
-  alertOfflineTitle: {
-    ...typography.labelMedium,
-    color: '#B51C13',
-    fontWeight: '800',
-  },
-  alertOfflineSub: {
-    ...typography.bodySmall,
-    color: '#7F1D1D',
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  alertWarningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FFFBEB',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  alertWarningTitle: {
-    ...typography.labelMedium,
-    color: '#B45309',
-    fontWeight: '800',
-  },
-  alertWarningSub: {
-    ...typography.bodySmall,
-    color: '#92400E',
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  cancel10Button: {
-    width: '100%',
-    flexDirection: 'row',
-    backgroundColor: '#B51C13',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-    ...shadows.tier2,
-  },
-  cancel10ButtonText: {
-    ...typography.titleMedium,
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  ajudaCaminhoBanner: {
-    width: '100%',
-    backgroundColor: '#EBF5FF',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  ajudaCaminhoText: {
-    ...typography.titleMedium,
-    color: '#031753',
-    fontWeight: '900',
-    fontSize: 18,
-    marginTop: 2,
-  },
-  ajudaCaminhoSub: {
-    ...typography.bodySmall,
-    color: '#1E40AF',
-    textAlign: 'center',
-    marginTop: 2,
-    fontWeight: '600',
-  },
+  cancelText: { fontSize: 20, fontWeight: '800', color: colors.coralDark, fontFamily: typography.fontFamily.heading },
+  helpBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 20, backgroundColor: colors.skyBg },
+  helpTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  helpSub: { fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  rescueCard: { padding: 20, borderRadius: 24, backgroundColor: colors.mintBg, gap: 12 },
+  rescueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rescueTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  rescueSub: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  rescueBody: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
+  offlineBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
+  offlineText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  retryBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg },
+  retryText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  infoBox: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
   callButton: {
-    width: '100%',
+    minHeight: 64,
+    borderRadius: 9999,
+    backgroundColor: colors.primary,
     flexDirection: 'row',
-    backgroundColor: '#031753',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    justifyContent: 'center',
+    gap: 10,
   },
-  callButtonUrgent: {
-    backgroundColor: '#B51C13',
-  },
-  callButtonText: {
-    ...typography.titleMedium,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  minimizeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginTop: 4,
-  },
-  minimizeText: {
-    ...typography.labelMedium,
-    color: '#64748B',
-    fontWeight: '600',
-  },
+  callButtonUrgent: { backgroundColor: colors.coralDark },
+  callText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  minimize: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  minimizeText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
 });

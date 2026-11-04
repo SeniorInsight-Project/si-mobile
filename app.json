@@ -39,6 +39,13 @@
         {
           "locationAlwaysAndWhenInUsePermission": "O SeniorInsight utiliza sua localização em tempo real para monitorar o perímetro seguro e enviar socorro imediato em caso de SOS."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O SeniorInsight usa a câmera só para ler o QR Code que seu familiar mostra. Nenhuma foto é guardada.",
+          "recordAudioAndroid": false
+        }
       ]
     ]
   }
