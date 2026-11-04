@@ -34,6 +34,7 @@ yarn-error.*
 .env
 .env.*
 !.env.example
+!.env.test
 
 # Sistema Operacional e IDEs
 .DS_Store

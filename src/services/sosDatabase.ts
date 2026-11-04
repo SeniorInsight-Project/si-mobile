@@ -7,3 +7,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 export async function getSosDatabase(): Promise<SQLiteDatabase | null> {
   return null;
 }
+
+export async function limparFilaSos(): Promise<void> {
+  // Sem SQLite fora do nativo: nada a limpar.
+}

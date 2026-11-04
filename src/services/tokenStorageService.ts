@@ -11,6 +11,8 @@
 export const TOKEN_STORAGE_KEYS = {
   ACCESS_TOKEN: 'si_auth_access_token',
   REFRESH_TOKEN: 'si_auth_refresh_token',
+  /** Instante (epoch em ms) em que o access token expira. */
+  ACCESS_TOKEN_EXPIRES_AT: 'si_auth_access_token_expires_at',
 };
 
 export interface SecureStoreAdapter {
@@ -130,6 +132,39 @@ export async function obterRefreshToken(): Promise<string | null> {
 }
 
 /**
+ * Guarda o instante (epoch em ms) em que o access token expira.
+ * @returns {Promise<boolean>}
+ */
+export async function salvarExpiracaoAccessToken(expiraEmMs: number): Promise<boolean> {
+  const store = await getSecureStore();
+  if (!store || !(await isStoreAvailable(store)) || !Number.isFinite(expiraEmMs)) {
+    return false;
+  }
+  await store.setItemAsync(TOKEN_STORAGE_KEYS.ACCESS_TOKEN_EXPIRES_AT, String(Math.floor(expiraEmMs)));
+  return true;
+}
+
+/**
+ * Obtém o instante (epoch em ms) em que o access token expira, ou null se desconhecido.
+ * @returns {Promise<number|null>}
+ */
+export async function obterExpiracaoAccessToken(): Promise<number | null> {
+  const store = await getSecureStore();
+  if (!store || !(await isStoreAvailable(store))) {
+    return null;
+  }
+
+  try {
+    const valor = await store.getItemAsync(TOKEN_STORAGE_KEYS.ACCESS_TOKEN_EXPIRES_AT);
+    const numero = valor ? Number(valor) : NaN;
+    return Number.isFinite(numero) ? numero : null;
+  } catch (err: any) {
+    console.warn('[tokenStorageService] Falha ao ler a expiração do SecureStore:', err?.message);
+    return null;
+  }
+}
+
+/**
  * Obtém o par { accessToken, refreshToken } do `expo-secure-store`.
  * @returns {Promise<{ accessToken: string|null, refreshToken: string|null }>}
  */
@@ -159,6 +194,7 @@ export async function limparTokens(): Promise<boolean> {
     await Promise.all([
       store.deleteItemAsync(TOKEN_STORAGE_KEYS.ACCESS_TOKEN),
       store.deleteItemAsync(TOKEN_STORAGE_KEYS.REFRESH_TOKEN),
+      store.deleteItemAsync(TOKEN_STORAGE_KEYS.ACCESS_TOKEN_EXPIRES_AT),
     ]);
     return true;
   } catch (err: any) {

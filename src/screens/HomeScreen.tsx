@@ -48,11 +48,13 @@ export interface HomeScreenProps {
   onSelectElderly?: (idosoId: string) => void;
   familiarId?: string;
   plano?: string;
+  onLogout?: () => void;
 }
 
 export default function HomeScreen({
   onNavigate,
   onSelectElderly,
+  onLogout,
   familiarId = 'familiar-dev',
   plano = 'PREMIUM',
 }: HomeScreenProps) {
@@ -187,6 +189,7 @@ export default function HomeScreen({
         title="Início Monitoramento"
         subtitle="CUIDADO ATIVO"
         onNavigate={onNavigate}
+        onLogout={onLogout}
       />
 
       <ScrollView
