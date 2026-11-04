@@ -93,6 +93,8 @@ const provedorPadrao: ProvedorOidc = {
 const limpadoresPadrao: LimpadorLocal[] = [
   async () => (await import('./sosQueueService')).limparFilaSosLocal(),
   async () => (await import('./medicamentoDatabase')).limparCacheMedicamentos(),
+  // Sem sessão o aparelho do idoso deixa de estar pareado e pede um código novo.
+  async () => (await import('./aparelhoPareadoService')).esquecerAparelhoPareado(),
 ];
 
 let provedor: ProvedorOidc = provedorPadrao;

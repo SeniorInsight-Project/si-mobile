@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { Aparelho, PlataformaAparelho } from './pareamentoService';
+import { plataformaDoContrato, type Aparelho, type PlataformaAparelho } from './pareamentoService';
 
 /**
  * Identificação deste aparelho para o pareamento (campo `identificadorAparelho` do contrato).
@@ -10,7 +10,7 @@ const CHAVE = 'si_aparelho_id';
 let emMemoria: string | null = null;
 
 function plataformaAtual(): PlataformaAparelho {
-  return Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
+  return plataformaDoContrato(Platform.OS);
 }
 
 export async function obterAparelho(): Promise<Aparelho> {

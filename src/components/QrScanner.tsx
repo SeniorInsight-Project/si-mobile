@@ -22,7 +22,7 @@ export default function QrScanner({ onScanned, pausado = false, onUsarCodigo }: 
 
   if (!permissao) {
     return (
-      <View style={styles.box}>
+      <View style={styles.box} accessibilityLiveRegion="polite">
         <Text style={styles.text}>Preparando a câmera...</Text>
       </View>
     );
@@ -43,12 +43,19 @@ export default function QrScanner({ onScanned, pausado = false, onUsarCodigo }: 
             style={styles.button}
             onPress={pedirPermissao}
             accessibilityRole="button"
+            accessibilityLabel="Permitir o uso da câmera para ler o QR Code"
             testID="qr-pedir-permissao"
           >
             <Text style={styles.buttonText}>Permitir a câmera</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.link} onPress={onUsarCodigo} accessibilityRole="button">
+        <TouchableOpacity
+          style={styles.link}
+          onPress={onUsarCodigo}
+          accessibilityRole="button"
+          accessibilityLabel="Digitar o código em vez de usar a câmera"
+          testID="qr-sem-camera-digitar"
+        >
           <Text style={styles.linkText}>Digitar o código</Text>
         </TouchableOpacity>
       </View>
@@ -60,6 +67,7 @@ export default function QrScanner({ onScanned, pausado = false, onUsarCodigo }: 
       <CameraView
         style={StyleSheet.absoluteFill}
         facing="back"
+        accessibilityLabel="Câmera procurando o QR Code"
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={
           pausado
@@ -89,10 +97,10 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 10,
   },
-  title: { fontSize: 18, fontWeight: '700', color: colors.white, textAlign: 'center', fontFamily: typography.fontFamily.heading },
-  text: { fontSize: 14, lineHeight: 20, color: colors.outlineVariant, textAlign: 'center', fontFamily: typography.fontFamily.body },
-  button: { minHeight: 48, paddingHorizontal: 20, borderRadius: 9999, backgroundColor: colors.successDark, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  title: { fontSize: 20, fontWeight: '700', color: colors.white, textAlign: 'center', fontFamily: typography.fontFamily.heading },
+  text: { fontSize: 18, lineHeight: 24, color: colors.outlineVariant, textAlign: 'center', fontFamily: typography.fontFamily.body },
+  button: { minHeight: 56, paddingHorizontal: 20, borderRadius: 9999, backgroundColor: colors.successDark, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
   link: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  linkText: { fontSize: 16, fontWeight: '700', color: colors.white, textDecorationLine: 'underline', fontFamily: typography.fontFamily.heading },
+  linkText: { fontSize: 18, fontWeight: '700', color: colors.white, textDecorationLine: 'underline', fontFamily: typography.fontFamily.heading },
 });

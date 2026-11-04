@@ -94,6 +94,9 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
             style={styles.ctaButton}
             onPress={() => onNavigate('EntryApp')}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Começar agora: escolher se sou familiar ou idoso"
+            testID="onboarding-comecar"
           >
             <Text style={styles.ctaButtonText}>Começar Agora</Text>
             <Icon name="arrow_forward" size={20} color="#FFFFFF" />
@@ -101,7 +104,13 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
 
           <View style={styles.loginRow}>
             <Text style={styles.loginPrompt}>Já tem uma conta? </Text>
-            <TouchableOpacity onPress={() => onNavigate('Login')}>
+            <TouchableOpacity
+              onPress={() => onNavigate('Login')}
+              style={styles.loginLinkButton}
+              accessibilityRole="button"
+              accessibilityLabel="Já tenho conta: entrar"
+              testID="onboarding-entrar"
+            >
               <Text style={styles.loginLink}>Entrar</Text>
             </TouchableOpacity>
           </View>
@@ -294,13 +303,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   loginPrompt: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '500',
     color: '#64748B',
     fontFamily: typography.fontFamily.body,
   },
+  loginLinkButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
   loginLink: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '700',
     color: '#031753',
     fontFamily: typography.fontFamily.heading,
