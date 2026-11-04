@@ -1,3 +1,4 @@
+import type { AlarmeEmergenciaApi, StatusAlarme } from '../types/api';
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
@@ -8,7 +9,7 @@ import { apiClient, ApiError, type ApiClient } from './apiClient';
  * chega depois vê que o chamado já está em atendimento. O contrato não diz QUEM assumiu nem tem "Também vou";
  * ambos dependem de campos/rotas novas (ver o PR).
  */
-export type StatusSos = 'DISPARADO' | 'EM_ATENDIMENTO' | 'RESOLVIDO' | 'CANCELADO';
+export type StatusSos = StatusAlarme;
 export type DesfechoSos = 'ATENDIDO' | 'SOCORRO_MEDICO' | 'FOI_ENGANO';
 export type ResultadoAssumir = 'ASSUMIDO' | 'JA_ASSUMIDO' | 'ENCERRADO';
 
@@ -18,17 +19,8 @@ export const ROTULOS_DESFECHO: Record<DesfechoSos, string> = {
   FOI_ENGANO: 'Foi engano',
 };
 
-export interface AlarmeApi {
-  id: string;
-  idosoId: string;
-  nomeIdoso?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  status: StatusSos;
-  observacao?: string | null;
-  criadoEm: string;
-  atualizadoEm?: string | null;
-}
+/** AlarmeEmergencia do contrato care-v1. */
+export type AlarmeApi = AlarmeEmergenciaApi;
 
 export interface LocalizacaoSos {
   latitude: number;

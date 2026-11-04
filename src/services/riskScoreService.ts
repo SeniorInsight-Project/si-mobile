@@ -251,7 +251,8 @@ export async function buscarScoreBemEstar(
   }
 
   try {
-    const url = `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/score-risco/recente`;
+    // O Score é do insight-service: o gateway roteia /api/v1/insight/** para ele (/v1/...).
+    const url = `${runtimeConfig.apiBaseUrl}/api/v1/insight/idosos/${idosoId}/score-risco/recente`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) headers.Authorization = `Bearer ${authToken}`;

@@ -1,4 +1,6 @@
 import { runtimeConfig } from '../config/runtime';
+import type { IdosoRequest } from '../types/api';
+import { dataBrParaIso } from './cadastroIdosoValidacao';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface Idoso {
@@ -36,8 +38,20 @@ function normalizarIdoso(idoso: any): Idoso {
     idosoId: idoso.idosoId || idoso.id || `idoso-local-${Date.now()}`,
     nome: idoso.nome || idoso.nomeCompleto || '',
     dataNascimento: idoso.dataNascimento || '',
-    sexo: idoso.sexo || '',
+    sexo: idoso.sexo || idoso.genero || '',
     celular: idoso.celular || idoso.telefone || '',
+  };
+}
+
+/**
+ * Corpo do POST/PUT /api/v1/idosos pelo contrato care-v1 (IdosoRequest): nomeCompleto, data ISO e genero.
+ * O celular não tem campo no contrato e fica só no aparelho.
+ */
+function paraIdosoRequest(dados: CadastroIdosoInput): IdosoRequest {
+  return {
+    nomeCompleto: dados.nome.trim(),
+    dataNascimento: dataBrParaIso(dados.dataNascimento) ?? dados.dataNascimento,
+    genero: dados.sexo || null,
   };
 }
 
@@ -77,12 +91,7 @@ export async function salvarCadastroIdoso(
   dadosIdoso: CadastroIdosoInput,
   token: string | null = null
 ): Promise<Idoso> {
-  const payload = {
-    nome: dadosIdoso.nome,
-    dataNascimento: dadosIdoso.dataNascimento,
-    sexo: dadosIdoso.sexo,
-    celular: dadosIdoso.celular,
-  };
+  const payload = paraIdosoRequest(dadosIdoso);
 
   try {
     const headers: Record<string, string> = {
@@ -131,12 +140,7 @@ export async function atualizarDadosIdoso(
   dadosIdoso: CadastroIdosoInput,
   token: string | null = null
 ): Promise<Idoso> {
-  const payload = {
-    nome: dadosIdoso.nome,
-    dataNascimento: dadosIdoso.dataNascimento,
-    sexo: dadosIdoso.sexo,
-    celular: dadosIdoso.celular,
-  };
+  const payload = paraIdosoRequest(dadosIdoso);
 
   try {
     const headers: Record<string, string> = {
