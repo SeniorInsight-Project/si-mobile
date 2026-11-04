@@ -264,6 +264,7 @@ export interface ClaimsToken {
   exp?: number;
   name?: string;
   email?: string;
+  email_verified?: boolean;
   preferred_username?: string;
   realm_access?: { roles?: string[] };
   [claim: string]: unknown;
@@ -289,6 +290,31 @@ export function decodificarJwt(token: string | null | undefined): ClaimsToken | 
 export function papeisDoToken(token: string | null | undefined): string[] {
   const roles = decodificarJwt(token)?.realm_access?.roles;
   return Array.isArray(roles) ? roles.filter((r): r is string => typeof r === 'string') : [];
+}
+
+/** Login comum ou cadastro (prompt=create) no Keycloak. */
+export type FluxoAutenticacao = 'login' | 'criar-conta';
+
+/**
+ * Como terminou uma ida ao Keycloak:
+ * - sessao: tokens salvos, e-mail confirmado;
+ * - confirmar-email: a conta existe, mas o e-mail ainda não foi confirmado (HU-001);
+ * - cancelado: o usuário fechou o login sem entrar;
+ * - erro: o Keycloak ou a rede devolveram erro.
+ */
+export type DesfechoAutenticacao = 'sessao' | 'confirmar-email' | 'cancelado' | 'erro';
+
+/** true quando algum dos tokens traz email_verified = false. Sem a claim, não bloqueia. */
+export function emailNaoVerificado(...tokens: Array<string | null | undefined>): boolean {
+  return tokens.some((token) => decodificarJwt(token)?.email_verified === false);
+}
+
+/**
+ * Navegador fechado sem devolver código. Com verifyEmail ligado no realm, quem acabou de se
+ * cadastrar fica na ação de verificação do Keycloak e só volta ao app fechando o navegador.
+ */
+export function desfechoSemCodigo(fluxo: FluxoAutenticacao): DesfechoAutenticacao {
+  return fluxo === 'criar-conta' ? 'confirmar-email' : 'cancelado';
 }
 
 export type TelaInicial = 'ElderlyMode' | 'Home' | 'AcessoRestrito';

@@ -31,6 +31,7 @@ O app só fala com o `si-api-gateway`; não há URL padrão. Se alguma variável
 
 O app não tem formulário de login próprio. "Entrar" abre o login do realm `seniorinsight` no navegador do sistema (client público `si-mobile`, PKCE `S256`, scopes `openid profile email offline_access`); e-mail, senha, "Esqueceu a senha?" e MFA são telas do tema do Keycloak.
 
+- "Criar conta" (Entrada no App, Login e Aceitar Convite) abre o mesmo fluxo com `prompt=create`, que cai direto no cadastro do Keycloak. Com `verifyEmail` ligado no realm, quem acabou de se cadastrar fica na tela de verificação do Keycloak; ao fechar o navegador (ou se o token vier com `email_verified = false`) o app mostra "Confirme seu e-mail para continuar". "Já confirmei" refaz o login e, com o e-mail confirmado, o app segue o fluxo normal (`GET /api/v1/identity/me`, que cria o perfil no primeiro acesso, e a tela do papel).
 - Tokens e expiração ficam só no `expo-secure-store`. O access token é renovado um minuto antes de vencer e, uma vez, quando o gateway responde 401. Se o refresh token for recusado, a sessão é limpa e o app volta ao Login.
 - Ao abrir, com sessão salva, o app chama `GET /api/v1/identity/me` e abre a tela do papel do token: `idoso` → modo idoso, `familiar` → início; outros papéis veem um aviso de que o app é só para família e idoso.
 - Sair revoga o refresh token no Keycloak e apaga o secure store e os bancos SQLite locais (fila do SOS e cache de medicamentos).

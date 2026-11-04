@@ -13,8 +13,8 @@ export type PapelApp = 'FAMILIAR' | 'IDOSO';
 export const TELAS_PUBLICAS: readonly string[] = [
   'Onboarding',
   'EntryApp',
-  'Register',
   'Login',
+  'ConfirmarEmail',
   'AcessoRestrito',
   'AcceptInvite',
   'ElderlyQrScan',

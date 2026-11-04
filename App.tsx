@@ -3,8 +3,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import ConfirmarEmailScreen from './src/screens/ConfirmarEmailScreen';
 import ElderlyModeScreen from './src/screens/ElderlyModeScreen';
 import ElderlyProfileScreen from './src/screens/ElderlyProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -35,6 +35,7 @@ import {
   papeisDoToken,
   sair,
   telaInicialPorPapeis,
+  type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
 
@@ -155,6 +156,16 @@ export default function App() {
       .catch((err) => console.warn('[App] Falha ao carregar a sessão após o login:', err?.message));
   }, [entrarComSessaoSalva]);
 
+  // Volta do Keycloak (login ou cadastro). Com sessão, o GET /identity/me cria o perfil no
+  // primeiro acesso (user.created) e leva à tela do papel; sem e-mail confirmado, pede a confirmação.
+  const handleDesfechoAutenticacao = useCallback(
+    (desfecho: DesfechoAutenticacao) => {
+      if (desfecho === 'sessao') handleLoginConcluido();
+      else if (desfecho === 'confirmar-email') setTelaAtual('ConfirmarEmail');
+    },
+    [handleLoginConcluido],
+  );
+
   useEffect(() => {
     const abrirConvite = (token: string) => {
       conviteRef.current = token;
@@ -204,12 +215,12 @@ export default function App() {
     switch (telaEfetiva) {
       case 'Onboarding':
         return <OnboardingScreen onNavigate={navegar} />;
-      case 'Register':
-        return <RegisterScreen onNavigate={navegar} />;
       case 'Login':
-        return <LoginScreen onNavigate={navegar} onLoginConcluido={handleLoginConcluido} />;
+        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} />;
+      case 'ConfirmarEmail':
+        return <ConfirmarEmailScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'EntryApp':
-        return <EntryAppScreen onNavigate={navegar} />;
+        return <EntryAppScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'ElderlyQrScan':
         return <ElderlyQrScanScreen onNavigate={navegar} onPareado={handlePareado} />;
       case 'ElderlyEnterCode':
@@ -307,6 +318,7 @@ export default function App() {
             inviteToken={inviteToken || 'token-exemplo'}
             isAuthenticated={Boolean(usuarioLogado)}
             currentUser={usuarioLogado}
+            onDesfecho={handleDesfechoAutenticacao}
           />
         );
       default:
