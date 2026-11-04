@@ -10,6 +10,8 @@ const TOP_SAFE_INSET =
       ? Math.max(Constants.statusBarHeight || 44, 44)
       : 0;
 
+// RN 0.88 (SDK 58): o Android é sempre edge-to-edge, a barra de status fica translúcida
+// sobre o fundo da tela; backgroundColor/translucent do StatusBar não existem mais.
 export interface ScreenWrapperProps {
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -24,11 +26,7 @@ export default function ScreenWrapper({
   if (!hasHeader) {
     return (
       <View style={[styles.containerNoHeader, style]}>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={colors.canvasBase}
-          translucent={true}
-        />
+        <StatusBar barStyle="dark-content" />
         {children}
       </View>
     );
@@ -36,11 +34,7 @@ export default function ScreenWrapper({
 
   return (
     <View style={[styles.containerWithHeader, style]}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#FFFFFF"
-        translucent={true}
-      />
+      <StatusBar barStyle="dark-content" />
       {children}
     </View>
   );
