@@ -5,21 +5,31 @@ import {
   View,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
-import InputField from '../components/InputField';
-import SocialButton from '../components/SocialButton';
 import Icon from '../components/Icon';
 import { typography } from '../theme';
+import { abrirRedefinicaoSenha, useLoginKeycloak } from '../services/authService';
 
 export interface LoginScreenProps {
   onNavigate: (screen: string) => void;
+  /** Chamado depois que os tokens do Keycloak foram salvos. */
+  onLoginConcluido: () => void;
 }
 
-export default function LoginScreen({ onNavigate }: LoginScreenProps) {
+export default function LoginScreen({ onNavigate, onLoginConcluido }: LoginScreenProps) {
+  const { pronto, carregando, erro, entrar } = useLoginKeycloak();
+
+  const handleEntrar = async () => {
+    if (await entrar()) {
+      onLoginConcluido();
+    }
+  };
+
   return (
     <ScreenWrapper hasHeader={false}>
       <KeyboardAvoidingView
@@ -50,60 +60,38 @@ export default function LoginScreen({ onNavigate }: LoginScreenProps) {
           </View>
 
           {/* CARD BRANCO EXTRUDADO PRINCIPAL (rx=32) */}
+          {/* O formulário de e-mail e senha é o tema do Keycloak; aqui só abrimos o login. */}
           <View style={styles.mainWhiteCard}>
-            <InputField
-              label="E-mail ou Telefone"
-              placeholder="exemplo@cuidador.com"
-              icon="mail"
-              variant="grey"
-            />
-
-            <InputField
-              label="Senha"
-              rightLabel={
-                <TouchableOpacity onPress={() => onNavigate('ForgotPassword')}>
-                  <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-                </TouchableOpacity>
-              }
-              placeholder="Sua senha"
-              icon="lock"
-              isPassword={true}
-              variant="grey"
-            />
-
-            {/* BOTÃO ENTRAR */}
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => onNavigate('TwoFactorAuth')}
+              style={[styles.loginButton, (!pronto || carregando) && styles.loginButtonDisabled]}
+              onPress={handleEntrar}
+              disabled={!pronto || carregando}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              <Text style={styles.loginButtonText}>Entrar</Text>
-              <Icon name="arrow_forward" size={20} color="#FFFFFF" />
+              {carregando || !pronto ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.loginButtonText}>Entrar</Text>
+                  <Icon name="arrow_forward" size={20} color="#FFFFFF" />
+                </>
+              )}
             </TouchableOpacity>
 
-            {/* DIVISOR */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou acesse com</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
 
-            {/* BOTÕES SOCIAIS EMPILHADOS (Apple + Google) */}
-            <View style={styles.socialStack}>
-              <TouchableOpacity
-                style={styles.appleButton}
-                onPress={() => onNavigate('TwoFactorAuth')}
-                activeOpacity={0.8}
-              >
-                <Icon name="smartphone" size={18} color="#131E3D" />
-                <Text style={styles.socialButtonText}>Continuar com Apple</Text>
-              </TouchableOpacity>
-
-              <SocialButton
-                title="Continuar com Google"
-                onSuccess={() => onNavigate('TwoFactorAuth')}
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={() => {
+                abrirRedefinicaoSenha().catch((err) =>
+                  console.warn('[LoginScreen] Falha ao abrir a redefinição de senha:', err?.message),
+                );
+              }}
+              accessibilityRole="link"
+            >
+              <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
           </View>
 
           {/* BADGE DE SEGURANÇA FORA DO CARD */}
@@ -188,6 +176,11 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 5,
   },
+  forgotPasswordButton: {
+    alignSelf: 'center',
+    marginTop: 18,
+    paddingVertical: 4,
+  },
   forgotPasswordText: {
     color: '#D83729',
     fontSize: 13,
@@ -203,54 +196,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginTop: 6,
     shadowColor: '#D83729',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 14,
     elevation: 5,
   },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  errorText: {
+    color: '#D83729',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 12,
+    fontFamily: typography.fontFamily.body,
+  },
   loginButtonText: {
     fontSize: 17,
     fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 22,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: typography.fontFamily.body,
-  },
-  socialStack: {
-    gap: 12,
-  },
-  appleButton: {
-    height: 52,
-    borderRadius: 9999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  socialButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#131E3D',
     fontFamily: typography.fontFamily.heading,
   },
   securityBadgeWrapper: {
