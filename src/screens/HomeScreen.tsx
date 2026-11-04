@@ -297,13 +297,26 @@ export default function HomeScreen({
         {!loadingIdosos && idosos.length === 0 && (
           <TouchableOpacity
             style={styles.elderlySummaryCard}
-            onPress={() => onNavigate && onNavigate('ElderlyProfile')}
+            onPress={() => onNavigate && onNavigate('RegisterElderly')}
             activeOpacity={0.9}
           >
             <View style={styles.elderlyTexts}>
               <Text style={styles.elderlyName}>Nenhum idoso cadastrado</Text>
-              <Text style={styles.monitoredBy}>Acesse o perfil para cadastrar o primeiro idoso.</Text>
+              <Text style={styles.monitoredBy}>Toque aqui para cadastrar o primeiro idoso.</Text>
             </View>
+          </TouchableOpacity>
+        )}
+
+        {!loadingIdosos && (
+          <TouchableOpacity
+            style={styles.addElderlyButton}
+            onPress={() => onNavigate && onNavigate('RegisterElderly')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            testID="home-cadastrar-idoso"
+          >
+            <Icon name="person_add" size={20} color="#031753" />
+            <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
           </TouchableOpacity>
         )}
 
@@ -695,6 +708,19 @@ export default function HomeScreen({
 }
 
 const styles = StyleSheet.create({
+  addElderlyButton: {
+    minHeight: 52,
+    marginBottom: 18,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addElderlyButtonText: { fontSize: 16, fontWeight: '700', color: '#031753' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,

@@ -14,6 +14,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
+import { usePapel } from '../context/PapelContext';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
 import {
@@ -53,6 +54,7 @@ export default function ElderlyModeScreen({
   idosoId = DEFAULT_IDOSO_ID,
   onLogout,
 }: ElderlyModeScreenProps) {
+  const isIdoso = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
@@ -498,7 +500,8 @@ export default function ElderlyModeScreen({
           {/* PÍLULA DE CUIDADORES AVISADOS */}
           <TouchableOpacity
             style={styles.caregiversRow}
-            onPress={() => onNavigate && onNavigate('EmergencyContacts')}
+            onPress={() => !isIdoso && onNavigate && onNavigate('EmergencyContacts')}
+            disabled={isIdoso}
             activeOpacity={0.85}
           >
             <View style={styles.caregiversAvatars}>

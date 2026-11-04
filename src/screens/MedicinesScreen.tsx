@@ -20,6 +20,7 @@ import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
 import Icon from '../components/Icon';
 import { typography } from '../theme';
+import { usePapel } from '../context/PapelContext';
 import {
   listarRotinas,
   confirmarIngestao,
@@ -42,6 +43,7 @@ export default function MedicinesScreen({
   onNavigate,
   idosoId = DEFAULT_IDOSO_ID,
 }: MedicinesScreenProps) {
+  const somenteConfirmar = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
   const [selectedDayObj, setSelectedDayObj] = useState<DiaSemanaItem>(
     DIAS_DA_SEMANA_PADRAO[3]
@@ -154,11 +156,13 @@ export default function MedicinesScreen({
   };
 
   const handleOpenAddModal = () => {
+    if (somenteConfirmar) return; // RN-004: só o Familiar Administrador cadastra
     setEditingRoutine(null);
     setModalVisible(true);
   };
 
   const handleOpenEditModal = (rotina: RotinaMedicamento) => {
+    if (somenteConfirmar) return;
     setEditingRoutine(rotina);
     setModalVisible(true);
   };
@@ -285,22 +289,26 @@ export default function MedicinesScreen({
         </View>
 
         {/* CARD 2: JANELA DE TOLERÂNCIA */}
-        <TolerancePicker
-          selectedTolerance={toleranceMinutes}
-          onSelectTolerance={(mins) => setToleranceMinutes(mins)}
-        />
+        {!somenteConfirmar && (
+          <TolerancePicker
+            selectedTolerance={toleranceMinutes}
+            onSelectTolerance={(mins) => setToleranceMinutes(mins)}
+          />
+        )}
 
         {/* CABEÇALHO DA TIMELINE: Horários de Hoje + Botão "+ Novo Remédio" */}
         <View style={styles.timelineHeaderRow}>
           <Text style={styles.timelineSectionTitle}>Horários de Hoje</Text>
-          <TouchableOpacity
-            style={styles.newMedicinePillBtn}
-            onPress={handleOpenAddModal}
-            activeOpacity={0.85}
-          >
-            <Icon name="add" size={16} color="#FFFFFF" />
-            <Text style={styles.newMedicinePillText}>Novo Remédio</Text>
-          </TouchableOpacity>
+          {!somenteConfirmar && (
+            <TouchableOpacity
+              style={styles.newMedicinePillBtn}
+              onPress={handleOpenAddModal}
+              activeOpacity={0.85}
+            >
+              <Icon name="add" size={16} color="#FFFFFF" />
+              <Text style={styles.newMedicinePillText}>Novo Remédio</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* TIMELINE DE MEDICAMENTOS */}
@@ -333,6 +341,7 @@ export default function MedicinesScreen({
                 onTogglePause={handleTogglePause}
                 onDelete={handleDeleteFromCard}
                 loadingAction={actionLoadingId === item.id}
+                somenteConfirmar={somenteConfirmar}
               />
             ))
           )}

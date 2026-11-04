@@ -988,6 +988,18 @@ export default function FamilyScreen({
           </Text>
         </TouchableOpacity>
       )}
+
+      {/* PRIVACIDADE (HU-022): exclusão da conta e dos dados */}
+      <TouchableOpacity
+        style={styles.deleteAccountLink}
+        onPress={() => onNavigate && onNavigate('DeleteAccount')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        testID="familia-excluir-conta"
+      >
+        <Icon name="delete" size={18} color="#64748B" />
+        <Text style={styles.deleteAccountText}>Excluir minha conta e meus dados</Text>
+      </TouchableOpacity>
     </ScrollView>
 
     {/* MODAL DE CONVITE / EDIÇÃO DE NOVO MEMBRO (HU16) */}
@@ -1034,6 +1046,15 @@ export default function FamilyScreen({
 }
 
 const styles = StyleSheet.create({
+  deleteAccountLink: {
+    minHeight: 48,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  deleteAccountText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
