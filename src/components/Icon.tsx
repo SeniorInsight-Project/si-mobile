@@ -71,6 +71,7 @@ import {
   msShare,
   msHistory,
   msSwapVert,
+  msLogout,
 } from '@material-symbols-react-native/rounded-400';
 
 const ICON_MAP: Record<string, MsIconDefinition> = {
@@ -202,6 +203,7 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   clipboard: msAssignment,
   description: msAssignment,
   file_text: msAssignment,
+  logout: msLogout,
 };
 
 export interface IconProps {

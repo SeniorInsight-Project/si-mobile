@@ -33,3 +33,17 @@ export async function getSosDatabase(): Promise<SQLite.SQLiteDatabase | null> {
     return null;
   }
 }
+
+/**
+ * Apaga a fila offline do SOS (usado no logout).
+ */
+export async function limparFilaSos(): Promise<void> {
+  const db = await getSosDatabase();
+  if (!db) return;
+
+  try {
+    await db.execAsync('DELETE FROM sos_fila');
+  } catch (err: any) {
+    console.warn('[sosDatabase.native] Erro ao limpar fila SQLite:', err?.message);
+  }
+}

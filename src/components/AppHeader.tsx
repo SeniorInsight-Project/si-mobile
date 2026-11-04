@@ -27,6 +27,8 @@ export interface AppHeaderProps {
   onPressNotification?: () => void;
   onPressLogo?: () => void;
   hasNotification?: boolean;
+  /** Quando informado, mostra o botão de sair da conta. */
+  onLogout?: () => void;
 }
 
 /**
@@ -42,7 +44,20 @@ export default function AppHeader({
   onPressNotification,
   onPressLogo,
   hasNotification = true,
+  onLogout,
 }: AppHeaderProps) {
+  const handleLogoutPress = () => {
+    if (!onLogout) return;
+    if (Platform.OS === 'web') {
+      onLogout();
+      return;
+    }
+    Alert.alert('Sair da conta', 'Deseja sair? Os dados salvos neste aparelho serão apagados.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: onLogout },
+    ]);
+  };
+
   const handleNotificationPress = () => {
     if (onPressNotification) {
       onPressNotification();
@@ -80,6 +95,18 @@ export default function AppHeader({
             <Icon name="notifications" size={20} color="#031753" />
             {hasNotification && <View style={styles.notificationDot} />}
           </TouchableOpacity>
+
+          {onLogout ? (
+            <TouchableOpacity
+              style={[styles.notificationButton, styles.logoutButton]}
+              onPress={handleLogoutPress}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Sair da conta"
+            >
+              <Icon name="logout" size={20} color="#031753" />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.logoButton}
@@ -165,6 +192,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#B51C13',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+  },
+  logoutButton: {
+    marginLeft: 8,
   },
   logoButton: {
     width: 36,

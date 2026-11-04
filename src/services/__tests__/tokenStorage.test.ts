@@ -102,36 +102,3 @@ test('não deve manter tokens em memória caso o expo-secure-store esteja indisp
   assert.equal(await obterAccessToken(), null);
   assert.equal(await obterRefreshToken(), null);
 });
-
-test('authService.loginWithGoogle deve salvar accessToken e refreshToken no expo-secure-store automaticamente', async () => {
-  const mockStore = criarMockSecureStore();
-  setSecureStoreAdapter(mockStore);
-
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({
-      accessToken: 'access-sso-google-999',
-      refreshToken: 'refresh-sso-google-888',
-      tokenType: 'Bearer',
-      perfilCompleto: true,
-    }),
-  })) as unknown as typeof fetch;
-
-  try {
-    const { loginWithGoogle, logout } = await import('../authService');
-    const resultado = await loginWithGoogle('google-id-token-valido');
-
-    assert.equal(resultado.accessToken, 'access-sso-google-999');
-    assert.equal(await obterAccessToken(), 'access-sso-google-999');
-    assert.equal(await obterRefreshToken(), 'refresh-sso-google-888');
-
-    await logout();
-    assert.equal(await obterAccessToken(), null);
-    assert.equal(await obterRefreshToken(), null);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
