@@ -34,7 +34,7 @@ export const MENSAGENS_PAREAMENTO: Record<ErroPareamento, string> = {
   CODIGO_VENCIDO: 'Código vencido. Peça um novo ao seu familiar',
   CODIGO_USADO: 'Esse código já foi usado',
   TENTATIVAS: 'Muitas tentativas. Espere um pouco e tente de novo.',
-  SEM_PERMISSAO: 'Só o familiar pode gerar o código de pareamento.',
+  SEM_PERMISSAO: 'Só o familiar administrador pode gerar o código',
   SEM_CONEXAO: 'Sem internet. Conecte o celular ao Wi-Fi ou aos dados móveis e tente de novo.',
   FALHA: 'Não foi possível concluir agora. Tente de novo.',
 };
@@ -240,6 +240,27 @@ interface RespostaCodigo {
   expiraEm: string;
 }
 
+/** Quanto falta para o código vencer, para a tela do familiar. */
+export interface Validade {
+  vencido: boolean;
+  /** Segundos que faltam (0 quando vencido). */
+  segundos: number;
+  /** "Vence em 9 min 05 s", "Vence em 45 s" ou "Código vencido". */
+  texto: string;
+}
+
+export function validadeDoCodigo(expiraEmMs: number, agoraMs: number = Date.now()): Validade {
+  const segundos = Math.max(0, Math.ceil((expiraEmMs - agoraMs) / 1000));
+  if (!Number.isFinite(expiraEmMs) || segundos <= 0) return { vencido: true, segundos: 0, texto: 'Código vencido' };
+  const h = Math.floor(segundos / 3600);
+  const min = Math.floor((segundos % 3600) / 60);
+  const s = segundos % 60;
+  const dois = (n: number) => String(n).padStart(2, '0');
+  const texto =
+    h > 0 ? `Vence em ${h} h ${dois(min)} min` : min > 0 ? `Vence em ${min} min ${dois(s)} s` : `Vence em ${s} s`;
+  return { vencido: false, segundos, texto };
+}
+
 /** Familiar: pede ao servidor um novo código (o anterior deixa de valer no servidor). */
 export async function gerarCodigoPareamento(
   dados: { nomeIdoso: string; idosoId?: string | null },
@@ -252,7 +273,14 @@ export async function gerarCodigoPareamento(
       { nomeIdoso: dados.nomeIdoso, ...(dados.idosoId ? { idosoId: dados.idosoId } : {}) },
       { signal }
     );
-    return { codigo: r.codigo, qrCodeConteudo: r.qrCodeConteudo, expiraEm: Date.parse(r.expiraEm) };
+    // Só exibe o que o servidor gerou e no formato do contrato; resposta incompleta vira erro, nunca um código local.
+    const codigo = typeof r?.codigo === 'string' ? r.codigo : '';
+    const qrCodeConteudo = typeof r?.qrCodeConteudo === 'string' ? r.qrCodeConteudo.trim() : '';
+    const expiraEm = typeof r?.expiraEm === 'string' ? Date.parse(r.expiraEm) : NaN;
+    if (!codigoValido(codigo) || !qrCodeConteudo || !Number.isFinite(expiraEm)) {
+      throw new PareamentoError('FALHA');
+    }
+    return { codigo, qrCodeConteudo, expiraEm };
   } catch (erro) {
     throw traduzirErro(erro, false);
   } finally {

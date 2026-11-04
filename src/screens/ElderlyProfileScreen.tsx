@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
@@ -30,7 +29,7 @@ import {
   obterIdosoLocalPorId,
   ElderlyProfile,
 } from '../services/elderlyService';
-import { gerarCodigoIdentidade } from '../services/identityService';
+import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
@@ -129,9 +128,9 @@ export default function ElderlyProfileScreen({
   const [form, setForm] = useState<ElderlyFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<ElderlyFormErrors>({});
   const [editando, setEditando] = useState<boolean>(true);
-  const [codigoIdentidade, setCodigoIdentidade] = useState<string>('');
-  const [qrValue, setQrValue] = useState<string>('');
-  const [gerandoCodigo, setGerandoCodigo] = useState<boolean>(false);
+  // Código de pareamento (HU-008): gerado pelo identity-service logo depois de cadastrar um idoso novo ou
+  // quando o familiar pede. Abrir o perfil não gera código: cada geração invalida o anterior no servidor.
+  const [gerarCodigoAoAbrir, setGerarCodigoAoAbrir] = useState<boolean>(false);
 
   // Campos complementares da ficha conforme o .fig
   const [fatorSanguineo, setFatorSanguineo] = useState<string>('O+ Positivo');
@@ -160,9 +159,6 @@ export default function ElderlyProfileScreen({
             celular: idosoAtual.celular || '',
           });
           setEditando(false);
-          const identidade = await gerarCodigoIdentidade(idosoAtual.idosoId);
-          setCodigoIdentidade(identidade.codigo);
-          setQrValue(identidade.qrValue);
         } else {
           setEditando(true);
           setProfile(null);
@@ -236,19 +232,6 @@ export default function ElderlyProfileScreen({
     return Object.keys(novosErros).length === 0;
   };
 
-  const gerarNovoCodigo = async (idosoIdAtual: string) => {
-    try {
-      setGerandoCodigo(true);
-      const identidade = await gerarCodigoIdentidade(idosoIdAtual);
-      setCodigoIdentidade(identidade.codigo);
-      setQrValue(identidade.qrValue);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível gerar um novo código agora.');
-    } finally {
-      setGerandoCodigo(false);
-    }
-  };
-
   const salvar = async () => {
     if (!validar()) return;
 
@@ -262,6 +245,7 @@ export default function ElderlyProfileScreen({
         celular: form.celular,
       };
 
+      const idosoNovo = !profile?.idosoId;
       const salvo = profile?.idosoId
         ? await atualizarDadosIdoso(profile.idosoId, payload)
         : await salvarCadastroIdoso({ ...payload, idosoId });
@@ -269,7 +253,8 @@ export default function ElderlyProfileScreen({
       setProfile(salvo);
       setEditando(false);
 
-      await gerarNovoCodigo(salvo.idosoId);
+      // HU-008 cenário 1: idoso novo salvo -> código de pareamento exibido. Editar dados não troca o código.
+      if (idosoNovo) setGerarCodigoAoAbrir(true);
 
       if (avisoIdade) {
         Alert.alert(
@@ -638,35 +623,22 @@ export default function ElderlyProfileScreen({
           </View>
         </View>
 
-        {/* SEÇÃO 4: IDENTIDADE DE ACESSO (HU-009) */}
-        {profile?.idosoId && codigoIdentidade && qrValue ? (
+        {/* SEÇÃO 4: CÓDIGO DE PAREAMENTO (HU-008), gerado pelo identity-service */}
+        {profile?.idosoId && podeEditar ? (
           <View style={styles.sectionBlock}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionIconCircleSky}>
                 <Icon name="verified_user" size={16} color="#031753" />
               </View>
-              <Text style={styles.sectionTitle}>Identidade de Acesso</Text>
+              <Text style={styles.sectionTitle}>Código de pareamento</Text>
             </View>
 
-            <View style={styles.comorbiditiesCard}>
-              <Text style={styles.codeLabel}>Código de 6 dígitos</Text>
-              <Text style={styles.codeValue}>{codigoIdentidade}</Text>
-
-              <View style={styles.qrWrapper}>
-                <QRCode value={qrValue} size={170} />
-              </View>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => gerarNovoCodigo(profile.idosoId)}
-                activeOpacity={0.85}
-                disabled={gerandoCodigo}
-              >
-                <Text style={styles.secondaryButtonText}>
-                  {gerandoCodigo ? 'Gerando...' : 'Gerar novo código'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <CodigoPareamentoPainel
+              key={profile.idosoId}
+              idosoId={profile.idosoId}
+              nomeIdoso={profile.nome || form.nome}
+              gerarAoAbrir={gerarCodigoAoAbrir}
+            />
           </View>
         ) : null}
 
@@ -1190,34 +1162,6 @@ const styles = StyleSheet.create({
   },
   sexButtonTextSelected: {
     color: '#031753',
-  },
-  codeLabel: {
-    fontSize: 13,
-    color: '#475569',
-    marginBottom: 4,
-  },
-  codeValue: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#031753',
-    letterSpacing: 3,
-  },
-  qrWrapper: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 24,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#031753',
-    fontWeight: '700',
   },
   pillInputError: {
     borderWidth: 1,
