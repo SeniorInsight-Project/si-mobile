@@ -40,14 +40,6 @@
           "locationAlwaysAndWhenInUsePermission": "O SeniorInsight utiliza sua localização em tempo real para monitorar o perímetro seguro e enviar socorro imediato em caso de SOS."
         }
       ]
-    ],
-    "extra": {
-      "apiBaseUrl": "https://seniorinsight-backend-br-73d00847a82b.herokuapp.com",
-      "postgres": {
-        "host": "localhost",
-        "port": 5432,
-        "database": "senior_insight_health"
-      }
-    }
+    ]
   }
 }

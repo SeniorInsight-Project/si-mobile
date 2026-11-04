@@ -47,7 +47,7 @@ export default function SocialButton({ title, onSuccess }: SocialButtonProps) {
 
   const enviarTokenParaOBackend = async (idTokenReal: string) => {
     try {
-      console.log('Enviando idToken real para o Heroku...');
+      console.log('Enviando idToken para o gateway...');
 
       // Agora envia o token VERDADEIRO para o seu backend
       const resultado = await loginWithGoogle(idTokenReal);
@@ -61,7 +61,7 @@ export default function SocialButton({ title, onSuccess }: SocialButtonProps) {
       setCarregando(false);
       const mensagem =
         error?.message === 'Failed to fetch'
-          ? 'Erro de ligação ao servidor (CORS ou Heroku offline).'
+          ? 'Erro de ligação ao servidor (gateway indisponível ou CORS).'
           : `Acesso Recusado: ${error?.message}`;
       setMensagemErro(mensagem);
     }
