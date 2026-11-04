@@ -1,3 +1,4 @@
+import type { IdosoApi, IdosoRequest } from '../types/api';
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 import type { Idoso } from './elderlyService';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
@@ -24,12 +25,6 @@ export interface DadosCadastroIdoso {
   sexo: string;
 }
 
-interface IdosoApi {
-  id: string;
-  nomeCompleto: string;
-  dataNascimento: string;
-  genero?: string | null;
-}
 
 export async function cadastrarIdoso(
   dados: DadosCadastroIdoso,
@@ -39,11 +34,12 @@ export async function cadastrarIdoso(
   if (!dataIso) throw new CadastroIdosoError('Data de nascimento inválida. Use DD/MM/AAAA.');
 
   try {
-    const criado = await cliente.post<IdosoApi>('/api/v1/idosos', {
+    const corpo: IdosoRequest = {
       nomeCompleto: dados.nome.trim(),
       dataNascimento: dataIso,
       genero: dados.sexo || null,
-    });
+    };
+    const criado = await cliente.post<IdosoApi>('/api/v1/idosos', corpo);
     return {
       idosoId: criado.id,
       nome: criado.nomeCompleto,

@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import type { ComorbidadeRequest, Comorbidades } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
 // Lista inicial padrão baseada no prontuário do Figma/Template para fallback resiliente em dev
@@ -9,10 +10,8 @@ export const INITIAL_COMORBIDITIES: string[] = [
   'Alergia a Dipirona',
 ];
 
-export interface ComorbidadesResponse {
-  idosoId: string;
-  comorbidades: string[];
-}
+/** Comorbidades do contrato care-v1. */
+export type ComorbidadesResponse = Comorbidades;
 
 /**
  * Serviço de integração com os endpoints de comorbidades do backend-core (HU15).
@@ -73,7 +72,7 @@ export async function adicionarComorbidades(
       headers,
       body: JSON.stringify({
         comorbidades: Array.isArray(novasComorbidades) ? novasComorbidades : [novasComorbidades],
-      }),
+      } satisfies ComorbidadeRequest),
     });
 
     if (!response.ok) {

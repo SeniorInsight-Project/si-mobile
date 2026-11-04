@@ -1,25 +1,26 @@
 import { runtimeConfig } from '../config/runtime';
+import type {
+  AlarmeEmergenciaApi,
+  AtualizarStatusAlarmeRequest,
+  DispararSosRequest,
+  StatusAlarme,
+} from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
-export interface AlarmeEmergencia {
+/** Alarme do contrato care-v1 mais o que o app guarda no modo offline (idempotencyKey, campos opcionais). */
+export interface AlarmeEmergencia extends Partial<Omit<AlarmeEmergenciaApi, 'status'>> {
   id: string;
   idempotencyKey?: string;
-  idosoId?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  nivelBateria?: number | null;
-  observacao?: string;
+  /** StatusAlarme do contrato; string porque o fallback local também grava aqui. */
   status: string;
-  criadoEm?: string;
-  atualizadoEm?: string;
   [key: string]: any;
 }
 
-export interface DispararSosPayload {
+/** Corpo de DispararSosRequest; null é aceito aqui e o campo não vai na requisição. */
+export interface DispararSosPayload extends Omit<DispararSosRequest, 'latitude' | 'longitude' | 'nivelBateria'> {
   latitude?: number | null;
   longitude?: number | null;
   nivelBateria?: number | null;
-  observacao?: string;
   idempotencyKey?: string | null;
 }
 
@@ -72,7 +73,7 @@ export async function dispararSos(
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
 
-  const payload: Record<string, unknown> = {
+  const payload: DispararSosRequest = {
     observacao,
   };
   if (latitude !== null && latitude !== undefined) payload.latitude = latitude;
@@ -86,7 +87,7 @@ export async function dispararSos(
   });
 
   if (response.status === 202 || response.ok) {
-    const data: AlarmeEmergencia = await response.json();
+    const data: AlarmeEmergenciaApi = await response.json();
     alarmesLocais.unshift(data);
     return data;
   }
@@ -133,13 +134,13 @@ export async function atualizarStatusAlarme(
       method: 'PUT',
       headers,
       body: JSON.stringify({
-        status: novoStatus,
+        status: novoStatus as StatusAlarme,
         observacao,
-      }),
+      } satisfies AtualizarStatusAlarmeRequest),
     });
 
     if (response.ok) {
-      const data: AlarmeEmergencia = await response.json();
+      const data: AlarmeEmergenciaApi = await response.json();
       atualizarAlarmeLocal(alarmeId, novoStatus, observacao);
       return data;
     }
