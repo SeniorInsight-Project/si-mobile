@@ -13,6 +13,21 @@ import FamilyScreen from './src/screens/FamilyScreen';
 import EmergencyContactsScreen from './src/screens/EmergencyContactsScreen';
 import AcessoRestritoScreen from './src/screens/AcessoRestritoScreen';
 import AcceptInviteScreen, { UsuarioLogado } from './src/screens/AcceptInviteScreen';
+import EntryAppScreen from './src/screens/EntryAppScreen';
+import ElderlyQrScanScreen from './src/screens/ElderlyQrScanScreen';
+import ElderlyEnterCodeScreen from './src/screens/ElderlyEnterCodeScreen';
+import ElderlyConnectedScreen from './src/screens/ElderlyConnectedScreen';
+import RegisterElderlyScreen from './src/screens/RegisterElderlyScreen';
+import PairingCodeScreen from './src/screens/PairingCodeScreen';
+import AlertsCenterScreen from './src/screens/AlertsCenterScreen';
+import SosReceivedScreen from './src/screens/SosReceivedScreen';
+import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
+import ElderlyDataScreen from './src/screens/ElderlyDataScreen';
+import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
+import { PapelProvider } from './src/context/PapelContext';
+import { PapelApp, resolverNavegacao } from './src/services/acessoService';
+import { ResultadoPareamento } from './src/services/pareamentoService';
+import { Idoso } from './src/services/elderlyService';
 import {
   aoEncerrarSessao,
   decodificarJwt,
@@ -31,6 +46,9 @@ interface PerfilIdentity {
   email: string | null;
 }
 
+// Planos Free/Premium ficam fora desta entrega; sem tela de assinatura, nenhuma assinatura está ativa.
+const ASSINATURA_ATIVA = false;
+
 export default function App() {
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
@@ -43,6 +61,12 @@ export default function App() {
   // Por ora deriva do token: familiar -> ADMIN.
   const papeis: string[] = usuarioLogado?.papeis ?? [];
   const papelAcessoAtual = papeis.includes('familiar') ? 'ADMIN' : papeis.includes('idoso') ? 'IDOSO' : '';
+  // Papel de visão (RN-011): vem sempre do token, nunca de um botão. Mesma prioridade de telaInicialPorPapeis.
+  const papel: PapelApp | null = papeis.includes('idoso') ? 'IDOSO' : papeis.includes('familiar') ? 'FAMILIAR' : null;
+  const [pareamento, setPareamento] = useState<ResultadoPareamento | null>(null);
+  const [idosoRecemCadastrado, setIdosoRecemCadastrado] = useState<Idoso | null>(null);
+  const [primeiroUsoIdoso, setPrimeiroUsoIdoso] = useState<boolean>(false);
+  const [alarmeSelecionadoId, setAlarmeSelecionadoId] = useState<string | null>(null);
 
   /**
    * Com token válido: busca o perfil e abre a tela do papel. Retorna false se não há sessão.
@@ -87,7 +111,9 @@ export default function App() {
         conviteRef.current = null;
         setInviteToken(null);
         setUsuarioLogado(null);
-        setTelaAtual('Login');
+        setPareamento(null);
+        setPrimeiroUsoIdoso(false);
+        setTelaAtual('EntryApp');
       }),
     [],
   );
@@ -95,6 +121,31 @@ export default function App() {
   const handleLogout = useCallback(() => {
     sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
   }, []);
+
+  // Aparelho do idoso pareado: a sessão já foi salva (resgate devolve os tokens) e o papel vem do token.
+  const handlePareado = useCallback((resultado: ResultadoPareamento) => {
+    setPareamento(resultado);
+    setUsuarioLogado({
+      id: resultado.perfilId,
+      tipo: 'IDOSO',
+      nome: resultado.nomeIdoso,
+      email: null,
+      papeis: resultado.papeis,
+    });
+    setPrimeiroUsoIdoso(true);
+  }, []);
+
+  // Telas chamam onNavigate('Logout') para sair; a saída de verdade é o sair() da sessão.
+  const navegar = useCallback(
+    (destino: string) => {
+      if (destino === 'Logout') {
+        handleLogout();
+        return;
+      }
+      setTelaAtual(destino);
+    },
+    [handleLogout],
+  );
 
   const handleLoginConcluido = useCallback(() => {
     entrarComSessaoSalva()
@@ -148,21 +199,82 @@ export default function App() {
   }, []);
 
   const renderScreen = () => {
-    switch (telaAtual) {
+    // A guarda roda na renderização: o idoso nunca vê telas do familiar (nem por botão ou deep link).
+    const telaEfetiva = resolverNavegacao(papel, telaAtual);
+    switch (telaEfetiva) {
       case 'Onboarding':
-        return <OnboardingScreen onNavigate={setTelaAtual} />;
+        return <OnboardingScreen onNavigate={navegar} />;
       case 'Register':
-        return <RegisterScreen onNavigate={setTelaAtual} />;
+        return <RegisterScreen onNavigate={navegar} />;
       case 'Login':
-        return <LoginScreen onNavigate={setTelaAtual} onLoginConcluido={handleLoginConcluido} />;
+        return <LoginScreen onNavigate={navegar} onLoginConcluido={handleLoginConcluido} />;
+      case 'EntryApp':
+        return <EntryAppScreen onNavigate={navegar} />;
+      case 'ElderlyQrScan':
+        return <ElderlyQrScanScreen onNavigate={navegar} onPareado={handlePareado} />;
+      case 'ElderlyEnterCode':
+        return <ElderlyEnterCodeScreen onNavigate={navegar} onPareado={handlePareado} />;
+      case 'ElderlyConnected':
+        return <ElderlyConnectedScreen onNavigate={navegar} pareamento={pareamento} />;
+      case 'ElderlyData':
+        return <ElderlyDataScreen onNavigate={navegar} primeiroUso={primeiroUsoIdoso} />;
+      case 'ElderlyWatch':
+        return (
+          <ElderlyWatchScreen
+            onNavigate={(destino) => {
+              if (destino === 'ElderlyMode') setPrimeiroUsoIdoso(false);
+              navegar(destino);
+            }}
+            primeiroUso={primeiroUsoIdoso}
+          />
+        );
+      case 'RegisterElderly':
+        return (
+          <RegisterElderlyScreen
+            onNavigate={navegar}
+            onCadastrado={(idoso) => {
+              setIdosoRecemCadastrado(idoso);
+              setIdosoSelecionadoId(idoso.idosoId);
+            }}
+          />
+        );
+      case 'PairingCode':
+        return (
+          <PairingCodeScreen
+            onNavigate={navegar}
+            idosoId={idosoRecemCadastrado?.idosoId ?? idosoSelecionadoId}
+            nomeIdoso={idosoRecemCadastrado?.nome ?? ''}
+          />
+        );
+      case 'Alerts':
+        return (
+          <AlertsCenterScreen
+            onNavigate={navegar}
+            idosoId={idosoSelecionadoId}
+            onAbrirSos={(alarmeId) => {
+              setAlarmeSelecionadoId(alarmeId);
+              setTelaAtual('SosReceived');
+            }}
+          />
+        );
+      case 'SosReceived':
+        return (
+          <SosReceivedScreen
+            onNavigate={navegar}
+            idosoId={idosoSelecionadoId}
+            alarmeId={alarmeSelecionadoId}
+          />
+        );
+      case 'DeleteAccount':
+        return <DeleteAccountScreen onNavigate={navegar} assinaturaAtiva={ASSINATURA_ATIVA} />;
       case 'AcessoRestrito':
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
-        return <ElderlyModeScreen onNavigate={setTelaAtual} onLogout={handleLogout} />;
+        return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} />;
       case 'ElderlyProfile':
         return (
           <ElderlyProfileScreen
-            onNavigate={setTelaAtual}
+            onNavigate={navegar}
             idosoId={idosoSelecionadoId}
             accessRole={papelAcessoAtual}
           />
@@ -170,40 +282,40 @@ export default function App() {
       case 'Home':
         return (
           <HomeScreen
-            onNavigate={setTelaAtual}
+            onNavigate={navegar}
             onSelectElderly={setIdosoSelecionadoId}
             onLogout={handleLogout}
           />
         );
       case 'Medicines':
-        return <MedicinesScreen onNavigate={setTelaAtual} />;
+        return <MedicinesScreen onNavigate={navegar} />;
       case 'Family':
         return (
           <FamilyScreen
-            onNavigate={setTelaAtual}
+            onNavigate={navegar}
             idosoId={idosoSelecionadoId}
             isFamiliarAdmin={papelAcessoAtual === 'ADMIN'}
             papelAcesso={papelAcessoAtual}
           />
         );
       case 'EmergencyContacts':
-        return <EmergencyContactsScreen onNavigate={setTelaAtual} />;
+        return <EmergencyContactsScreen onNavigate={navegar} />;
       case 'AcceptInvite':
         return (
           <AcceptInviteScreen
-            onNavigate={setTelaAtual}
+            onNavigate={navegar}
             inviteToken={inviteToken || 'token-exemplo'}
             isAuthenticated={Boolean(usuarioLogado)}
             currentUser={usuarioLogado}
           />
         );
       default:
-        return <OnboardingScreen onNavigate={setTelaAtual} />;
+        return <OnboardingScreen onNavigate={navegar} />;
     }
   };
 
   return (
-    <>
+    <PapelProvider value={papel}>
       <StatusBar style="auto" />
       {restaurandoSessao ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -212,6 +324,6 @@ export default function App() {
       ) : (
         renderScreen()
       )}
-    </>
+    </PapelProvider>
   );
 }

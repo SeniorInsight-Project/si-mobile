@@ -13,9 +13,11 @@ declare module 'node:assert/strict' {
     equal<T>(actual: T, expected: T, message?: string): void;
     notEqual<T>(actual: T, expected: T, message?: string): void;
     deepEqual<T>(actual: T, expected: T, message?: string): void;
+    match(value: string, regexp: RegExp, message?: string): void;
+    throws(block: () => unknown, error?: unknown, message?: string): void;
     rejects(
       block: Promise<unknown> | (() => Promise<unknown>),
-      error?: (err: any) => boolean,
+      error?: ((err: any) => boolean) | RegExp | (new (...args: any[]) => Error),
       message?: string
     ): Promise<void>;
   };

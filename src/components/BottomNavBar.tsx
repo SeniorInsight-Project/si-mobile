@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import { colors, typography } from '../theme';
+import { usePapel } from '../context/PapelContext';
+import { ABAS_POR_PAPEL } from '../services/acessoService';
 
 export interface BottomNavBarProps {
   currentScreen: string;
@@ -9,14 +11,11 @@ export interface BottomNavBarProps {
 }
 
 export default function BottomNavBar({ currentScreen, onNavigate }: BottomNavBarProps) {
-  const tabs = [
-    { id: 'Home', label: 'Início', icon: 'vital_signs' },
-    { id: 'Medicines', label: 'Remédios', icon: 'medication' },
-    { id: 'ElderlyMode', label: 'SOS Idoso', icon: 'crisis_alert' },
-    { id: 'Family', label: 'Família', icon: 'groups' },
-  ];
+  const papel = usePapel();
+  const tabs = ABAS_POR_PAPEL[papel ?? 'FAMILIAR'];
 
   const isTabActive = (tabId: string) => {
+    if (papel === 'IDOSO') return currentScreen === tabId;
     if (tabId === 'Family') {
       return (
         currentScreen === 'Family' ||

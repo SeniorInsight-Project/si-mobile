@@ -92,7 +92,7 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.ctaButton}
-            onPress={() => onNavigate('Register')}
+            onPress={() => onNavigate('EntryApp')}
             activeOpacity={0.85}
           >
             <Text style={styles.ctaButtonText}>Começar Agora</Text>
