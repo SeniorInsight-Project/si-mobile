@@ -13,7 +13,7 @@ import {
   AvaliacaoBloqueadaError,
   JANELA_ALTERAR_AVALIACAO_MS,
   AVISO_NAO_DIAGNOSTICO,
-  Alerta,
+  type Alerta,
 } from '../alertaService';
 
 const AGORA = new Date(2026, 10, 4, 16, 0).getTime();

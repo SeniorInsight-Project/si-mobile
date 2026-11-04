@@ -9,7 +9,7 @@ import {
   assumirChamado,
   encerrarChamado,
   SosError,
-  AlarmeApi,
+  type AlarmeApi,
 } from '../sosRecebidoService';
 import { ApiError } from '../apiClient';
 

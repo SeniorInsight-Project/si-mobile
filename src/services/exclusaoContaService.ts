@@ -1,4 +1,4 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
  * Exclusão da conta e dos dados (HU-022 / RF-015 / RN-018 / RNF-017).

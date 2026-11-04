@@ -76,16 +76,18 @@ export default function EntryAppScreen({ onNavigate, onDesfecho }: EntryAppScree
             onPress={() => onNavigate('ElderlyQrScan')}
             activeOpacity={0.85}
             accessibilityRole="button"
+            accessibilityLabel="Sou o idoso: ler QR Code"
             testID="entry-qr"
           >
             <Icon name="qr_code_scanner" size={22} color={colors.white} />
-            <Text style={styles.primaryButtonText}>Entrar com QR Code</Text>
+            <Text style={styles.primaryButtonText}>Ler QR Code</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.linkButton}
             onPress={() => onNavigate('ElderlyEnterCode')}
             accessibilityRole="button"
+            accessibilityLabel="Sou o idoso: digitar o código"
             testID="entry-digitar-codigo"
           >
             <Text style={styles.linkGreen}>Digitar o código</Text>
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     fontFamily: typography.fontFamily.body,
   },
-  linkGreen: { fontSize: 16, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.heading },
+  linkGreen: { fontSize: 18, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.heading },
   idosoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   idosoIcon: {
     width: 48,
@@ -178,5 +180,5 @@ const styles = StyleSheet.create({
   },
   idosoTexts: { flex: 1 },
   idosoTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  idosoSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  idosoSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
 });

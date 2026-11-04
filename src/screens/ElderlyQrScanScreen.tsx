@@ -51,12 +51,14 @@ export default function ElderlyQrScanScreen({ onNavigate, onPareado }: ElderlyQr
             style={styles.closeButton}
             onPress={() => onNavigate('EntryApp')}
             accessibilityRole="button"
-            accessibilityLabel="Fechar"
+            accessibilityLabel="Fechar a câmera e voltar"
             testID="qr-fechar"
           >
-            <Icon name="close" size={26} color={colors.white} />
+            <Icon name="close" size={28} color={colors.white} />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>Entrar com QR Code</Text>
+          <Text style={styles.topTitle} accessibilityRole="header">
+            Ler QR Code
+          </Text>
         </View>
 
         <Text style={styles.instruction}>Aponte a câmera para o código que aparece no celular do seu familiar.</Text>
@@ -69,10 +71,15 @@ export default function ElderlyQrScanScreen({ onNavigate, onPareado }: ElderlyQr
           />
         </View>
 
-        <View style={[styles.statusChip, status === 'erro' && styles.statusChipError]} testID="qr-status">
+        <View
+          style={[styles.statusChip, status === 'erro' && styles.statusChipError]}
+          accessibilityRole={status === 'erro' ? 'alert' : 'text'}
+          accessibilityLiveRegion="polite"
+          testID="qr-status"
+        >
           <Icon
             name={status === 'erro' ? 'error' : 'qr_code_scanner'}
-            size={16}
+            size={22}
             color={status === 'erro' ? colors.peachBg : colors.white}
           />
           <Text style={styles.statusText}>{textoStatus}</Text>
@@ -83,12 +90,12 @@ export default function ElderlyQrScanScreen({ onNavigate, onPareado }: ElderlyQr
           onPress={() => onNavigate('ElderlyEnterCode')}
           activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityLabel="Digitar o código em vez de ler o QR Code"
           testID="qr-digitar-codigo"
         >
-          <Icon name="dialpad" size={22} color={colors.primary} />
+          <Icon name="dialpad" size={24} color={colors.primary} />
           <Text style={styles.codeButtonText}>Digitar o código</Text>
         </TouchableOpacity>
-
 
         <Text style={styles.privacy}>O app usa a câmera só para ler o código. Nenhuma foto é guardada.</Text>
       </View>
@@ -100,8 +107,8 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.navyDark },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  closeButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  closeButton: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  topTitle: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
   instruction: {
     marginTop: 12,
     fontSize: 20,
@@ -113,8 +120,8 @@ const styles = StyleSheet.create({
   viewfinder: {
     marginTop: 28,
     alignSelf: 'center',
-    width: 280,
-    height: 280,
+    width: 260,
+    height: 260,
     borderRadius: 32,
     borderWidth: 4,
     borderColor: colors.successDark,
@@ -130,13 +137,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: 36,
-    paddingHorizontal: 16,
+    minHeight: 48,
+    maxWidth: '100%',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
     borderRadius: 9999,
     backgroundColor: colors.primaryNavyDeep,
   },
   statusChipError: { backgroundColor: colors.coralDark },
-  statusText: { fontSize: 14, fontWeight: '600', color: colors.white, fontFamily: typography.fontFamily.body },
+  statusText: { flexShrink: 1, fontSize: 18, lineHeight: 24, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.body },
   codeButton: {
     marginTop: 28,
     minHeight: 64,
@@ -147,11 +156,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  codeButtonText: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  codeButtonText: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
   privacy: {
     marginTop: 20,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 26,
     textAlign: 'center',
     color: colors.outlineVariant,
     fontFamily: typography.fontFamily.body,

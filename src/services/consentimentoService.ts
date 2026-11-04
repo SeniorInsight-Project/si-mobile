@@ -1,4 +1,4 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
  * Autorização de uso dos dados por tipo (HU-018, HU-019 / RF-010, RF-011, RF-012 / RN-001).

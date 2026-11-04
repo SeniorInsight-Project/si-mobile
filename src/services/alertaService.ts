@@ -1,4 +1,4 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
  * Central de Alertas do familiar (HU-034, HU-035, HU-037 / RN-010, RN-017, RN-019).
