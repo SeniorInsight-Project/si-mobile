@@ -13,21 +13,26 @@ import {
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import { typography } from '../theme';
-import { abrirRedefinicaoSenha, useLoginKeycloak } from '../services/authService';
+import {
+  abrirRedefinicaoSenha,
+  useAutenticacaoKeycloak,
+  type DesfechoAutenticacao,
+} from '../services/authService';
 
 export interface LoginScreenProps {
-  onNavigate: (screen: string) => void;
-  /** Chamado depois que os tokens do Keycloak foram salvos. */
-  onLoginConcluido: () => void;
+  /** Resultado da volta do Keycloak (sessão salva, e-mail a confirmar...). */
+  onDesfecho: (desfecho: DesfechoAutenticacao) => void;
 }
 
-export default function LoginScreen({ onNavigate, onLoginConcluido }: LoginScreenProps) {
-  const { pronto, carregando, erro, entrar } = useLoginKeycloak();
+export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
+  const { pronto, carregando, erro, entrar, criarConta } = useAutenticacaoKeycloak();
 
   const handleEntrar = async () => {
-    if (await entrar()) {
-      onLoginConcluido();
-    }
+    onDesfecho(await entrar());
+  };
+
+  const handleCriarConta = async () => {
+    onDesfecho(await criarConta());
   };
 
   return (
@@ -107,7 +112,12 @@ export default function LoginScreen({ onNavigate, onLoginConcluido }: LoginScree
           {/* RODAPÉ EM DUAS LINHAS */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Novo no SeniorInsight?</Text>
-            <TouchableOpacity onPress={() => onNavigate('Register')}>
+            <TouchableOpacity
+              onPress={handleCriarConta}
+              disabled={!pronto || carregando}
+              accessibilityRole="button"
+              testID="login-criar-conta"
+            >
               <Text style={styles.footerLink}>Criar conta de cuidador</Text>
             </TouchableOpacity>
           </View>

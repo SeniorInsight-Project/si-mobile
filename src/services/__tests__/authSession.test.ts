@@ -11,6 +11,8 @@ import {
   SessaoInvalidaError,
   aoEncerrarSessao,
   configurarSessao,
+  desfechoSemCodigo,
+  emailNaoVerificado,
   obterAccessTokenValido,
   papeisDoToken,
   renovarSessao,
@@ -255,4 +257,22 @@ test('urlRedefinicaoSenha aponta para o reset-credentials do realm com o client 
     urlRedefinicaoSenha('http://kc.test/auth/realms/seniorinsight'),
     'http://kc.test/auth/realms/seniorinsight/login-actions/reset-credentials?client_id=si-mobile',
   );
+});
+
+test('HU-001: email_verified = false em qualquer token pede a confirmação do e-mail', () => {
+  const naoVerificado = jwt({ sub: 'u1', email_verified: false });
+  const verificado = jwt({ sub: 'u1', email_verified: true });
+
+  assert.equal(emailNaoVerificado(naoVerificado), true);
+  assert.equal(emailNaoVerificado(verificado, naoVerificado), true);
+  assert.equal(emailNaoVerificado(undefined, naoVerificado), true);
+  assert.equal(emailNaoVerificado(verificado), false);
+  // Sem a claim (ou sem token) não bloqueia: quem decide é o Keycloak.
+  assert.equal(emailNaoVerificado(jwt({ sub: 'u1' })), false);
+  assert.equal(emailNaoVerificado(undefined, null), false);
+});
+
+test('HU-001: fechar o navegador no cadastro leva à confirmação; no login, só cancela', () => {
+  assert.equal(desfechoSemCodigo('criar-conta'), 'confirmar-email');
+  assert.equal(desfechoSemCodigo('login'), 'cancelado');
 });

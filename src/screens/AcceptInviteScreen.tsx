@@ -17,6 +17,7 @@ import {
   aceitarConvite,
   DetalhesConvite,
 } from '../services/redeProtecaoService';
+import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface UsuarioLogado {
   token?: string;
@@ -30,6 +31,8 @@ export interface AcceptInviteScreenProps {
   inviteToken?: string;
   isAuthenticated?: boolean;
   currentUser?: UsuarioLogado | null;
+  /** Resultado da volta do cadastro do Keycloak ("Criar Nova Conta"). */
+  onDesfecho?: (desfecho: DesfechoAutenticacao) => void;
 }
 
 export default function AcceptInviteScreen({
@@ -37,7 +40,9 @@ export default function AcceptInviteScreen({
   inviteToken = 'token-exemplo',
   isAuthenticated = false,
   currentUser = null,
+  onDesfecho,
 }: AcceptInviteScreenProps) {
+  const cadastro = useAutenticacaoKeycloak();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [convite, setConvite] = useState<DetalhesConvite | null>(null);
@@ -293,8 +298,13 @@ export default function AcceptInviteScreen({
 
                 <TouchableOpacity
                   style={styles.secondaryAuthButton}
-                  onPress={() => onNavigate && onNavigate('Register')}
+                  onPress={async () => {
+                    const desfecho = await cadastro.criarConta();
+                    onDesfecho?.(desfecho);
+                  }}
+                  disabled={!cadastro.pronto || cadastro.carregando}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.secondaryAuthButtonText}>Criar Nova Conta</Text>
                 </TouchableOpacity>

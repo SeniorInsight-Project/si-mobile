@@ -1,15 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
+import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface EntryAppScreenProps {
   onNavigate: (screen: string) => void;
+  /** Resultado da volta do cadastro do Keycloak. */
+  onDesfecho: (desfecho: DesfechoAutenticacao) => void;
 }
 
 /** Figma: "Entrada no App (Expo)" — escolha entre Familiar e Idoso (HU-007). */
-export default function EntryAppScreen({ onNavigate }: EntryAppScreenProps) {
+export default function EntryAppScreen({ onNavigate, onDesfecho }: EntryAppScreenProps) {
+  const { pronto, carregando, erro, criarConta } = useAutenticacaoKeycloak();
+
   return (
     <ScreenWrapper hasHeader={false}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -41,12 +46,18 @@ export default function EntryAppScreen({ onNavigate }: EntryAppScreenProps) {
 
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => onNavigate('Register')}
+            onPress={async () => onDesfecho(await criarConta())}
+            disabled={!pronto || carregando}
             accessibilityRole="button"
-            testID="entry-register"
+            testID="entry-criar-conta"
           >
-            <Text style={styles.linkNavy}>Criar conta de familiar</Text>
+            {carregando ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Text style={styles.linkNavy}>Criar conta de familiar</Text>
+            )}
           </TouchableOpacity>
+          {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
         </View>
 
         <View style={styles.card} testID="entry-idoso-card">
@@ -148,6 +159,13 @@ const styles = StyleSheet.create({
   primaryButtonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
   linkButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   linkNavy: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: colors.secondary,
+    fontFamily: typography.fontFamily.body,
+  },
   linkGreen: { fontSize: 16, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.heading },
   idosoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   idosoIcon: {
