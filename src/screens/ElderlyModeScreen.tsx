@@ -45,11 +45,13 @@ const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 export interface ElderlyModeScreenProps {
   onNavigate?: (screen: string) => void;
   idosoId?: string;
+  onLogout?: () => void;
 }
 
 export default function ElderlyModeScreen({
   onNavigate,
   idosoId = DEFAULT_IDOSO_ID,
+  onLogout,
 }: ElderlyModeScreenProps) {
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
   const [loading, setLoading] = useState<boolean>(false);
@@ -306,6 +308,7 @@ export default function ElderlyModeScreen({
         title="Modo Idoso Alarme Sos"
         subtitle="CUIDADO ATIVO"
         onNavigate={onNavigate}
+        onLogout={onLogout}
       />
 
       <ScrollView

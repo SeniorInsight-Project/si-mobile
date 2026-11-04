@@ -9,12 +9,6 @@ export interface RuntimeConfig {
   apiBaseUrl: string;
   /** Issuer do realm no Keycloak, ex.: https://<host>/auth/realms/seniorinsight */
   keycloakIssuer: string;
-  /** Legado: Google Sign-In, removido quando o login passar pelo Keycloak (#21). */
-  google: {
-    clientId: string;
-    iosClientId: string;
-    androidClientId: string;
-  };
 }
 
 // As variáveis EXPO_PUBLIC_* precisam ser lidas por acesso estático
@@ -33,9 +27,4 @@ function required(name: string, value: string | undefined): string {
 export const runtimeConfig: RuntimeConfig = {
   apiBaseUrl: required('EXPO_PUBLIC_API_BASE_URL', process.env.EXPO_PUBLIC_API_BASE_URL),
   keycloakIssuer: required('EXPO_PUBLIC_KEYCLOAK_ISSUER', process.env.EXPO_PUBLIC_KEYCLOAK_ISSUER),
-  google: {
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '',
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
-  },
 };

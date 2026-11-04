@@ -1,6 +1,6 @@
 import { dispararSos, type AlarmeEmergencia } from './alarmeSosService';
 import { listarContatos, type ContatoEmergencia } from './contatoEmergenciaService';
-import { getSosDatabase } from './sosDatabase';
+import { getSosDatabase, limparFilaSos } from './sosDatabase';
 
 export interface SosQueueRecord {
   idempotencyKey: string;
@@ -346,4 +346,14 @@ export async function retomarPendentes(callbacks: SosQueueCallbacks = {}): Promi
     console.warn('[sosQueueService] Erro ao retomar pendentes:', err?.message);
     return [];
   }
+}
+
+/**
+ * Para os reenvios em andamento e apaga a fila local (memória e SQLite). Usado no logout.
+ */
+export async function limparFilaSosLocal(): Promise<void> {
+  activeJobs.forEach(({ timer }) => clearTimeout(timer));
+  activeJobs.clear();
+  memoriaFila.clear();
+  await limparFilaSos();
 }
