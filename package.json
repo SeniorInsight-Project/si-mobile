@@ -29,7 +29,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/services/__tests__/*.test.ts"
+    "test": "node --env-file=.env.test --import ./scripts/resolver-ts.mjs --test src/services/__tests__/*.test.ts"
   },
   "private": true,
   "devDependencies": {
