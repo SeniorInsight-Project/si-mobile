@@ -1,4 +1,4 @@
-import { Consentimentos, descreverAutorizados, tiposAutorizados } from './consentimentoService';
+import { type Consentimentos, descreverAutorizados, tiposAutorizados } from './consentimentoService';
 
 /**
  * Conexão do relógio pelo Health Connect (HU-023, HU-025 / RF-016 a RF-020).

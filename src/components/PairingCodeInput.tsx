@@ -24,7 +24,9 @@ export default function PairingCodeInput({ value, onChange, hasError = false, au
     <TouchableOpacity
       activeOpacity={1}
       onPress={() => inputRef.current?.focus()}
-      accessibilityRole="none"
+      // O leitor de tela foca o TextInput abaixo, que tem o rótulo; as caixas são só visuais.
+      accessible={false}
+      importantForAccessibility="no"
       style={styles.row}
       testID="pairing-code-input"
     >
@@ -33,6 +35,8 @@ export default function PairingCodeInput({ value, onChange, hasError = false, au
         return (
           <View
             key={indice}
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
             style={[styles.box, ativo && !hasError && styles.boxActive, hasError && styles.boxError]}
           >
             <Text style={styles.digit}>{caracteres[indice] ?? ''}</Text>
@@ -50,7 +54,9 @@ export default function PairingCodeInput({ value, onChange, hasError = false, au
         blurOnSubmit={false}
         onSubmitEditing={onSubmit}
         autoFocus={autoFocus}
-        accessibilityLabel="Código de pareamento, 6 a 8 letras e números"
+        accessibilityLabel="Código de pareamento, 6 letras e números"
+        accessibilityHint="Digite o código que aparece no celular do seu familiar"
+        importantForAccessibility="yes"
         style={styles.hiddenInput}
         caretHidden
       />
@@ -62,8 +68,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 6, position: 'relative' },
   box: {
     flex: 1,
-    maxWidth: 52,
-    height: 60,
+    maxWidth: 56,
+    height: 72,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.border,
@@ -73,6 +79,6 @@ const styles = StyleSheet.create({
   },
   boxActive: { borderColor: colors.primaryNavy },
   boxError: { borderColor: colors.errorBright },
-  digit: { fontSize: 28, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  digit: { fontSize: 32, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
   hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: 'transparent' },
 });

@@ -3,8 +3,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import ConfirmarEmailScreen from './src/screens/ConfirmarEmailScreen';
 import ElderlyModeScreen from './src/screens/ElderlyModeScreen';
 import ElderlyProfileScreen from './src/screens/ElderlyProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -26,7 +26,8 @@ import ElderlyDataScreen from './src/screens/ElderlyDataScreen';
 import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
 import { PapelProvider } from './src/context/PapelContext';
 import { PapelApp, resolverNavegacao } from './src/services/acessoService';
-import { ResultadoPareamento } from './src/services/pareamentoService';
+import { ResultadoPareamento, codigoDoDeepLink } from './src/services/pareamentoService';
+import { obterAparelhoPareado } from './src/services/aparelhoPareadoService';
 import { Idoso } from './src/services/elderlyService';
 import {
   aoEncerrarSessao,
@@ -35,6 +36,7 @@ import {
   papeisDoToken,
   sair,
   telaInicialPorPapeis,
+  type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
 
@@ -56,6 +58,10 @@ export default function App() {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [usuarioLogado, setUsuarioLogado] = useState<UsuarioLogado | null>(null);
   const conviteRef = useRef<string | null>(null);
+  // Há sessão neste aparelho? Um link de pareamento nunca troca uma sessão existente (ex.: celular do familiar).
+  const sessaoAtivaRef = useRef<boolean>(false);
+  // Código vindo do deep link seniorinsight://pareamento?codigo=..., resgatado pela tela de código.
+  const [codigoDoLink, setCodigoDoLink] = useState<string | null>(null);
 
   // TODO: o papel do usuário em relação ao idoso (ADMIN, membro...) vem do si-care.
   // Por ora deriva do token: familiar -> ADMIN.
@@ -77,6 +83,8 @@ export default function App() {
 
     const claims = decodificarJwt(token) ?? {};
     const papeisToken = papeisDoToken(token);
+    // Aparelho do idoso já pareado (HU-007): abre sempre no Modo Idoso; o papel continua vindo do token.
+    const pareado = papeisToken.includes('idoso') ? await obterAparelhoPareado() : null;
 
     let perfil: PerfilIdentity | null = null;
     try {
@@ -87,13 +95,21 @@ export default function App() {
       console.warn('[App] Não foi possível carregar o perfil:', (err as Error)?.message);
     }
 
+    sessaoAtivaRef.current = true;
+    setCodigoDoLink(null);
+
     setUsuarioLogado({
-      id: perfil?.id ?? claims.sub,
-      tipo: perfil?.tipo,
-      nome: perfil?.nome ?? claims.name ?? claims.preferred_username,
+      id: perfil?.id ?? pareado?.perfilId ?? claims.sub,
+      tipo: perfil?.tipo ?? (pareado ? 'IDOSO' : undefined),
+      nome: perfil?.nome ?? pareado?.nome ?? claims.name ?? claims.preferred_username,
       email: perfil?.email ?? claims.email ?? null,
       papeis: papeisToken,
     });
+    if (pareado) {
+      conviteRef.current = null;
+      setTelaAtual('ElderlyMode');
+      return true;
+    }
     setTelaAtual(conviteRef.current ? 'AcceptInvite' : telaInicialPorPapeis(papeisToken));
     return true;
   }, []);
@@ -109,6 +125,8 @@ export default function App() {
     () =>
       aoEncerrarSessao(() => {
         conviteRef.current = null;
+        sessaoAtivaRef.current = false;
+        setCodigoDoLink(null);
         setInviteToken(null);
         setUsuarioLogado(null);
         setPareamento(null);
@@ -124,6 +142,8 @@ export default function App() {
 
   // Aparelho do idoso pareado: a sessão já foi salva (resgate devolve os tokens) e o papel vem do token.
   const handlePareado = useCallback((resultado: ResultadoPareamento) => {
+    sessaoAtivaRef.current = true;
+    setCodigoDoLink(null);
     setPareamento(resultado);
     setUsuarioLogado({
       id: resultado.perfilId,
@@ -155,6 +175,16 @@ export default function App() {
       .catch((err) => console.warn('[App] Falha ao carregar a sessão após o login:', err?.message));
   }, [entrarComSessaoSalva]);
 
+  // Volta do Keycloak (login ou cadastro). Com sessão, o GET /identity/me cria o perfil no
+  // primeiro acesso (user.created) e leva à tela do papel; sem e-mail confirmado, pede a confirmação.
+  const handleDesfechoAutenticacao = useCallback(
+    (desfecho: DesfechoAutenticacao) => {
+      if (desfecho === 'sessao') handleLoginConcluido();
+      else if (desfecho === 'confirmar-email') setTelaAtual('ConfirmarEmail');
+    },
+    [handleLoginConcluido],
+  );
+
   useEffect(() => {
     const abrirConvite = (token: string) => {
       conviteRef.current = token;
@@ -169,6 +199,18 @@ export default function App() {
         const path = parsed.path || '';
         const hostname = parsed.hostname || '';
         const full = `${hostname}/${path}`;
+
+        // QR lido pela câmera do sistema: seniorinsight://pareamento?codigo=XXXXXX (HU-007).
+        const codigoPareamento = codigoDoDeepLink(parsed);
+        if (codigoPareamento) {
+          if (sessaoAtivaRef.current) {
+            console.warn('[App] Link de pareamento ignorado: este aparelho já tem uma sessão.');
+            return;
+          }
+          setCodigoDoLink(codigoPareamento);
+          setTelaAtual('ElderlyEnterCode');
+          return;
+        }
 
         if (full.includes('convite')) {
           const segments = full.split('/').filter(Boolean);
@@ -204,16 +246,23 @@ export default function App() {
     switch (telaEfetiva) {
       case 'Onboarding':
         return <OnboardingScreen onNavigate={navegar} />;
-      case 'Register':
-        return <RegisterScreen onNavigate={navegar} />;
       case 'Login':
-        return <LoginScreen onNavigate={navegar} onLoginConcluido={handleLoginConcluido} />;
+        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} />;
+      case 'ConfirmarEmail':
+        return <ConfirmarEmailScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'EntryApp':
-        return <EntryAppScreen onNavigate={navegar} />;
+        return <EntryAppScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'ElderlyQrScan':
         return <ElderlyQrScanScreen onNavigate={navegar} onPareado={handlePareado} />;
       case 'ElderlyEnterCode':
-        return <ElderlyEnterCodeScreen onNavigate={navegar} onPareado={handlePareado} />;
+        return (
+          <ElderlyEnterCodeScreen
+            onNavigate={navegar}
+            onPareado={handlePareado}
+            codigoInicial={codigoDoLink}
+            onCodigoInicialUsado={() => setCodigoDoLink(null)}
+          />
+        );
       case 'ElderlyConnected':
         return <ElderlyConnectedScreen onNavigate={navegar} pareamento={pareamento} />;
       case 'ElderlyData':
@@ -307,6 +356,7 @@ export default function App() {
             inviteToken={inviteToken || 'token-exemplo'}
             isAuthenticated={Boolean(usuarioLogado)}
             currentUser={usuarioLogado}
+            onDesfecho={handleDesfechoAutenticacao}
           />
         );
       default:

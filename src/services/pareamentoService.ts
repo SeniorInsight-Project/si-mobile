@@ -1,5 +1,6 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
-import { papeisDoToken, salvarSessao, RespostaTokens } from './authSession';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
+import { papeisDoToken, salvarSessao, type RespostaTokens } from './authSession';
+import { marcarAparelhoPareado } from './aparelhoPareadoService';
 
 /**
  * Pareamento do celular do idoso por código ou QR (HU-007 / HU-008 / RF-006), conforme o contrato
@@ -29,12 +30,12 @@ export type ErroPareamento =
 
 export const MENSAGENS_PAREAMENTO: Record<ErroPareamento, string> = {
   CODIGO_INCOMPLETO: 'Digite o código completo, com 6 a 8 letras e números.',
-  CODIGO_INVALIDO: 'Código não encontrado. Confira com seu familiar.',
-  CODIGO_VENCIDO: 'Código vencido. Peça um novo ao seu familiar.',
-  CODIGO_USADO: 'Este código já foi usado. Peça um novo ao seu familiar.',
+  CODIGO_INVALIDO: 'Código não encontrado',
+  CODIGO_VENCIDO: 'Código vencido. Peça um novo ao seu familiar',
+  CODIGO_USADO: 'Esse código já foi usado',
   TENTATIVAS: 'Muitas tentativas. Espere um pouco e tente de novo.',
-  SEM_PERMISSAO: 'Só o familiar pode gerar o código de pareamento.',
-  SEM_CONEXAO: 'Sem internet. Conecte-se e tente de novo.',
+  SEM_PERMISSAO: 'Só o familiar administrador pode gerar o código',
+  SEM_CONEXAO: 'Sem internet. Conecte o celular ao Wi-Fi ou aos dados móveis e tente de novo.',
   FALHA: 'Não foi possível concluir agora. Tente de novo.',
 };
 
@@ -47,7 +48,13 @@ export class PareamentoError extends Error {
   }
 }
 
+/** Enum `Plataforma` do contrato identity-v1. */
 export type PlataformaAparelho = 'ANDROID' | 'IOS';
+
+/** `Platform.OS` -> `Plataforma` do contrato. O app só é distribuído para Android e iOS. */
+export function plataformaDoContrato(os: string): PlataformaAparelho {
+  return os === 'ios' ? 'IOS' : 'ANDROID';
+}
 
 export interface Aparelho {
   identificador: string;
@@ -95,6 +102,23 @@ export function extrairCodigoDoQr(conteudo: string): string | null {
   return m ? m[1].toUpperCase() : null;
 }
 
+/**
+ * Deep link já interpretado pelo `Linking.parse` (seniorinsight://pareamento?codigo=XXXXXX): devolve o código
+ * em maiúsculas, ou null se o link não é de pareamento ou o código não segue o contrato.
+ */
+export function codigoDoDeepLink(link: {
+  hostname?: string | null;
+  path?: string | null;
+  queryParams?: Record<string, unknown> | null;
+}): string | null {
+  const destino = [link.hostname, link.path].filter(Boolean).join('/').replace(/^\/+|\/+$/g, '');
+  if (destino !== 'pareamento') return null;
+  const bruto = link.queryParams?.codigo;
+  if (typeof bruto !== 'string') return null;
+  const codigo = bruto.trim().toUpperCase();
+  return codigoValido(codigo) ? codigo : null;
+}
+
 /** Texto de compartilhamento do código — sem nome nem dado de saúde (LGPD). */
 export function montarMensagemCompartilhamento(codigo: string, expiraEmMs?: number): string {
   const validade = expiraEmMs
@@ -120,6 +144,12 @@ export function saudacaoIdoso(nomeCompleto: string, sexo = ''): string {
   if (s.startsWith('f')) return `Dona ${primeiroNome}`;
   if (s.startsWith('m')) return `Seu ${primeiroNome}`;
   return primeiroNome;
+}
+
+/** Boas-vindas depois do pareamento (HU-007, cenário 1): "Olá, Maria". */
+export function mensagemBoasVindas(nomeCompleto: string): string {
+  const nome = saudacaoIdoso(nomeCompleto);
+  return nome ? `Olá, ${nome}` : 'Olá!';
 }
 
 function traduzirErro(erro: unknown, aoResgatar: boolean): PareamentoError {
@@ -152,6 +182,8 @@ function comTimeout(ms: number): { signal: AbortSignal; limpar: () => void } {
 export interface DependenciasPareamento {
   cliente?: Pick<ApiClient, 'post'>;
   salvar?: (tokens: RespostaTokens) => Promise<void>;
+  /** Guarda que este aparelho foi pareado (abre sempre no Modo Idoso). */
+  marcarPareado?: (dados: { perfilId: string; nome: string }) => Promise<unknown>;
   timeoutMs?: number;
 }
 
@@ -165,7 +197,12 @@ interface RespostaResgate {
 export async function parearComCodigo(
   entrada: string,
   aparelho: Aparelho,
-  { cliente = apiClient, salvar = salvarSessao, timeoutMs = TIMEOUT_REDE_MS }: DependenciasPareamento = {}
+  {
+    cliente = apiClient,
+    salvar = salvarSessao,
+    marcarPareado = marcarAparelhoPareado,
+    timeoutMs = TIMEOUT_REDE_MS,
+  }: DependenciasPareamento = {}
 ): Promise<ResultadoPareamento> {
   const codigo = sanitizarCodigo(entrada);
   if (!codigoValido(codigo)) throw new PareamentoError('CODIGO_INCOMPLETO');
@@ -185,7 +222,9 @@ export async function parearComCodigo(
   }
 
   const { accessToken, refreshToken, expiresIn } = resposta.tokens;
+  // salvarSessao grava access/refresh com salvarTokens (secure store) e a expiração.
   await salvar({ accessToken, refreshToken, expiresIn });
+  await marcarPareado({ perfilId: resposta.perfil.id, nome: resposta.perfil.nome });
 
   return {
     perfilId: resposta.perfil.id,
@@ -201,6 +240,27 @@ interface RespostaCodigo {
   expiraEm: string;
 }
 
+/** Quanto falta para o código vencer, para a tela do familiar. */
+export interface Validade {
+  vencido: boolean;
+  /** Segundos que faltam (0 quando vencido). */
+  segundos: number;
+  /** "Vence em 9 min 05 s", "Vence em 45 s" ou "Código vencido". */
+  texto: string;
+}
+
+export function validadeDoCodigo(expiraEmMs: number, agoraMs: number = Date.now()): Validade {
+  const segundos = Math.max(0, Math.ceil((expiraEmMs - agoraMs) / 1000));
+  if (!Number.isFinite(expiraEmMs) || segundos <= 0) return { vencido: true, segundos: 0, texto: 'Código vencido' };
+  const h = Math.floor(segundos / 3600);
+  const min = Math.floor((segundos % 3600) / 60);
+  const s = segundos % 60;
+  const dois = (n: number) => String(n).padStart(2, '0');
+  const texto =
+    h > 0 ? `Vence em ${h} h ${dois(min)} min` : min > 0 ? `Vence em ${min} min ${dois(s)} s` : `Vence em ${s} s`;
+  return { vencido: false, segundos, texto };
+}
+
 /** Familiar: pede ao servidor um novo código (o anterior deixa de valer no servidor). */
 export async function gerarCodigoPareamento(
   dados: { nomeIdoso: string; idosoId?: string | null },
@@ -213,7 +273,14 @@ export async function gerarCodigoPareamento(
       { nomeIdoso: dados.nomeIdoso, ...(dados.idosoId ? { idosoId: dados.idosoId } : {}) },
       { signal }
     );
-    return { codigo: r.codigo, qrCodeConteudo: r.qrCodeConteudo, expiraEm: Date.parse(r.expiraEm) };
+    // Só exibe o que o servidor gerou e no formato do contrato; resposta incompleta vira erro, nunca um código local.
+    const codigo = typeof r?.codigo === 'string' ? r.codigo : '';
+    const qrCodeConteudo = typeof r?.qrCodeConteudo === 'string' ? r.qrCodeConteudo.trim() : '';
+    const expiraEm = typeof r?.expiraEm === 'string' ? Date.parse(r.expiraEm) : NaN;
+    if (!codigoValido(codigo) || !qrCodeConteudo || !Number.isFinite(expiraEm)) {
+      throw new PareamentoError('FALHA');
+    }
+    return { codigo, qrCodeConteudo, expiraEm };
   } catch (erro) {
     throw traduzirErro(erro, false);
   } finally {

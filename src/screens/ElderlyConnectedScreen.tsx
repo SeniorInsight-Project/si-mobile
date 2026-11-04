@@ -3,29 +3,29 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
-import { ResultadoPareamento, saudacaoIdoso } from '../services/pareamentoService';
+import { ResultadoPareamento, mensagemBoasVindas } from '../services/pareamentoService';
 
 export interface ElderlyConnectedScreenProps {
   onNavigate: (screen: string) => void;
   pareamento: ResultadoPareamento | null;
 }
 
-/** Figma: "Idoso - Celular Conectado" (HU-007, cenário 1: "Olá/Pronto, Maria"). */
+/** Pareamento concluído (HU-007, cenário 1: "Olá, Maria" e o app fica conectado a este celular). */
 export default function ElderlyConnectedScreen({ onNavigate, pareamento }: ElderlyConnectedScreenProps) {
-  const saudacao = pareamento ? saudacaoIdoso(pareamento.nomeIdoso) : '';
+  const saudacao = mensagemBoasVindas(pareamento?.nomeIdoso ?? '');
 
   return (
     <ScreenWrapper hasHeader={false}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.check}>
+        <View style={styles.check} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Icon name="check" size={64} color={colors.white} />
         </View>
 
-        <Text style={styles.title} testID="conectado-titulo">
-          {saudacao ? `Pronto, ${saudacao}!` : 'Pronto!'}
+        <Text style={styles.title} accessibilityRole="header" testID="conectado-titulo">
+          {saudacao}
         </Text>
         <Text style={styles.subtitle} testID="conectado-subtitulo">
-          Seu celular agora está ligado à sua família.
+          Pronto! Este celular agora está ligado à sua família.
         </Text>
 
         <View style={styles.card}>
@@ -54,6 +54,7 @@ export default function ElderlyConnectedScreen({ onNavigate, pareamento }: Elder
           onPress={() => onNavigate('ElderlyData')}
           activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityLabel="Continuar"
           testID="conectado-continuar"
         >
           <Icon name="arrow_forward" size={22} color={colors.white} />
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 24,
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     textAlign: 'center',
     color: colors.primary,
@@ -96,8 +97,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   rowTexts: { flex: 1 },
-  rowTitle: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  rowSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  rowTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  rowSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
   button: {
     marginTop: 24,
     minHeight: 64,
@@ -108,5 +109,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  buttonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  buttonText: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
 });

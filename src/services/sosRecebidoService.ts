@@ -1,4 +1,4 @@
-import { apiClient, ApiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
  * SOS recebido pelo familiar (HU-065, HU-066, HU-068 / RN-009, RN-002), pelo contrato care-v1:
