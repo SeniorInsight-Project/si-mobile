@@ -107,6 +107,7 @@ export function verificarPerdaDados(
 
 /**
  * Consulta o status do celular do idoso na API com fallback mock resiliente.
+ * Rota conforme si-contracts#7: GET /api/v1/telemetry/idosos/{id}/status
  */
 export async function buscarStatusDispositivo(
   idosoId: string,
@@ -121,7 +122,7 @@ export async function buscarStatusDispositivo(
   }
 
   try {
-    const url = `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/telemetria-wearable/recente`;
+    const url = `${runtimeConfig.apiBaseUrl}/api/v1/telemetry/idosos/${idosoId}/status`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) {
@@ -155,56 +156,68 @@ export async function buscarStatusDispositivo(
 }
 
 /**
- * Normaliza os dados vindos do backend para o modelo completo do status do celular.
+ * Normaliza os dados do StatusAparelho (telemetry-v1) para o modelo da tela.
  */
 function normalizarRespostaApi(idosoId: string, apiData: Record<string, any>): StatusDispositivo {
-  const ultima = apiData.coletado_em || apiData.criado_em || new Date().toISOString();
-  const bateria = typeof apiData.nivel_bateria === 'number' ? apiData.nivel_bateria : 62;
+  const ultima = apiData.ultimaSincronizacao || apiData.coletado_em || apiData.criado_em || '';
+  const bateria = typeof apiData.nivelBateria === 'number'
+    ? apiData.nivelBateria
+    : typeof apiData.nivel_bateria === 'number'
+      ? apiData.nivel_bateria
+      : 0;
+
+  const tiposAtivos: string[] = Array.isArray(apiData.tiposAtivos) ? apiData.tiposAtivos : [];
+
+  const temPassos = tiposAtivos.includes('PASSOS');
+  const temBatimentos = tiposAtivos.includes('BATIMENTOS');
+  const temOxigenacao = tiposAtivos.includes('OXIGENACAO');
+  const temLocalizacao = tiposAtivos.includes('LOCALIZACAO');
+  const temSono = tiposAtivos.includes('SONO');
 
   return {
     idosoId,
-    nomeIdoso: 'Idoso Monitorado',
-    modeloCelular: apiData.device_model || 'Celular Coletor Android',
-    versaoApp: 'v1.0.4',
-    sistemaOperacional: 'Android',
+    nomeIdoso: apiData.nomeIdoso || 'Idoso Monitorado',
+    modeloCelular: apiData.modeloCelular || apiData.device_model || 'Celular Coletor Android',
+    versaoApp: apiData.versaoApp || '1.0.4',
+    sistemaOperacional: apiData.sistemaOperacional || 'Android',
     nivelBateria: bateria,
-    conectado: true,
+    conectado: Boolean(ultima),
     ultimaSincronizacao: ultima,
     tiposDados: [
       {
         id: 'passos',
         nome: 'Passos e Movimentação',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Health Connect',
+        ativo: temPassos,
+        revogadoPeloIdoso: !temPassos,
+        detalhe: temPassos ? 'Ativo via Health Connect' : 'Desativado pelo idoso',
       },
       {
         id: 'batimentos',
         nome: 'Frequência Cardíaca',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Smartwatch',
+        ativo: temBatimentos,
+        revogadoPeloIdoso: !temBatimentos,
+        detalhe: temBatimentos ? 'Ativo via Smartwatch' : 'Desativado pelo idoso',
       },
       {
         id: 'oxigenacao',
         nome: 'Oxigenação (SpO2)',
-        ativo: false,
-        revogadoPeloIdoso: true,
-        detalhe: 'Desativada pelo idoso',
+        ativo: temOxigenacao,
+        revogadoPeloIdoso: !temOxigenacao,
+        detalhe: temOxigenacao ? 'Ativo via Smartwatch' : 'Desativada pelo idoso',
       },
       {
         id: 'gps',
         nome: 'Localização em Tempo Real',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via GPS do celular',
+        ativo: temLocalizacao,
+        revogadoPeloIdoso: !temLocalizacao,
+        detalhe: temLocalizacao ? 'Ativo via GPS do celular' : 'Desativada pelo idoso',
       },
       {
-        id: 'queda',
-        nome: 'Detecção de Queda',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via sensores do relógio',
+        id: 'sono',
+        nome: 'Monitoramento do Sono',
+        ativo: temSono,
+        revogadoPeloIdoso: !temSono,
+        detalhe: temSono ? 'Ativo via Smartwatch' : 'Desativado pelo idoso',
       },
     ],
   };

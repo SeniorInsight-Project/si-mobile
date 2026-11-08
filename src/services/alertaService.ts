@@ -5,8 +5,9 @@ import { apiClient, ApiError, type ApiClient } from './apiClient';
  *
  * - CRITICO e SOS nunca esperam, nem no silêncio noturno; ATENCAO e TECNICO esperam entre 22:00 e 07:00.
  * - Todo alerta crítico traz "não substitui avaliação médica" e sugere ligar para o idoso e, sem resposta, 192.
- * - ROTAS SEM CONTRATO AINDA: GET /api/v1/idosos/{id}/alertas e PUT .../alertas/{alertaId}/avaliacao
- *   (propostas, a levar ao si-contracts). Até existirem a tela mostra o erro; não há alerta de exemplo.
+ * - Rotas conforme si-contracts#7 (notification-v1):
+ *   GET /api/v1/notification/idosos/{id}/alertas
+ *   PUT /api/v1/notification/idosos/{id}/alertas/{alertaId}/avaliacao
  */
 export type TipoAlerta = 'SOS' | 'CRITICO' | 'ATENCAO' | 'TECNICO';
 export type FiltroAlerta = 'TODOS' | 'CRITICOS' | 'ATENCAO' | 'TECNICOS';
@@ -108,10 +109,35 @@ function traduzir(erro: unknown, acao: string): AlertaError {
   return new AlertaError(`Não foi possível ${acao} agora. Tente de novo.`);
 }
 
+function normalizarAlerta(d: any): Alerta {
+  const geradoEm = typeof d?.geradoEm === 'string'
+    ? new Date(d.geradoEm).getTime()
+    : typeof d?.geradoEm === 'number'
+      ? d.geradoEm
+      : Date.now();
+  const avaliadoEm = typeof d?.avaliadoEm === 'string'
+    ? new Date(d.avaliadoEm).getTime()
+    : typeof d?.avaliadoEm === 'number'
+      ? d.avaliadoEm
+      : undefined;
+
+  return {
+    id: d?.id ?? '',
+    tipo: d?.tipo ?? 'TECNICO',
+    titulo: d?.titulo ?? '',
+    detalhe: d?.detalhe ?? undefined,
+    geradoEm,
+    avaliacao: d?.avaliacao ?? undefined,
+    avaliadoEm,
+    motivoAvaliacao: d?.motivoAvaliacao ?? undefined,
+    icone: d?.icone ?? undefined,
+  };
+}
+
 export async function listarAlertas(idosoId: string, { cliente = apiClient }: OpcoesRede = {}): Promise<Alerta[]> {
   try {
-    const dados = await cliente.get<Alerta[]>(`/api/v1/idosos/${idosoId}/alertas`);
-    return Array.isArray(dados) ? ordenarAlertas(dados) : [];
+    const dados = await cliente.get<any[]>(`/api/v1/notification/idosos/${idosoId}/alertas`);
+    return Array.isArray(dados) ? ordenarAlertas(dados.map(normalizarAlerta)) : [];
   } catch (erro) {
     throw traduzir(erro, 'carregar os alertas');
   }
@@ -124,7 +150,7 @@ export async function enviarAvaliacao(
   { cliente = apiClient }: OpcoesRede = {}
 ): Promise<void> {
   try {
-    await cliente.put(`/api/v1/idosos/${idosoId}/alertas/${alerta.id}/avaliacao`, {
+    await cliente.put(`/api/v1/notification/idosos/${idosoId}/alertas/${alerta.id}/avaliacao`, {
       avaliacao: alerta.avaliacao,
       motivo: alerta.motivoAvaliacao ?? '',
     });
