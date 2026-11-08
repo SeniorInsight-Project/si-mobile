@@ -14,7 +14,12 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
+import WatchStatusCard from '../components/WatchStatusCard';
 import { usePapel } from '../context/PapelContext';
+import {
+  carregarStatusRelogioIdoso,
+  StatusRelogioIdoso,
+} from '../services/relogioStatusService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
@@ -94,6 +99,7 @@ export default function ElderlyModeScreen({
   const [primeiroContato, setPrimeiroContato] = useState<ContatoEmergencia | null>(null);
   const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
+  const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
 
 
   useEffect(() => {
@@ -114,6 +120,11 @@ export default function ElderlyModeScreen({
       .catch((err) => {
         console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
       });
+
+    // 0. Carrega status de sincronização do relógio (HU-025)
+    carregarStatusRelogioIdoso(idAtivo)
+      .then(setWatchStatus)
+      .catch(() => {});
 
     obterRotinasDoCache(idAtivo)
       .then((cached) => {
@@ -396,6 +407,12 @@ export default function ElderlyModeScreen({
             <Icon name="volume_up" size={22} color="#003B26" />
           </TouchableOpacity>
         </View>
+
+{/* STATUS DO RELÓGIO (HU-025 / RNF-006) */}
+        <WatchStatusCard
+          status={watchStatus}
+          onPress={() => onNavigate && onNavigate('ElderlyWatch')}
+        />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
         {loading ? (
