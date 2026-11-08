@@ -2,8 +2,8 @@
  * Marca de "este celular é do idoso e já foi pareado" (HU-007).
  *
  * Fica no `expo-secure-store`, ao lado dos tokens, e guarda só o necessário para abrir o app no Modo Idoso
- * e cumprimentar o idoso mesmo sem rede: id do perfil e nome devolvidos pelo resgate. O papel continua
- * vindo do token (RN-011); esta marca não dá acesso a nada sozinha.
+ * e cumprimentar o idoso mesmo sem rede: id do perfil, idosoId (para rotas de consentimento/exclusão)
+ * e nome devolvidos pelo resgate. O papel continua vindo do token (RN-011); esta marca não dá acesso a nada sozinha.
  *
  * É apagada quando a sessão termina (logout ou refresh recusado): sem sessão, o aparelho precisa de um
  * código novo.
@@ -15,6 +15,8 @@ export interface AparelhoPareado {
   nome: string;
   /** Epoch ms do pareamento. */
   pareadoEm: number;
+  /** Id do idoso no care-service para rotas de consentimentos e exclusão */
+  idosoId?: string | null;
 }
 
 export interface ArmazenamentoSeguro {
@@ -42,10 +44,19 @@ async function obterArmazenamento(): Promise<ArmazenamentoSeguro | null> {
 }
 
 /** Guarda que o aparelho foi pareado. Não lança: sem secure store, o app segue pelo papel do token. */
-export async function marcarAparelhoPareado(dados: { perfilId: string; nome: string }): Promise<boolean> {
+export async function marcarAparelhoPareado(dados: {
+  perfilId: string;
+  nome: string;
+  idosoId?: string | null;
+}): Promise<boolean> {
   const store = await obterArmazenamento();
   if (!store) return false;
-  const registro: AparelhoPareado = { perfilId: dados.perfilId, nome: dados.nome, pareadoEm: Date.now() };
+  const registro: AparelhoPareado = {
+    perfilId: dados.perfilId,
+    nome: dados.nome,
+    pareadoEm: Date.now(),
+    idosoId: dados.idosoId ?? null,
+  };
   try {
     await store.setItemAsync(CHAVE_APARELHO_PAREADO, JSON.stringify(registro));
     return true;
@@ -64,10 +75,21 @@ export async function obterAparelhoPareado(): Promise<AparelhoPareado | null> {
     if (!bruto) return null;
     const r = JSON.parse(bruto);
     if (typeof r?.perfilId !== 'string' || typeof r?.nome !== 'string') return null;
-    return { perfilId: r.perfilId, nome: r.nome, pareadoEm: typeof r.pareadoEm === 'number' ? r.pareadoEm : 0 };
+    return {
+      perfilId: r.perfilId,
+      nome: r.nome,
+      pareadoEm: typeof r.pareadoEm === 'number' ? r.pareadoEm : 0,
+      idosoId: r.idosoId ?? null,
+    };
   } catch {
     return null;
   }
+}
+
+/** Devolve apenas o idosoId guardado no pareamento, ou null. */
+export async function obterIdosoIdAparelhoPareado(): Promise<string | null> {
+  const pareado = await obterAparelhoPareado();
+  return pareado?.idosoId ?? null;
 }
 
 /** Apaga a marca (fim da sessão). */

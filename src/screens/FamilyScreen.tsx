@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import {
   listarMembrosRede,
   gerarConvite,
@@ -24,7 +25,6 @@ import {
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
-  INITIAL_MEMBERS,
   LIMITE_MEDICOS_RN012,
   LIMITE_FAMILIARES_RN012,
   ConviteInput,
@@ -34,18 +34,16 @@ import {
 } from '../services/redeProtecaoService';
 import { typography } from '../theme';
 
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
-
 export interface FamilyScreenProps {
   onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   isFamiliarAdmin?: boolean | string;
   papelAcesso?: string;
 }
 
 export default function FamilyScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId,
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
@@ -56,7 +54,7 @@ export default function FamilyScreen({
     String(papelAcesso || '').toUpperCase() === 'ADMINISTRADOR'
   );
   const [filtroAtivo, setFiltroAtivo] = useState<string>('Todos');
-  const [membros, setMembros] = useState<MembroRede[]>(INITIAL_MEMBERS);
+  const [membros, setMembros] = useState<MembroRede[]>([]);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
   const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);
@@ -66,13 +64,19 @@ export default function FamilyScreen({
   const [submittingDoctorInvite, setSubmittingDoctorInvite] = useState<boolean>(false);
 
   const carregarDados = async () => {
+    if (!idosoId) {
+      setMembros([]);
+      setConvitesPendentes([]);
+      setCarregandoMembros(false);
+      return;
+    }
     try {
       setCarregandoMembros(true);
       const [listaMembros, listaPendentes] = await Promise.all([
         listarMembrosRede(idosoId),
         listarConvitesPendentes(idosoId),
       ]);
-      if (Array.isArray(listaMembros) && listaMembros.length > 0) {
+      if (Array.isArray(listaMembros)) {
         setMembros(listaMembros);
       }
       if (Array.isArray(listaPendentes)) {

@@ -53,6 +53,14 @@ describe('Exclusão da conta e dos dados (HU-022 / RN-018)', () => {
     assert.equal(PRAZO_COMPROVANTE_DIAS, 15);
   });
 
+  test('solicitarExclusao com titularId explícito usa a rota do titular no report-service', async () => {
+    const chamadas: any[] = [];
+    const cliente = { post: (async (c: string, b: unknown) => { chamadas.push({ c, b }); return { protocolo: 'PROT-999', prazoDias: 15 }; }) as any };
+    const r = await solicitarExclusao('EXCLUIR', { cliente, titularId: 'titular-abc-456', permitirSimulacao: false });
+    assert.equal(chamadas[0].c, '/api/v1/report/titulares/titular-abc-456/exclusao');
+    assert.equal(r.protocolo, 'PROT-999');
+  });
+
   test('em produção, sem rede NÃO finge sucesso: nada é apagado', async () => {
     await rejeita(solicitarExclusao('EXCLUIR', { cliente: semRede, permitirSimulacao: false }), 'SEM_CONEXAO');
   });

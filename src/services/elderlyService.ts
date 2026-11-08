@@ -1,7 +1,9 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import type { IdosoRequest } from '../types/api';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
 import { resolverTokenAutorizacao } from './tokenStorageService';
+import { decodificarJwt } from './authSession';
 
 export interface Idoso {
   idosoId: string;
@@ -21,21 +23,18 @@ export interface CadastroIdosoInput {
   celular: string;
 }
 
-export const INITIAL_ELDERLIES: Idoso[] = [
-  {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nome: 'Dona Maria Aparecida',
-    dataNascimento: '14/05/1948',
-    sexo: 'Feminino',
-    celular: '(11) 98765-4321',
-  },
-];
+let localElderliesStore: Idoso[] = [];
 
-let localElderliesStore: Idoso[] = [...INITIAL_ELDERLIES];
+async function garantirIdososIniciais(): Promise<void> {
+  if (localElderliesStore.length === 0 && mockPermitido()) {
+    const { INITIAL_ELDERLIES } = await import('../mocks/idosos');
+    localElderliesStore = [...(INITIAL_ELDERLIES as unknown as Idoso[])];
+  }
+}
 
 function normalizarIdoso(idoso: any): Idoso {
   return {
-    idosoId: idoso.idosoId || idoso.id || `idoso-local-${Date.now()}`,
+    idosoId: idoso.idosoId || idoso.id || `idoso-${Date.now()}`,
     nome: idoso.nome || idoso.nomeCompleto || '',
     dataNascimento: idoso.dataNascimento || '',
     sexo: idoso.sexo || idoso.genero || '',
@@ -56,7 +55,7 @@ function paraIdosoRequest(dados: CadastroIdosoInput): IdosoRequest {
 }
 
 export async function listarIdososDoFamiliar(
-  familiarId = 'familiar-dev',
+  familiarId?: string | null,
   token: string | null = null
 ): Promise<Idoso[]> {
   try {
@@ -64,13 +63,23 @@ export async function listarIdososDoFamiliar(
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) headers.Authorization = 'Bearer ' + authToken;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/familiares/${familiarId}/idosos`, {
+    let idFinal = familiarId;
+    if (!idFinal && authToken) {
+      idFinal = decodificarJwt(authToken)?.sub || null;
+    }
+    const alvo = idFinal || 'me';
+
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/familiares/${alvo}/idosos`, {
       method: 'GET',
       headers,
     });
 
     if (!response.ok) {
       console.warn(`[elderlyService] Falha ao listar idosos (${response.status}). Usando fallback local.`);
+      if (mockPermitido()) {
+        await garantirIdososIniciais();
+        return [...localElderliesStore];
+      }
       return [...localElderliesStore];
     }
 
@@ -80,9 +89,15 @@ export async function listarIdososDoFamiliar(
       return [...localElderliesStore];
     }
 
+    if (mockPermitido()) {
+      await garantirIdososIniciais();
+    }
     return [...localElderliesStore];
   } catch (error: any) {
     console.warn('[elderlyService] Backend inacessível. Ativando fallback resiliente:', error?.message);
+    if (mockPermitido()) {
+      await garantirIdososIniciais();
+    }
     return [...localElderliesStore];
   }
 }
@@ -115,24 +130,25 @@ export async function salvarCadastroIdoso(
       ];
       return criado;
     }
+
+    throw new Error(`Falha no cadastro do idoso (${response.status})`);
   } catch (error: any) {
-    console.warn('[elderlyService] Falha ao salvar idoso no backend. Salvando localmente:', error?.message);
+    if (mockPermitido()) {
+      const novoIdoso: Idoso = {
+        idosoId: dadosIdoso.idosoId || `mock-idoso-${Date.now()}`,
+        nome: dadosIdoso.nome,
+        dataNascimento: dadosIdoso.dataNascimento,
+        sexo: dadosIdoso.sexo,
+        celular: dadosIdoso.celular,
+      };
+      localElderliesStore = [
+        novoIdoso,
+        ...localElderliesStore.filter((idoso) => idoso.idosoId !== novoIdoso.idosoId),
+      ];
+      return novoIdoso;
+    }
+    throw error;
   }
-
-  const novoIdoso: Idoso = {
-    idosoId: dadosIdoso.idosoId || `idoso-local-${Date.now()}`,
-    nome: dadosIdoso.nome,
-    dataNascimento: dadosIdoso.dataNascimento,
-    sexo: dadosIdoso.sexo,
-    celular: dadosIdoso.celular,
-  };
-
-  localElderliesStore = [
-    novoIdoso,
-    ...localElderliesStore.filter((idoso) => idoso.idosoId !== novoIdoso.idosoId),
-  ];
-
-  return novoIdoso;
 }
 
 export async function atualizarDadosIdoso(
@@ -163,23 +179,26 @@ export async function atualizarDadosIdoso(
       );
       return atualizado;
     }
+
+    throw new Error(`Falha ao atualizar idoso (${response.status})`);
   } catch (error: any) {
-    console.warn('[elderlyService] Falha ao atualizar idoso no backend. Atualizando localmente:', error?.message);
+    if (mockPermitido()) {
+      const atualizadoLocal: Idoso = {
+        idosoId,
+        nome: dadosIdoso.nome,
+        dataNascimento: dadosIdoso.dataNascimento,
+        sexo: dadosIdoso.sexo,
+        celular: dadosIdoso.celular,
+      };
+
+      localElderliesStore = localElderliesStore.map((idoso) =>
+        idoso.idosoId === idosoId ? atualizadoLocal : idoso
+      );
+
+      return atualizadoLocal;
+    }
+    throw error;
   }
-
-  const atualizadoLocal: Idoso = {
-    idosoId,
-    nome: dadosIdoso.nome,
-    dataNascimento: dadosIdoso.dataNascimento,
-    sexo: dadosIdoso.sexo,
-    celular: dadosIdoso.celular,
-  };
-
-  localElderliesStore = localElderliesStore.map((idoso) =>
-    idoso.idosoId === idosoId ? atualizadoLocal : idoso
-  );
-
-  return atualizadoLocal;
 }
 
 export function obterIdosoLocalPorId(idosoId: string): Idoso | null {

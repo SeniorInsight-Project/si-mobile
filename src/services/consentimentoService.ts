@@ -1,4 +1,5 @@
 import { apiClient, ApiError, type ApiClient } from './apiClient';
+import { obterAparelhoPareado, obterIdosoIdAparelhoPareado } from './aparelhoPareadoService';
 
 /**
  * Autorização de uso dos dados por tipo (HU-018, HU-019 / RF-010, RF-011, RF-012 / RN-001).
@@ -6,8 +7,9 @@ import { apiClient, ApiError, type ApiClient } from './apiClient';
  * - Só o idoso titular autoriza. Cada tipo é um consentimento separado e começa DESLIGADO
  *   (consentimento específico e explícito para dado de saúde — LGPD Art. 11).
  * - Localização é independente: desligada, só é enviada durante um SOS (RN-009).
- * - ROTA SEM CONTRATO AINDA: GET/PUT /api/v1/identity/me/consentimentos (proposta, a levar ao si-contracts).
- *   Até existir, a tela mostra o erro; não há estado local nem dado de exemplo.
+ * - Rota conforme si-contracts#7 (care-v1):
+ *   GET /api/v1/idosos/{idosoId}/consentimentos
+ *   PUT /api/v1/idosos/{idosoId}/consentimentos
  */
 export type TipoDado = 'BATIMENTOS' | 'PASSOS' | 'SONO' | 'OXIGENACAO' | 'LOCALIZACAO';
 
@@ -32,7 +34,8 @@ export const CONSENTIMENTO_PADRAO: Consentimentos = {
   LOCALIZACAO: false,
 };
 
-export const ROTA_CONSENTIMENTOS = '/api/v1/identity/me/consentimentos';
+export const rotaConsentimentos = (idosoId = 'me') => `/api/v1/idosos/${idosoId}/consentimentos`;
+export const ROTA_CONSENTIMENTOS = rotaConsentimentos('me');
 
 export class ConsentimentoError extends Error {
   constructor(mensagem: string) {
@@ -83,8 +86,9 @@ export function descreverAutorizados(c: Consentimentos): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-export interface OpcoesRede {
+export interface OpcoesConsentimento {
   cliente?: Pick<ApiClient, 'get' | 'put'>;
+  idosoId?: string | null;
 }
 
 function normalizar(dados: Partial<Record<TipoDado, unknown>> | null | undefined): Consentimentos {
@@ -95,9 +99,22 @@ function normalizar(dados: Partial<Record<TipoDado, unknown>> | null | undefined
   return base;
 }
 
-export async function obterConsentimentos({ cliente = apiClient }: OpcoesRede = {}): Promise<Consentimentos> {
+async function resolverIdosoId(informado?: string | null): Promise<string> {
+  if (informado) return informado;
+  const pareadoIdosoId = await obterIdosoIdAparelhoPareado();
+  if (pareadoIdosoId) return pareadoIdosoId;
+  const pareado = await obterAparelhoPareado();
+  if (pareado?.perfilId) return pareado.perfilId;
+  return 'me';
+}
+
+export async function obterConsentimentos({
+  cliente = apiClient,
+  idosoId,
+}: OpcoesConsentimento = {}): Promise<Consentimentos> {
+  const idFinal = await resolverIdosoId(idosoId);
   try {
-    return normalizar(await cliente.get<Partial<Record<TipoDado, unknown>>>(ROTA_CONSENTIMENTOS));
+    return normalizar(await cliente.get<Partial<Record<TipoDado, unknown>>>(rotaConsentimentos(idFinal)));
   } catch (erro) {
     throw traduzir(erro, 'carregar');
   }
@@ -105,10 +122,14 @@ export async function obterConsentimentos({ cliente = apiClient }: OpcoesRede = 
 
 export async function salvarConsentimentos(
   consentimentos: Consentimentos,
-  { cliente = apiClient }: OpcoesRede = {}
+  { cliente = apiClient, idosoId }: OpcoesConsentimento = {}
 ): Promise<Consentimentos> {
+  const idFinal = await resolverIdosoId(idosoId);
   try {
-    const resposta = await cliente.put<Partial<Record<TipoDado, unknown>> | undefined>(ROTA_CONSENTIMENTOS, consentimentos);
+    const resposta = await cliente.put<Partial<Record<TipoDado, unknown>> | undefined>(
+      rotaConsentimentos(idFinal),
+      consentimentos
+    );
     return resposta ? normalizar(resposta) : { ...consentimentos };
   } catch (erro) {
     throw traduzir(erro, 'salvar');

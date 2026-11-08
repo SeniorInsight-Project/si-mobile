@@ -107,15 +107,27 @@ describe('Central de Alertas (HU-034 / HU-035 / HU-037 / RN-010 / RN-017)', () =
     assert.equal(original.avaliacao, undefined);
   });
 
-  test('lista: usa a rota de alertas do idoso e ordena a resposta do servidor', async () => {
+  test('lista: usa a rota de notification do idoso e ordena a resposta do servidor', async () => {
     let caminho = '';
     const cliente = {
       get: (async (c: string) => { caminho = c; return [base({ id: 'x', tipo: 'TECNICO' }), base({ id: 'y', tipo: 'CRITICO' })]; }) as any,
       put: (async () => undefined) as any,
     };
     const lista = await listarAlertas('idoso-7', { cliente });
-    assert.equal(caminho, '/api/v1/idosos/idoso-7/alertas');
+    assert.equal(caminho, '/api/v1/notification/idosos/idoso-7/alertas');
     assert.deepEqual(lista.map((a) => a.id), ['y', 'x']);
+  });
+
+  test('parse de alertas com timestamps ISO converte para epoch ms', async () => {
+    const isoGerado = '2026-11-04T14:32:00.000Z';
+    const isoAvaliado = '2026-11-04T15:00:00.000Z';
+    const cliente = {
+      get: (async () => [{ id: 'iso-1', tipo: 'CRITICO', titulo: 'Alerta ISO', geradoEm: isoGerado, avaliadoEm: isoAvaliado }]) as any,
+      put: (async () => undefined) as any,
+    };
+    const lista = await listarAlertas('idoso-1', { cliente });
+    assert.equal(lista[0].geradoEm, new Date(isoGerado).getTime());
+    assert.equal(lista[0].avaliadoEm, new Date(isoAvaliado).getTime());
   });
 
   test('resposta que não é lista vira lista vazia', async () => {
@@ -130,11 +142,11 @@ describe('Central de Alertas (HU-034 / HU-035 / HU-037 / RN-010 / RN-017)', () =
     await assert.rejects(listarAlertas('i', { cliente: falha(404) }), AlertaError, 'rota ainda inexistente = erro, não lista de exemplo');
   });
 
-  test('avaliação: envia para a rota do alerta; se falhar, lança (a tela desfaz a marcação)', async () => {
+  test('avaliação: envia para a rota do alerta no notification-service; se falhar, lança', async () => {
     const chamadas: any[] = [];
     const ok = { get: (async () => []) as any, put: (async (c: string, b: unknown) => { chamadas.push({ c, b }); return undefined; }) as any };
     await enviarAvaliacao('i-1', base({ id: 'a-9', avaliacao: 'FALSO', motivoAvaliacao: 'caminhando' }), { cliente: ok });
-    assert.equal(chamadas[0].c, '/api/v1/idosos/i-1/alertas/a-9/avaliacao');
+    assert.equal(chamadas[0].c, '/api/v1/notification/idosos/i-1/alertas/a-9/avaliacao');
     assert.deepEqual(chamadas[0].b, { avaliacao: 'FALSO', motivo: 'caminhando' });
     const falha = { get: (async () => []) as any, put: (async () => { throw new ApiError(500, null, 'u'); }) as any };
     await assert.rejects(enviarAvaliacao('i-1', base({ avaliacao: 'UTIL' }), { cliente: falha }), AlertaError);

@@ -168,6 +168,12 @@ export interface components {
             perfil: components["schemas"]["Perfil"];
             /** Format: uuid */
             sessaoAparelhoId: string;
+            /**
+             * Format: uuid
+             * @description Id do idoso no care-service, o mesmo informado ao gerar o código. O app do idoso usa esse id nas rotas
+             *     por idoso (consentimentos, exclusão); null quando o código foi gerado sem idosoId.
+             */
+            idosoId?: string | null;
             tokens: components["schemas"]["Tokens"];
         };
     };
