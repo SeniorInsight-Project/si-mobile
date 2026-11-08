@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { typography } from '../theme';
 import {
   listarComorbidades,
@@ -29,8 +30,6 @@ import {
   ElderlyProfile,
 } from '../services/elderlyService';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
-
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
 
 const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 
@@ -104,16 +103,16 @@ function calcularIdade(dataNascimento: string): number | null {
 
 export interface ElderlyProfileScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   accessRole?: string;
-  familiarId?: string;
+  familiarId?: string | null;
 }
 
 export default function ElderlyProfileScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId,
   accessRole = 'ADMIN',
-  familiarId = 'familiar-dev',
+  familiarId,
 }: ElderlyProfileScreenProps) {
   const [comorbidades, setComorbidades] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -143,6 +142,13 @@ export default function ElderlyProfileScreen({
   const avisoIdade = idade !== null && idade < 49;
 
   useEffect(() => {
+    if (!idosoId) {
+      setProfile(null);
+      setForm(EMPTY_FORM);
+      setLoadingPerfil(false);
+      return;
+    }
+
     async function carregarPerfil() {
       try {
         setLoadingPerfil(true);
@@ -174,16 +180,18 @@ export default function ElderlyProfileScreen({
   }, [idosoId, familiarId]);
 
   useEffect(() => {
+    if (!idosoId) {
+      setComorbidades([]);
+      setLoading(false);
+      return;
+    }
+
     async function carregarDados() {
       try {
         setLoading(true);
         const data = await listarComorbidades(idosoId);
-        if (
-          data &&
-          Array.isArray(data.comorbidades) &&
-          data.comorbidades.length > 0
-        ) {
-          setComorbidades(data.comorbidades);
+        if (data && Array.isArray(data)) {
+          setComorbidades(data);
         }
       } catch (err: any) {
         console.warn('Erro ao carregar comorbidades:', err?.message);
@@ -353,7 +361,11 @@ export default function ElderlyProfileScreen({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* CARD 1: IDENTIDADE E MÉTRICAS RÁPIDAS (rx=32, #FFFFFF) */}
+        {!idosoId ? (
+          <SemIdosoCard onNavigate={onNavigate} />
+        ) : (
+          <>
+            {/* CARD 1: IDENTIDADE E MÉTRICAS RÁPIDAS (rx=32, #FFFFFF) */}
         <View style={styles.elderlyCard}>
           <View style={styles.cardTopGlow} />
 
@@ -689,6 +701,8 @@ export default function ElderlyProfileScreen({
             </Text>
           </TouchableOpacity>
         </View>
+          </>
+        )}
       </ScrollView>
 
       {/* MODAL DE ADIÇÃO DE COMORBIDADE */}

@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import {
   listarMembrosRede,
   gerarConvite,
@@ -33,18 +34,16 @@ import {
 } from '../services/redeProtecaoService';
 import { typography } from '../theme';
 
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
-
 export interface FamilyScreenProps {
   onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   isFamiliarAdmin?: boolean | string;
   papelAcesso?: string;
 }
 
 export default function FamilyScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId,
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
@@ -65,13 +64,19 @@ export default function FamilyScreen({
   const [submittingDoctorInvite, setSubmittingDoctorInvite] = useState<boolean>(false);
 
   const carregarDados = async () => {
+    if (!idosoId) {
+      setMembros([]);
+      setConvitesPendentes([]);
+      setCarregandoMembros(false);
+      return;
+    }
     try {
       setCarregandoMembros(true);
       const [listaMembros, listaPendentes] = await Promise.all([
         listarMembrosRede(idosoId),
         listarConvitesPendentes(idosoId),
       ]);
-      if (Array.isArray(listaMembros) && listaMembros.length > 0) {
+      if (Array.isArray(listaMembros)) {
         setMembros(listaMembros);
       }
       if (Array.isArray(listaPendentes)) {

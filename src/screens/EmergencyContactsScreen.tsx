@@ -22,6 +22,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { colors, typography, rounded, shadows } from '../theme';
 import {
   listarContatos,
@@ -300,12 +301,12 @@ function DraggableContactCard({
 
 export interface EmergencyContactsScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
 }
 
 export default function EmergencyContactsScreen({
   onNavigate,
-  idosoId = 'e3b0c442-98fc-1c14-9afc-432100000001',
+  idosoId,
 }: EmergencyContactsScreenProps) {
   const [contatos, setContatos] = useState<ContatoEmergencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -469,6 +470,12 @@ export default function EmergencyContactsScreen({
 
           {loading ? (
             <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
+          ) : contatos.length === 0 ? (
+            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
+              <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
+                A sincronização de contatos de emergência com o servidor estará disponível em breve (care#100). Nenhum contato cadastrado ainda.
+              </Text>
+            </View>
           ) : (
             contatos.map((contato, index) => (
               <DraggableContactCard

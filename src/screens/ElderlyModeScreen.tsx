@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
 import { usePapel } from '../context/PapelContext';
+import { obterAparelhoPareado } from '../services/pareamentoService';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
 import {
@@ -40,19 +41,39 @@ import {
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
 
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
-
 export interface ElderlyModeScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   onLogout?: () => void;
 }
 
 export default function ElderlyModeScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId,
   onLogout,
 }: ElderlyModeScreenProps) {
+  const [idAtivo, setIdAtivo] = useState<string | null>(idosoId || null);
+  const [nomeIdoso, setNomeIdoso] = useState<string>('Dona Maria');
+
+  useEffect(() => {
+    let mounted = true;
+    async function resolverIdentidade() {
+      try {
+        const pareado = await obterAparelhoPareado();
+        if (mounted) {
+          if (pareado?.nomeIdoso) {
+            setNomeIdoso(pareado.nomeIdoso);
+          }
+          const idFinal = idosoId || pareado?.idosoId || pareado?.perfilId || null;
+          setIdAtivo(idFinal);
+        }
+      } catch (err) {
+        console.warn('[ElderlyModeScreen] Erro ao resolver aparelho pareado:', err);
+      }
+    }
+    resolverIdentidade();
+    return () => { mounted = false; };
+  }, [idosoId]);
   const isIdoso = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -67,8 +88,13 @@ export default function ElderlyModeScreen({
 
 
   useEffect(() => {
+    if (!idAtivo) {
+      setRotinas([]);
+      return;
+    }
+
     // 1. Carrega previamente do SQLite local para exibição instantânea 100% offline (RF-038)
-    obterRotinasDoCache(idosoId)
+    obterRotinasDoCache(idAtivo)
       .then((cached) => {
         if (cached && Array.isArray(cached) && cached.length > 0) {
           setRotinas(cached as RotinaMedicamento[]);
@@ -80,7 +106,7 @@ export default function ElderlyModeScreen({
     async function carregar() {
       try {
         setLoading(true);
-        const data = await listarRotinas(idosoId);
+        const data = await listarRotinas(idAtivo);
         if (data && Array.isArray(data) && data.length > 0) {
           setRotinas(data);
         }
@@ -93,7 +119,7 @@ export default function ElderlyModeScreen({
 
     async function carregarContatos() {
       try {
-        const lista = await listarContatos(idosoId);
+        const lista = await listarContatos(idAtivo);
         if (lista && lista.length > 0) {
           setPrimeiroContato(lista[0]);
         }
@@ -116,7 +142,7 @@ export default function ElderlyModeScreen({
         Linking.openURL(`tel:${telSanitizado}`).catch(() => {});
       },
     });
-  }, [idosoId]);
+  }, [idAtivo]);
 
 
   const remedioAtual = useMemo(() => {
@@ -216,7 +242,7 @@ export default function ElderlyModeScreen({
       const loc = await obterLocalizacaoRapida();
 
       // 2. Enfileira imediatamente no SQLite e memória com chave de idempotência UUID única
-      const registro = await enfileirarSos(idosoId, {
+      const registro = await enfileirarSos(idAtivo || idosoId || "idoso-local", {
         latitude: loc?.latitude ?? null,
         longitude: loc?.longitude ?? null,
         nivelBateria: null,
@@ -327,7 +353,7 @@ export default function ElderlyModeScreen({
             </View>
             <View style={styles.greetingTexts}>
               <Text style={styles.greetingSub}>Quinta-feira, 10:02</Text>
-              <Text style={styles.greetingTitle}>Olá, Dona Maria!</Text>
+              <Text style={styles.greetingTitle}>Olá, {nomeIdoso}!</Text>
             </View>
           </View>
 
@@ -413,7 +439,7 @@ export default function ElderlyModeScreen({
             <View style={styles.allTakenBadge}>
               <Text style={styles.allTakenBadgeText}>TUDO CERTO POR HOJE!</Text>
             </View>
-            <Text style={styles.allTakenTitle}>Parabéns, Dona Maria!</Text>
+            <Text style={styles.allTakenTitle}>Parabéns, {nomeIdoso}!</Text>
             <Text style={styles.allTakenSubtitle}>
               Todos os seus medicamentos de hoje já foram tomados com sucesso.
             </Text>
