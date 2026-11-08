@@ -1,5 +1,6 @@
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 import { obterAparelhoPareado } from './aparelhoPareadoService';
+import { encerrarSessaoLocal } from './authSession';
 import type { PedidoExclusao, SolicitarExclusaoRequest } from '../types/api';
 
 /**
@@ -112,4 +113,11 @@ export async function solicitarExclusao(
     return { protocolo: `DEV-${Date.now().toString(36).toUpperCase()}`, prazoDias: PRAZO_COMPROVANTE_DIAS, simulado: true };
   }
   throw new ExclusaoError('SEM_CONEXAO');
+}
+
+/**
+ * Após o envio do pedido de exclusão, limpa os tokens e apaga todos os dados locais (SQLite) (HU-022).
+ */
+export async function executarLimpezaLocalExclusao(): Promise<void> {
+  await encerrarSessaoLocal('logout');
 }

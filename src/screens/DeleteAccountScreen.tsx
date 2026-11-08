@@ -6,6 +6,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
 import { usePapel } from '../context/PapelContext';
+import { sair } from '../services/authSession';
 import {
   ComprovanteExclusao,
   ExclusaoError,
@@ -14,6 +15,7 @@ import {
   PRAZO_COMPROVANTE_DIAS,
   confirmacaoValida,
   solicitarExclusao,
+  executarLimpezaLocalExclusao,
 } from '../services/exclusaoContaService';
 
 export interface DeleteAccountScreenProps {
@@ -44,12 +46,23 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
     setErro('');
     setEnviando(true);
     try {
-      setComprovante(await solicitarExclusao(texto, { assinaturaAtiva }));
+      const res = await solicitarExclusao(texto, { assinaturaAtiva });
+      setComprovante(res);
     } catch (e) {
       setErro(e instanceof ExclusaoError ? e.message : MENSAGENS_EXCLUSAO.SEM_CONEXAO);
     } finally {
       setEnviando(false);
     }
+  };
+
+  const concluirSaida = async () => {
+    try {
+      await executarLimpezaLocalExclusao();
+      await sair();
+    } catch (e) {
+      console.warn('[DeleteAccountScreen] Falha ao encerrar sessão após exclusão:', (e as Error)?.message);
+    }
+    onNavigate('Logout');
   };
 
   if (comprovante) {
@@ -73,8 +86,14 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
               </Text>
             )}
           </View>
-          <TouchableOpacity style={styles.danger} onPress={() => onNavigate('Logout')} accessibilityRole="button" testID="exclusao-concluir">
-            <Text style={styles.dangerTexto}>Concluir</Text>
+          <TouchableOpacity
+            style={styles.danger}
+            onPress={concluirSaida}
+            accessibilityRole="button"
+            testID="exclusao-concluir"
+          >
+            <Icon name="logout" size={22} color={colors.white} />
+            <Text style={styles.dangerTexto}>Concluir e sair</Text>
           </TouchableOpacity>
         </ScrollView>
       </ScreenWrapper>
@@ -113,8 +132,21 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
 
         {assinaturaAtiva && (
           <View style={styles.assinatura} testID="exclusao-assinatura">
-            <Icon name="credit_card" size={20} color={colors.amber.textDark} />
+            <View style={styles.assinaturaCabecalho}>
+              <Icon name="credit_card" size={22} color={colors.amber.textDark} />
+              <Text style={styles.assinaturaTitulo}>Assinatura Premium ativa</Text>
+            </View>
             <Text style={styles.assinaturaTexto}>{MENSAGENS_EXCLUSAO.ASSINATURA_ATIVA}</Text>
+            <View style={styles.cancelamentoGuia}>
+              <Text style={styles.cancelamentoGuiaTitulo}>Como cancelar antes de excluir:</Text>
+              <Text style={styles.cancelamentoPasso}>1. Abra a Google Play Store ou App Store no celular.</Text>
+              <Text style={styles.cancelamentoPasso}>2. Toque no ícone do seu perfil e vá em "Pagamentos e assinaturas".</Text>
+              <Text style={styles.cancelamentoPasso}>3. Toque em "Assinaturas" e selecione "SeniorInsight".</Text>
+              <Text style={styles.cancelamentoPasso}>4. Toque em "Cancelar assinatura" e confirme.</Text>
+            </View>
+            <Text style={styles.cancelamentoNota}>
+              Após efetuar o cancelamento na loja, retorne a esta tela para concluir a exclusão definitiva.
+            </Text>
           </View>
         )}
 
@@ -185,8 +217,14 @@ const styles = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linhaTitulo: { fontSize: 16, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
   linhaSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  assinatura: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
-  assinaturaTexto: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  assinatura: { gap: 10, padding: 16, borderRadius: 16, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
+  assinaturaCabecalho: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  assinaturaTitulo: { fontSize: 16, fontWeight: '800', color: colors.amber.textDark, fontFamily: typography.fontFamily.heading },
+  assinaturaTexto: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  cancelamentoGuia: { gap: 6, marginTop: 4, paddingLeft: 4 },
+  cancelamentoGuiaTitulo: { fontSize: 14, fontWeight: '700', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  cancelamentoPasso: { fontSize: 13, lineHeight: 18, color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  cancelamentoNota: { fontSize: 13, lineHeight: 18, fontStyle: 'italic', color: colors.amber.textDark, fontFamily: typography.fontFamily.body, marginTop: 4 },
   label: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
   campo: { minHeight: 56, borderRadius: 16, backgroundColor: colors.surfaceSubtle, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   input: { flex: 1, minHeight: 52, fontSize: 18, fontWeight: '700', color: colors.onSurface, fontFamily: typography.fontFamily.body },

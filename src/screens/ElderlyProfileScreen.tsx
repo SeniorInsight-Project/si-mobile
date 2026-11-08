@@ -708,6 +708,16 @@ export default function ElderlyProfileScreen({
               Histórico Clínico Completo
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteAccountLink}
+            onPress={() => onNavigate && onNavigate('DeleteAccount')}
+            accessibilityRole="button"
+            testID="excluir-conta-perfil"
+          >
+            <Icon name="delete" size={16} color="#64748B" />
+            <Text style={styles.deleteAccountText}>Excluir minha conta e meus dados</Text>
+          </TouchableOpacity>
         </View>
           </>
         )}
@@ -730,6 +740,21 @@ export default function ElderlyProfileScreen({
 
 
 const styles = StyleSheet.create({
+  deleteAccountLink: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+  },
+  deleteAccountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: typography.fontFamilyBody,
+  },
   curatelaNoticeCard: {
     flexDirection: 'row',
     alignItems: 'center',
