@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -19,6 +19,7 @@ import TolerancePicker from '../components/TolerancePicker';
 import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { typography } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import {
@@ -31,16 +32,14 @@ import {
   RotinaMedicamentoInput,
 } from '../services/medicamentoService';
 
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
-
 export interface MedicinesScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
 }
 
 export default function MedicinesScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId,
 }: MedicinesScreenProps) {
   const somenteConfirmar = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
@@ -54,10 +53,17 @@ export default function MedicinesScreen({
   const [editingRoutine, setEditingRoutine] = useState<RotinaMedicamento | null>(null);
 
   useEffect(() => {
-    async function carregar() {
+    const idAtivo = idosoId;
+    if (!idAtivo) {
+      setRotinas([]);
+      setLoading(false);
+      return;
+    }
+
+    async function carregar(id: string) {
       try {
         setLoading(true);
-        const data = await listarRotinas(idosoId, selectedDayObj?.id);
+        const data = await listarRotinas(id, selectedDayObj?.id);
         if (data && Array.isArray(data)) {
           setRotinas(data);
         }
@@ -68,7 +74,7 @@ export default function MedicinesScreen({
       }
     }
 
-    carregar();
+    carregar(idAtivo);
   }, [idosoId, selectedDayObj]);
 
   const rotinasUnicas = useMemo(() => {
@@ -97,6 +103,8 @@ export default function MedicinesScreen({
   }, [rotinasUnicas]);
 
   const handleConfirmDose = async (rotina: RotinaMedicamento) => {
+    if (!idosoId) return;
+    const idAtivo = idosoId;
     try {
       setActionLoadingId(rotina.id);
       const isTomado = rotina.statusHoje === 'TOMADO';
@@ -105,7 +113,7 @@ export default function MedicinesScreen({
         ? 'Dose desmarcada pelo familiar.'
         : 'Familiar confirmou dose no app.';
 
-      const res = await confirmarIngestao(idosoId, rotina.id, {
+      const res = await confirmarIngestao(idAtivo, rotina.id, {
         status: novoStatus,
         observacao: obs,
       });
@@ -170,6 +178,10 @@ export default function MedicinesScreen({
     payload: RotinaMedicamentoInput,
     routineId?: string
   ) => {
+    if (!idosoId) {
+      Alert.alert('Atenção', 'Selecione ou cadastre um idoso antes de adicionar medicamentos.');
+      return;
+    }
     try {
       setActionLoadingId('modal');
       if (routineId) {
@@ -244,7 +256,11 @@ export default function MedicinesScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARD 1: ACOMPANHAMENTO DIÁRIO & CALENDÁRIO (rx=32, #FFFFFF) */}
+        {!idosoId ? (
+          <SemIdosoCard onNavigate={onNavigate} />
+        ) : (
+          <>
+            {/* CARD 1: ACOMPANHAMENTO DIÁRIO & CALENDÁRIO (rx=32, #FFFFFF) */}
         <View style={styles.dailyCard}>
           <View style={styles.dailyHeaderRow}>
             <View>
@@ -345,6 +361,8 @@ export default function MedicinesScreen({
             ))
           )}
         </View>
+          </>
+        )}
       </ScrollView>
 
       {/* MODAL DE CADASTRO E EDIÇÃO DE MEDICAMENTOS */}

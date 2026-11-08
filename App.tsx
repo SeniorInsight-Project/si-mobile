@@ -25,6 +25,7 @@ import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
 import ElderlyDataScreen from './src/screens/ElderlyDataScreen';
 import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
 import { PapelProvider } from './src/context/PapelContext';
+import { IdosoProvider } from './src/context/IdosoContext';
 import { PapelApp, resolverNavegacao } from './src/services/acessoService';
 import { ResultadoPareamento, codigoDoDeepLink } from './src/services/pareamentoService';
 import { obterAparelhoPareado } from './src/services/aparelhoPareadoService';
@@ -54,7 +55,8 @@ const ASSINATURA_ATIVA = false;
 export default function App() {
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
-  const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string>('e3b0c442-98fc-1c14-9afc-432100000001');
+  const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string | null>(null);
+  const [nomeIdosoSelecionado, setNomeIdosoSelecionado] = useState<string | null>(null);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [usuarioLogado, setUsuarioLogado] = useState<UsuarioLogado | null>(null);
   const conviteRef = useRef<string | null>(null);
@@ -107,6 +109,8 @@ export default function App() {
     });
     if (pareado) {
       conviteRef.current = null;
+      setIdosoSelecionadoId(pareado.perfilId);
+      setNomeIdosoSelecionado(pareado.nome);
       setTelaAtual('ElderlyMode');
       return true;
     }
@@ -131,6 +135,8 @@ export default function App() {
         setUsuarioLogado(null);
         setPareamento(null);
         setPrimeiroUsoIdoso(false);
+        setIdosoSelecionadoId(null);
+        setNomeIdosoSelecionado(null);
         setTelaAtual('EntryApp');
       }),
     [],
@@ -145,6 +151,8 @@ export default function App() {
     sessaoAtivaRef.current = true;
     setCodigoDoLink(null);
     setPareamento(resultado);
+    setIdosoSelecionadoId(resultado.perfilId);
+    setNomeIdosoSelecionado(resultado.nomeIdoso);
     setUsuarioLogado({
       id: resultado.perfilId,
       tipo: 'IDOSO',
@@ -284,6 +292,7 @@ export default function App() {
             onCadastrado={(idoso) => {
               setIdosoRecemCadastrado(idoso);
               setIdosoSelecionadoId(idoso.idosoId);
+              setNomeIdosoSelecionado(idoso.nome);
             }}
           />
         );
@@ -291,15 +300,15 @@ export default function App() {
         return (
           <PairingCodeScreen
             onNavigate={navegar}
-            idosoId={idosoRecemCadastrado?.idosoId ?? idosoSelecionadoId}
-            nomeIdoso={idosoRecemCadastrado?.nome ?? ''}
+            idosoId={idosoRecemCadastrado?.idosoId ?? idosoSelecionadoId ?? ''}
+            nomeIdoso={idosoRecemCadastrado?.nome ?? nomeIdosoSelecionado ?? ''}
           />
         );
       case 'Alerts':
         return (
           <AlertsCenterScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? ''}
             onAbrirSos={(alarmeId) => {
               setAlarmeSelecionadoId(alarmeId);
               setTelaAtual('SosReceived');
@@ -310,7 +319,7 @@ export default function App() {
         return (
           <SosReceivedScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? ''}
             alarmeId={alarmeSelecionadoId}
           />
         );
@@ -319,36 +328,38 @@ export default function App() {
       case 'AcessoRestrito':
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
-        return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} />;
+        return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} idosoId={idosoSelecionadoId ?? undefined} />;
       case 'ElderlyProfile':
         return (
           <ElderlyProfileScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? undefined}
             accessRole={papelAcessoAtual}
+            familiarId={usuarioLogado?.id}
           />
         );
       case 'Home':
         return (
           <HomeScreen
             onNavigate={navegar}
-            onSelectElderly={setIdosoSelecionadoId}
+            onSelectElderly={(id) => setIdosoSelecionadoId(id)}
             onLogout={handleLogout}
+            familiarId={usuarioLogado?.id}
           />
         );
       case 'Medicines':
-        return <MedicinesScreen onNavigate={navegar} />;
+        return <MedicinesScreen onNavigate={navegar} idosoId={idosoSelecionadoId ?? undefined} />;
       case 'Family':
         return (
           <FamilyScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? undefined}
             isFamiliarAdmin={papelAcessoAtual === 'ADMIN'}
             papelAcesso={papelAcessoAtual}
           />
         );
       case 'EmergencyContacts':
-        return <EmergencyContactsScreen onNavigate={navegar} />;
+        return <EmergencyContactsScreen onNavigate={navegar} idosoId={idosoSelecionadoId ?? undefined} />;
       case 'AcceptInvite':
         return (
           <AcceptInviteScreen
@@ -366,14 +377,23 @@ export default function App() {
 
   return (
     <PapelProvider value={papel}>
-      <StatusBar style="auto" />
-      {restaurandoSessao ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#D83729" />
-        </View>
-      ) : (
-        renderScreen()
-      )}
+      <IdosoProvider
+        value={{
+          idosoId: idosoSelecionadoId,
+          setIdosoId: setIdosoSelecionadoId,
+          nomeIdoso: nomeIdosoSelecionado,
+          setNomeIdoso: setNomeIdosoSelecionado,
+        }}
+      >
+        <StatusBar style="auto" />
+        {restaurandoSessao ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color="#D83729" />
+          </View>
+        ) : (
+          renderScreen()
+        )}
+      </IdosoProvider>
     </PapelProvider>
   );
 }
