@@ -15,11 +15,16 @@ import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
 import WatchStatusCard from '../components/WatchStatusCard';
+import ElderlyMetricsCards from '../components/ElderlyMetricsCards';
 import { usePapel } from '../context/PapelContext';
 import {
   carregarStatusRelogioIdoso,
   StatusRelogioIdoso,
 } from '../services/relogioStatusService';
+import {
+  carregarBiometriaIdoso,
+  DadosIdosoBiometria,
+} from '../services/elderlyTelemetryService';
 import { obterAparelhoPareado } from '../services/pareamentoService';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
@@ -93,6 +98,7 @@ export default function ElderlyModeScreen({
   const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
   const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
+  const [biometria, setBiometria] = useState<DadosIdosoBiometria | null>(null);
 
 
   useEffect(() => {
@@ -110,6 +116,11 @@ export default function ElderlyModeScreen({
           setPrimeiroContato(cachedContatos[0]);
         }
       })
+      .catch(() => {});
+
+    // 0. Carrega biometria (HU-030) e status de sincronização do relógio (HU-025)
+    carregarBiometriaIdoso(idAtivo)
+      .then(setBiometria)
       .catch(() => {});
 
     // 0. Carrega status de sincronização do relógio (HU-025)
@@ -394,6 +405,13 @@ export default function ElderlyModeScreen({
         <WatchStatusCard
           status={watchStatus}
           onPress={() => onNavigate && onNavigate('ElderlyWatch')}
+        />
+
+{/* PASSOS E BATIMENTOS DE HOJE (HU-030 / RNF-006) */}
+        <ElderlyMetricsCards
+          biometria={biometria}
+          onPressPassos={() => onNavigate && onNavigate('ElderlyData')}
+          onPressBatimentos={() => onNavigate && onNavigate('ElderlyData')}
         />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
