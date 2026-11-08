@@ -6,6 +6,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
+import { usePapel } from '../context/PapelContext';
 import {
   CONSENTIMENTO_PADRAO,
   ConsentimentoError,
@@ -39,6 +40,8 @@ const LINHAS_SAUDE: LinhaDado[] = [
 
 /** Figma: "Idoso - Autorizar meus dados" (HU-018, HU-019, RN-001). Só o idoso chega aqui. */
 export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: ElderlyDataScreenProps) {
+  const papel = usePapel();
+  const isFamiliar = papel !== 'IDOSO';
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState('');
@@ -92,6 +95,15 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
     <ScreenWrapper>
       <AppHeader title="Meus Dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
       <ScrollView contentContainerStyle={styles.content}>
+        {isFamiliar && (
+          <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
+            <Icon name="gavel" size={20} color="#B51C13" />
+            <Text style={styles.curatelaBannerText}>
+              Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar essas escolhas.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.card}>
           <Text style={styles.title}>Você decide o que compartilhar</Text>
           <Text style={styles.body}>
@@ -230,6 +242,24 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120, gap: 16 },
+  curatelaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFEBE5',
+    borderWidth: 1.5,
+    borderColor: '#FFCDC2',
+    borderRadius: 16,
+    padding: 16,
+  },
+  curatelaBannerText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: '#B51C13',
+    fontFamily: typography.fontFamily.body,
+  },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 4, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
   body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },

@@ -26,6 +26,12 @@ import {
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
 import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
+import {
+  obterConsentimentos,
+  statusMonitoramento,
+  mensagemParaFamilia,
+  type Consentimentos,
+} from '../services/consentimentoService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
 import { typography } from '../theme';
 
@@ -68,6 +74,7 @@ export default function HomeScreen({
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
   const [telemetria, setTelemetria] = useState<EstadoAtual | null>(null);
   const [scoreData, setScoreData] = useState<ScoreBemEstar | null>(null);
+  const [consentimentosIdoso, setConsentimentosIdoso] = useState<Consentimentos | null>(null);
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
 
   // Lista dos idosos do familiar (HU-008)
@@ -105,6 +112,12 @@ export default function HomeScreen({
         // Carrega semáforo do bem-estar e score de risco (HU-032 e HU-033)
         const scoreResult = await buscarScoreBemEstar(idosoAlvo, plano);
         setScoreData(scoreResult);
+
+        // Carrega consentimentos do idoso para o semáforo familiar (HU-019)
+        try {
+          const consent = await obterConsentimentos({ idosoId: idosoAlvo });
+          setConsentimentosIdoso(consent);
+        } catch (e) {}
       } catch (error: any) {
         console.warn('Erro ao carregar idosos na Home:', error?.message);
       } finally {
@@ -481,6 +494,10 @@ export default function HomeScreen({
                 <Text style={styles.statusSubLabel}>
                   {resgateAtivo
                     ? 'Protocolo familiar em andamento'
+                    : consentimentosIdoso && statusMonitoramento(consentimentosIdoso) === 'PAUSADO'
+                    ? 'Monitoramento pausado pelo idoso'
+                    : consentimentosIdoso && statusMonitoramento(consentimentosIdoso) === 'PARCIAL'
+                    ? mensagemParaFamilia(consentimentosIdoso)
                     : scoreData?.explicacao?.fatores?.[0] ||
                       'Nenhuma anomalia detectada nas últimas 6h'}
                 </Text>

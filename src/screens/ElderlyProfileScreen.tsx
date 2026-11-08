@@ -409,6 +409,14 @@ export default function ElderlyProfileScreen({
           </View>
         </View>
 
+{/* AVISO DE AUTORIZAÇÕES E CURATELA (HU-018 Cenário 2) */}
+        <View style={styles.curatelaNoticeCard} testID="aviso-curatela-perfil">
+          <Icon name="shield" size={18} color="#031753" />
+          <Text style={styles.curatelaNoticeText}>
+            Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar autorizações de saúde (RN-001 / Art. 11 LGPD).
+          </Text>
+        </View>
+
         {/* SEÇÃO 2: COMORBIDADES & ALERTAS (Cabeçalho fora do card branco) */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
@@ -722,6 +730,24 @@ export default function ElderlyProfileScreen({
 
 
 const styles = StyleSheet.create({
+  curatelaNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#E6F3FA',
+    borderWidth: 1,
+    borderColor: '#C4E4F5',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  curatelaNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#031753',
+    fontFamily: typography.fontFamilyBody,
+  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
