@@ -1,9 +1,13 @@
 import { apiClient, ApiError, type ApiClient } from './apiClient';
+import { obterAparelhoPareado } from './aparelhoPareadoService';
+import { encerrarSessaoLocal } from './authSession';
+import type { PedidoExclusao, SolicitarExclusaoRequest } from '../types/api';
 
 /**
  * Exclusão da conta e dos dados (HU-022 / RF-015 / RN-018 / RNF-017).
  *
- * ROTA SEM CONTRATO AINDA: POST /api/v1/identity/me/exclusao (proposta, depende da si-identity-service#12).
+ * Rota conforme si-contracts#7 (report-v1):
+ * POST /api/v1/report/titulares/{titularId}/exclusao
  *
  * Ação definitiva e com efeito legal: o app NUNCA finge que o pedido foi enviado. Sem resposta do
  * servidor, devolve SEM_CONEXAO e nada é apagado. A simulação de sucesso existe só em desenvolvimento
@@ -48,6 +52,7 @@ export interface ExclusaoOptions {
   cliente?: Pick<ApiClient, 'post'>;
   timeoutMs?: number;
   permitirSimulacao?: boolean;
+  titularId?: string | null;
 }
 
 declare const __DEV__: boolean | undefined;
@@ -56,7 +61,15 @@ function emDesenvolvimento(): boolean {
   return typeof __DEV__ !== 'undefined' && __DEV__ === true;
 }
 
-export const ROTA_EXCLUSAO = '/api/v1/identity/me/exclusao';
+export const rotaExclusao = (titularId = 'me') => `/api/v1/report/titulares/${titularId}/exclusao`;
+export const ROTA_EXCLUSAO = rotaExclusao('me');
+
+async function resolverTitularId(informado?: string | null): Promise<string> {
+  if (informado) return informado;
+  const pareado = await obterAparelhoPareado();
+  if (pareado?.perfilId) return pareado.perfilId;
+  return 'me';
+}
 
 export async function solicitarExclusao(
   confirmacao: string,
@@ -65,21 +78,24 @@ export async function solicitarExclusao(
     cliente = apiClient,
     timeoutMs = TIMEOUT_REDE_MS,
     permitirSimulacao = emDesenvolvimento(),
+    titularId,
   }: ExclusaoOptions = {}
 ): Promise<ComprovanteExclusao> {
   if (!confirmacaoValida(confirmacao)) throw new ExclusaoError('FRASE_INVALIDA');
   if (assinaturaAtiva) throw new ExclusaoError('ASSINATURA_ATIVA');
 
+  const idFinal = await resolverTitularId(titularId);
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), timeoutMs);
   try {
-    const dados = await cliente.post<{ protocolo?: string; id?: string; prazoDias?: number } | undefined>(
-      ROTA_EXCLUSAO,
-      { confirmacao: FRASE_CONFIRMACAO },
+    const payload: SolicitarExclusaoRequest = { confirmacao: 'EXCLUIR' };
+    const dados = await cliente.post<PedidoExclusao | undefined>(
+      rotaExclusao(idFinal),
+      payload,
       { signal: controlador.signal }
     );
     return {
-      protocolo: String(dados?.protocolo ?? dados?.id ?? ''),
+      protocolo: String(dados?.protocolo ?? ''),
       prazoDias: Number(dados?.prazoDias ?? PRAZO_COMPROVANTE_DIAS),
       simulado: false,
     };
@@ -97,4 +113,11 @@ export async function solicitarExclusao(
     return { protocolo: `DEV-${Date.now().toString(36).toUpperCase()}`, prazoDias: PRAZO_COMPROVANTE_DIAS, simulado: true };
   }
   throw new ExclusaoError('SEM_CONEXAO');
+}
+
+/**
+ * Após o envio do pedido de exclusão, limpa os tokens e apaga todos os dados locais (SQLite) (HU-022).
+ */
+export async function executarLimpezaLocalExclusao(): Promise<void> {
+  await encerrarSessaoLocal('logout');
 }

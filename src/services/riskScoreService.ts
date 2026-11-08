@@ -1,5 +1,6 @@
 import { runtimeConfig } from '../config/runtime';
 import { resolverTokenAutorizacao } from './tokenStorageService';
+import { mockPermitido } from '../config/ambiente';
 
 export interface FaixaScore {
   codigo: 'ESTAVEL' | 'ATENCAO' | 'CRITICO';
@@ -131,7 +132,7 @@ export function determinarFaixaScore(score: unknown): FaixaScore & { score: numb
  */
 export function verificarHistoricoMinimo(
   diasComDadosValidos: unknown = 0,
-  nomeIdoso = 'Dona Maria'
+  nomeIdoso = 'Idoso Monitorado'
 ): HistoricoMinimo {
   const DIAS_MINIMOS = 3;
   const diasValidos = typeof diasComDadosValidos === 'number' ? Math.max(0, diasComDadosValidos) : 0;
@@ -163,7 +164,7 @@ export function verificarHistoricoMinimo(
  */
 export function obterExplicacaoMotivo({
   score = 18,
-  nomeIdoso = 'Dona Maria',
+  nomeIdoso = 'Idoso Monitorado',
   fatores = [],
 }: { score?: number; nomeIdoso?: string; fatores?: string[] } = {}): ExplicacaoMotivo {
   const faixa = determinarFaixaScore(score);
@@ -172,19 +173,16 @@ export function obterExplicacaoMotivo({
   if (Array.isArray(fatores) && fatores.length > 0) {
     fatoresExplicativos = fatores;
   } else if (faixa.codigo === 'ESTAVEL') {
-    // HU-033 Cenário 2 (Estável)
     fatoresExplicativos = [
       `Sinais dentro do normal de ${nomeIdoso}`,
       'Nenhuma anomalia detectada nas últimas 6h',
     ];
   } else if (faixa.codigo === 'ATENCAO') {
-    // HU-033 Cenário 1 (Atenção)
     fatoresExplicativos = [
       'Os passos caíram 60% em relação à semana passada',
       'Batimento em repouso 12% acima do normal dela',
     ];
   } else {
-    // Crítico
     fatoresExplicativos = [
       'Variação cardiovascular relevante detectada',
       'Queda acentuada na mobilidade sem padrão prévio',
@@ -193,7 +191,6 @@ export function obterExplicacaoMotivo({
 
   let recomendacaoAcao: string | null = null;
   if (faixa.codigo === 'CRITICO') {
-    // RN-017 / HU-035: sugerir ligar e, sem resposta, SAMU (192)
     recomendacaoAcao = `Ligue para ${nomeIdoso}; se ela não atender, acione o SAMU (192).`;
   } else if (faixa.codigo === 'ATENCAO') {
     recomendacaoAcao = `Vale ligar para ${nomeIdoso} e verificar como ela está se sentindo hoje.`;
@@ -209,23 +206,6 @@ export function obterExplicacaoMotivo({
     avisoMedico: AVISO_MEDICO_RN017,
   };
 }
-
-/**
- * Mock clínico padronizado para testes e desenvolvimento do Semáforo.
- */
-const SCORE_BEM_ESTAR_MOCK: Record<string, ScoreBruto> = {
-  'e3b0c442-98fc-1c14-9afc-432100000001': {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria',
-    score: 18, // Cenário 1 da HU-032: Score 18 -> "Tudo bem agora"
-    diasComDadosValidos: 7, // Histórico completo (> 3 dias)
-    coletadoEm: new Date().toISOString(),
-    fatores: [
-      'Sinais dentro do normal de Dona Maria',
-      'Nenhuma anomalia detectada nas últimas 6h',
-    ],
-  },
-};
 
 /**
  * Busca o score de bem-estar com base no plano do familiar (RN-014 e HU-032).
@@ -246,12 +226,15 @@ export async function buscarScoreBemEstar(
   }
 
   if (!idosoId) {
-    const defaultMock = SCORE_BEM_ESTAR_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'];
-    return normalizarScoreResponse(defaultMock);
+    if (mockPermitido()) {
+      const { SCORE_BEM_ESTAR_MOCK } = await import('../mocks/riskScore');
+      const defaultMock = SCORE_BEM_ESTAR_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'];
+      return normalizarScoreResponse(defaultMock as ScoreBruto);
+    }
+    throw new Error('ID do idoso não informado.');
   }
 
   try {
-    // O Score é do insight-service: o gateway roteia /api/v1/insight/** para ele (/v1/...).
     const url = `${runtimeConfig.apiBaseUrl}/api/v1/insight/idosos/${idosoId}/score-risco/recente`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
@@ -268,19 +251,23 @@ export async function buscarScoreBemEstar(
       return normalizarScoreResponse(data);
     }
   } catch {
-    // Fallback silencioso para mock
+    // Fallback silencioso para ambiente dev com mock ativado
   }
 
-  const mock = SCORE_BEM_ESTAR_MOCK[idosoId] || {
-    ...SCORE_BEM_ESTAR_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
-    idosoId,
-  };
+  if (mockPermitido()) {
+    const { SCORE_BEM_ESTAR_MOCK } = await import('../mocks/riskScore');
+    const mock = SCORE_BEM_ESTAR_MOCK[idosoId] || {
+      ...SCORE_BEM_ESTAR_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
+      idosoId,
+    };
+    return normalizarScoreResponse(mock as ScoreBruto);
+  }
 
-  return normalizarScoreResponse(mock);
+  throw new Error(`Não foi possível calcular o score de bem-estar.`);
 }
 
 function normalizarScoreResponse(data: ScoreBruto): ScoreBemEstar {
-  const nome = data.nomeIdoso || 'Dona Maria';
+  const nome = data.nomeIdoso || 'Idoso Monitorado';
   const diasValidos = typeof data.diasComDadosValidos === 'number' ? data.diasComDadosValidos : 7;
   const historico = verificarHistoricoMinimo(diasValidos, nome);
 

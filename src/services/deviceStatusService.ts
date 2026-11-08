@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
 export interface TipoDadoDispositivo {
@@ -29,64 +30,6 @@ export interface ResultadoPerdaDados {
 }
 
 /**
- * Mocks padrão enriquecidos para testes dos cenários clínicos da HU-027 e HU-028.
- */
-const STATUS_DISPOSITIVO_MOCK: Record<string, StatusDispositivo> = {
-  'e3b0c442-98fc-1c14-9afc-432100000001': {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria',
-    modeloCelular: 'Samsung Galaxy A15',
-    versaoApp: 'v1.0.4 (Build 42)',
-    sistemaOperacional: 'Android 14',
-    nivelBateria: 62,
-    conectado: true,
-    // Define a última sincronização às 10:15 da data de hoje para bater com o Cenário 1
-    ultimaSincronizacao: (() => {
-      const d = new Date();
-      d.setHours(10, 15, 0, 0);
-      return d.toISOString();
-    })(),
-    tiposDados: [
-      {
-        id: 'passos',
-        nome: 'Passos e Movimentação',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Health Connect',
-      },
-      {
-        id: 'batimentos',
-        nome: 'Frequência Cardíaca',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Smartwatch',
-      },
-      {
-        id: 'oxigenacao',
-        nome: 'Oxigenação (SpO2)',
-        ativo: false,
-        revogadoPeloIdoso: true,
-        detalhe: 'Desativada pelo idoso',
-      },
-      {
-        id: 'gps',
-        nome: 'Localização em Tempo Real',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via GPS do celular',
-      },
-      {
-        id: 'queda',
-        nome: 'Detecção de Queda',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via sensores do relógio',
-      },
-    ],
-  },
-};
-
-/**
  * Formata um timestamp ISO em horário legível HH:mm
  */
 export function formatarHora(dataISO?: string | Date | null): string {
@@ -114,7 +57,6 @@ export function formatarResumoStatus(
 /**
  * Avalia se há ausência de sincronização há mais de X horas (conforme HU-028 e RN-003).
  * Limiar diurno padrão: 3 horas (180 minutos).
- * Retorna { semDados: boolean, mensagem: string, minutosAtraso: number, horarioPerda: string }
  */
 export function verificarPerdaDados(
   ultimaSincronizacao: string | null | undefined,
@@ -165,17 +107,22 @@ export function verificarPerdaDados(
 
 /**
  * Consulta o status do celular do idoso na API com fallback mock resiliente.
+ * Rota conforme si-contracts#7: GET /api/v1/telemetry/idosos/{id}/status
  */
 export async function buscarStatusDispositivo(
   idosoId: string,
   token: string | null = null
 ): Promise<StatusDispositivo> {
   if (!idosoId) {
-    return STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'];
+    if (mockPermitido()) {
+      const { STATUS_DISPOSITIVO_MOCK } = await import('../mocks/deviceStatus');
+      return STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'] as StatusDispositivo;
+    }
+    throw new Error('ID do idoso não informado.');
   }
 
   try {
-    const url = `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/telemetria-wearable/recente`;
+    const url = `${runtimeConfig.apiBaseUrl}/api/v1/telemetry/idosos/${idosoId}/status`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) {
@@ -196,63 +143,81 @@ export async function buscarStatusDispositivo(
     // Modo offline ou fallback resiliente para ambiente dev
   }
 
-  return STATUS_DISPOSITIVO_MOCK[idosoId] || {
-    ...STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
-    idosoId,
-  };
+  if (mockPermitido()) {
+    const { STATUS_DISPOSITIVO_MOCK } = await import('../mocks/deviceStatus');
+    const mock = STATUS_DISPOSITIVO_MOCK[idosoId] || {
+      ...STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
+      idosoId,
+    };
+    return mock as StatusDispositivo;
+  }
+
+  throw new Error(`Não foi possível obter o status do dispositivo.`);
 }
 
 /**
- * Normaliza os dados vindos do backend para o modelo completo do status do celular.
+ * Normaliza os dados do StatusAparelho (telemetry-v1) para o modelo da tela.
  */
 function normalizarRespostaApi(idosoId: string, apiData: Record<string, any>): StatusDispositivo {
-  const ultima = apiData.coletado_em || apiData.criado_em || new Date().toISOString();
-  const bateria = typeof apiData.nivel_bateria === 'number' ? apiData.nivel_bateria : 62;
+  const ultima = apiData.ultimaSincronizacao || apiData.coletado_em || apiData.criado_em || '';
+  const bateria = typeof apiData.nivelBateria === 'number'
+    ? apiData.nivelBateria
+    : typeof apiData.nivel_bateria === 'number'
+      ? apiData.nivel_bateria
+      : 0;
+
+  const tiposAtivos: string[] = Array.isArray(apiData.tiposAtivos) ? apiData.tiposAtivos : [];
+
+  const temPassos = tiposAtivos.includes('PASSOS');
+  const temBatimentos = tiposAtivos.includes('BATIMENTOS');
+  const temOxigenacao = tiposAtivos.includes('OXIGENACAO');
+  const temLocalizacao = tiposAtivos.includes('LOCALIZACAO');
+  const temSono = tiposAtivos.includes('SONO');
 
   return {
     idosoId,
-    nomeIdoso: 'Idoso Monitorado',
-    modeloCelular: apiData.device_model || 'Celular Coletor Android',
-    versaoApp: 'v1.0.4',
-    sistemaOperacional: 'Android',
+    nomeIdoso: apiData.nomeIdoso || 'Idoso Monitorado',
+    modeloCelular: apiData.modeloCelular || apiData.device_model || 'Celular Coletor Android',
+    versaoApp: apiData.versaoApp || '1.0.4',
+    sistemaOperacional: apiData.sistemaOperacional || 'Android',
     nivelBateria: bateria,
-    conectado: true,
+    conectado: Boolean(ultima),
     ultimaSincronizacao: ultima,
     tiposDados: [
       {
         id: 'passos',
         nome: 'Passos e Movimentação',
-        ativo: typeof apiData.passos_contagem === 'number',
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Health Connect',
+        ativo: temPassos,
+        revogadoPeloIdoso: !temPassos,
+        detalhe: temPassos ? 'Ativo via Health Connect' : 'Desativado pelo idoso',
       },
       {
         id: 'batimentos',
         nome: 'Frequência Cardíaca',
-        ativo: typeof apiData.frequencia_cardiaca_bpm === 'number',
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Smartwatch',
+        ativo: temBatimentos,
+        revogadoPeloIdoso: !temBatimentos,
+        detalhe: temBatimentos ? 'Ativo via Smartwatch' : 'Desativado pelo idoso',
       },
       {
         id: 'oxigenacao',
         nome: 'Oxigenação (SpO2)',
-        ativo: typeof apiData.saturacao_oxigenio === 'number' && apiData.saturacao_oxigenio > 0,
-        revogadoPeloIdoso: !apiData.saturacao_oxigenio,
-        detalhe: apiData.saturacao_oxigenio ? 'Ativo via Smartwatch' : 'Desativada pelo idoso',
+        ativo: temOxigenacao,
+        revogadoPeloIdoso: !temOxigenacao,
+        detalhe: temOxigenacao ? 'Ativo via Smartwatch' : 'Desativada pelo idoso',
       },
       {
         id: 'gps',
         nome: 'Localização em Tempo Real',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via GPS do celular',
+        ativo: temLocalizacao,
+        revogadoPeloIdoso: !temLocalizacao,
+        detalhe: temLocalizacao ? 'Ativo via GPS do celular' : 'Desativada pelo idoso',
       },
       {
-        id: 'queda',
-        nome: 'Detecção de Queda',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via sensores do relógio',
+        id: 'sono',
+        nome: 'Monitoramento do Sono',
+        ativo: temSono,
+        revogadoPeloIdoso: !temSono,
+        detalhe: temSono ? 'Ativo via Smartwatch' : 'Desativado pelo idoso',
       },
     ],
   };

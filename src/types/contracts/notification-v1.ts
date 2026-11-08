@@ -62,6 +62,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/idosos/{idosoId}/alertas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Lista os alertas do idoso enviados à rede
+         * @description Proposta. Do mais recente para o mais antigo, só para quem está na rede do idoso.
+         */
+        get: operations["listarAlertas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/idosos/{idosoId}/alertas/{alertaId}/avaliacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+                alertaId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Marca o alerta como útil ou falso
+         * @description Proposta. A avaliação pode ser trocada por até 24 h depois do alerta.
+         */
+        put: operations["avaliarAlerta"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -76,6 +121,29 @@ export interface components {
         };
         /** @enum {string} */
         Plataforma: "ANDROID" | "IOS";
+        /** @enum {string} */
+        TipoAlerta: "SOS" | "CRITICO" | "ATENCAO" | "TECNICO";
+        /** @enum {string} */
+        AvaliacaoAlerta: "UTIL" | "FALSO";
+        Alerta: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            idosoId: string;
+            tipo: components["schemas"]["TipoAlerta"];
+            titulo: string;
+            detalhe?: string | null;
+            /** Format: date-time */
+            geradoEm: string;
+            avaliacao?: components["schemas"]["AvaliacaoAlerta"] | null;
+            /** Format: date-time */
+            avaliadoEm?: string | null;
+            motivoAvaliacao?: string | null;
+        };
+        AvaliarAlertaRequest: {
+            avaliacao: components["schemas"]["AvaliacaoAlerta"];
+            motivo?: string;
+        };
         RegistrarTokenPushRequest: {
             /** @description Token do FCM/APNs/Expo emitido para o aparelho */
             token: string;
@@ -133,7 +201,9 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        IdosoId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -211,6 +281,71 @@ export interface operations {
             401: components["responses"]["NaoAutenticado"];
             403: components["responses"]["AcessoNegado"];
             404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    listarAlertas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alertas do idoso */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alerta"][];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    avaliarAlerta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+                alertaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvaliarAlertaRequest"];
+            };
+        };
+        responses: {
+            /** @description Alerta com a avaliação gravada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alerta"];
+                };
+            };
+            400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+            /** @description Prazo de 24 h para alterar a avaliação vencido */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
         };
     };
 }
