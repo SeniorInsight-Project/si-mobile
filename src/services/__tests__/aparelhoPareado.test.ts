@@ -42,6 +42,7 @@ function jwt(roles: string[]): string {
 const RESGATE_OK = {
   perfil: { id: 'perfil-1', nome: 'Maria Aparecida Silva' },
   sessaoAparelhoId: 'sessao-9',
+  idosoId: 'idoso-care-99',
   tokens: { accessToken: jwt(['idoso']), refreshToken: 'r1', expiresIn: 300, tokenType: 'Bearer' },
 };
 
@@ -60,12 +61,13 @@ describe('Aparelho pareado (HU-007: depois do pareamento, abre sempre no Modo Id
     definirArmazenamentoAparelhoPareado(store);
   });
 
-  test('marca, lê e esquece o pareamento no secure store', async () => {
+  test('marca, lê e esquece o pareamento no secure store (incluindo idosoId)', async () => {
     assert.equal(await obterAparelhoPareado(), null);
-    assert.equal(await marcarAparelhoPareado({ perfilId: 'perfil-1', nome: 'Maria' }), true);
+    assert.equal(await marcarAparelhoPareado({ perfilId: 'perfil-1', nome: 'Maria', idosoId: 'idoso-care-1' }), true);
     const r = await obterAparelhoPareado();
     assert.equal(r?.perfilId, 'perfil-1');
     assert.equal(r?.nome, 'Maria');
+    assert.equal(r?.idosoId, 'idoso-care-1');
     assert.ok((r?.pareadoEm ?? 0) > 0);
     await esquecerAparelhoPareado();
     assert.equal(await obterAparelhoPareado(), null);
@@ -96,10 +98,10 @@ describe('Aparelho pareado (HU-007: depois do pareamento, abre sempre no Modo Id
         ordem.push('tokens');
       },
       marcarPareado: async (d) => {
-        ordem.push(`pareado:${d.perfilId}:${d.nome}`);
+        ordem.push(`pareado:${d.perfilId}:${d.nome}:${d.idosoId}`);
       },
     });
-    assert.deepEqual(ordem, ['tokens', 'pareado:perfil-1:Maria Aparecida Silva']);
+    assert.deepEqual(ordem, ['tokens', 'pareado:perfil-1:Maria Aparecida Silva:idoso-care-99']);
   });
 
   test('resgate recusado não marca o aparelho', async () => {

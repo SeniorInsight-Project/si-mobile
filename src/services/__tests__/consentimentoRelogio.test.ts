@@ -77,6 +77,13 @@ describe('Autorização de dados por tipo (HU-018 / HU-019 / RN-001)', () => {
     assert.deepEqual(Object.keys(chamadas[0].b).sort(), ['BATIMENTOS', 'LOCALIZACAO', 'OXIGENACAO', 'PASSOS', 'SONO']);
   });
 
+  test('salvar com idosoId explícito usa a rota do idoso no care-service', async () => {
+    const chamadas: any[] = [];
+    const cliente = { get: (async () => ({})) as any, put: (async (c: string, b: unknown) => { chamadas.push({ c, b }); return undefined; }) as any };
+    await salvarConsentimentos(com({ BATIMENTOS: true }), { cliente, idosoId: 'idoso-xyz-123' });
+    assert.equal(chamadas[0].c, '/api/v1/idosos/idoso-xyz-123/consentimentos');
+  });
+
   test('SEM fallback local: se o servidor falha, carregar e salvar lançam erro', async () => {
     await assert.rejects(obterConsentimentos({ cliente: clienteErro(500) }), ConsentimentoError);
     await assert.rejects(salvarConsentimentos(com({ PASSOS: true }), { cliente: clienteErro(500) }), /Nada foi alterado/);

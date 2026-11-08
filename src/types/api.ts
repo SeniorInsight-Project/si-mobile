@@ -3,14 +3,17 @@
  *
  * src/types/contracts/ é cópia de si-contracts/generated/ts: não edite à mão. Para atualizar, rode
  * `npm run contratos:sincronizar -- <caminho do si-contracts>` (ver scripts/sincronizar-contratos.mjs).
- *
- * Só entram aqui rotas que existem no contrato. Rotas que o app usa e que ainda não têm contrato
- * (score, alertas, telemetria, convites pendentes etc.) continuam com tipos locais nos services.
  */
-import type { Care, Identity } from './contracts';
+import type { Care, Identity, Notification, Telemetry, Report } from './contracts';
 
 type CareSchemas = Care.components['schemas'];
 type IdentitySchemas = Identity.components['schemas'];
+type NotificationSchemas = Notification.components['schemas'];
+type TelemetrySchemas = Telemetry.components['schemas'];
+type ReportSchemas = Report.components['schemas'];
+
+// Erro padronizado do GlobalExceptionHandler
+export type ErroApi = CareSchemas['Erro'];
 
 // care-v1: idosos
 export type IdosoApi = CareSchemas['Idoso'];
@@ -46,3 +49,19 @@ export type GerarCodigoPareamentoRequest = IdentitySchemas['GerarCodigoPareament
 export type CodigoPareamento = IdentitySchemas['CodigoPareamento'];
 export type ResgatarCodigoPareamentoRequest = IdentitySchemas['ResgatarCodigoPareamentoRequest'];
 export type ResultadoPareamentoApi = IdentitySchemas['ResultadoPareamento'];
+
+// notification-v1: alertas e push
+export type AlertaApi = NotificationSchemas['Alerta'];
+export type AvaliarAlertaRequest = NotificationSchemas['AvaliarAlertaRequest'];
+export type RegistrarTokenPushRequest = NotificationSchemas['RegistrarTokenPushRequest'];
+export type TokenPush = NotificationSchemas['TokenPush'];
+export type LeituraNotificacao = NotificationSchemas['LeituraNotificacao'];
+
+// telemetry-v1: telemetria wearable
+export type EstadoAtualApi = TelemetrySchemas['EstadoAtual'];
+export type StatusAparelhoApi = TelemetrySchemas['StatusAparelho'];
+export type TipoDadoTelemetry = TelemetrySchemas['TipoDado'];
+
+// report-v1: exclusão de conta e LGPD
+export type SolicitarExclusaoRequest = ReportSchemas['SolicitarExclusaoRequest'];
+export type PedidoExclusao = ReportSchemas['PedidoExclusao'];

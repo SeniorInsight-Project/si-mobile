@@ -1,14 +1,15 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import { formatarHora } from './deviceStatusService';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
 interface EstadoAtualBruto {
   idosoId: string;
   nomeIdoso?: string;
-  passosHoje: number;
-  metaPassos: number;
-  frequenciaCardiaca: number;
-  frequenciaCardiacaRepouso?: number;
+  passosHoje: number | null;
+  metaPassos?: number;
+  frequenciaCardiaca: number | null;
+  frequenciaCardiacaRepouso?: number | null;
   statusCardiovascular?: string;
   coletadoEm: string | null;
 }
@@ -33,27 +34,6 @@ export interface AnaliseDadosRecentes {
   textoAtualizacao: string;
   horasSemDados: number;
 }
-
-/**
- * Mocks de telemetria alinhados aos critérios de aceite do DRS (HU-031 e RF-025).
- */
-const ESTADO_ATUAL_MOCK: Record<string, EstadoAtualBruto> = {
-  'e3b0c442-98fc-1c14-9afc-432100000001': {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria',
-    passosHoje: 4520,
-    metaPassos: 4000,
-    frequenciaCardiaca: 76,
-    frequenciaCardiacaRepouso: 64,
-    statusCardiovascular: 'Estável',
-    // Mock alinhado ao Cenário 1 da HU-031: "último lote chegou às 14:30"
-    coletadoEm: (() => {
-      const d = new Date();
-      d.setHours(14, 30, 0, 0);
-      return d.toISOString();
-    })(),
-  },
-};
 
 /**
  * Avalia se os dados foram coletados há menos ou mais de 48 horas (HU-031).
@@ -103,18 +83,23 @@ export function verificarDadosRecentes(
 
 /**
  * Busca o estado atual biométrico (passos, batimentos, horário de atualização)
- * do idoso no backend ou fallback mock.
+ * do idoso no backend via telemetria-service ou fallback mock.
+ * Rota conforme si-contracts#7: GET /api/v1/telemetry/idosos/{id}/hoje
  */
 export async function buscarEstadoAtual(
   idosoId: string,
   token: string | null = null
 ): Promise<EstadoAtual> {
   if (!idosoId) {
-    return normalizarEstadoAtual(ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001']);
+    if (mockPermitido()) {
+      const { ESTADO_ATUAL_MOCK } = await import('../mocks/telemetria');
+      return normalizarEstadoAtual(ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'] as EstadoAtualBruto);
+    }
+    throw new Error('ID do idoso não informado.');
   }
 
   try {
-    const url = `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/telemetria-wearable/recente`;
+    const url = `${runtimeConfig.apiBaseUrl}/api/v1/telemetry/idosos/${idosoId}/hoje`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) {
@@ -132,30 +117,38 @@ export async function buscarEstadoAtual(
       return normalizarEstadoAtualFromApi(idosoId, data);
     }
   } catch {
-    // Fallback silencioso para ambiente de desenvolvimento / modo offline
+    // Fallback silencioso para ambiente de desenvolvimento com mock ativado
   }
 
-  const mock = ESTADO_ATUAL_MOCK[idosoId] || {
-    ...ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
-    idosoId,
-  };
+  if (mockPermitido()) {
+    const { ESTADO_ATUAL_MOCK } = await import('../mocks/telemetria');
+    const mock = ESTADO_ATUAL_MOCK[idosoId] || {
+      ...ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
+      idosoId,
+    };
+    return normalizarEstadoAtual(mock as EstadoAtualBruto);
+  }
 
-  return normalizarEstadoAtual(mock);
+  throw new Error(`Não foi possível carregar dados de telemetria do idoso.`);
 }
 
 function normalizarEstadoAtual(data: EstadoAtualBruto): EstadoAtual {
   const analiseRecente = verificarDadosRecentes(data.coletadoEm);
-  const progresso = data.metaPassos > 0 ? Math.min(1, data.passosHoje / data.metaPassos) : 0;
+  const passos = typeof data.passosHoje === 'number' ? data.passosHoje : 0;
+  const meta = typeof data.metaPassos === 'number' && data.metaPassos > 0 ? data.metaPassos : 4000;
+  const progresso = meta > 0 ? Math.min(1, passos / meta) : 0;
+  const bpm = typeof data.frequenciaCardiaca === 'number' ? data.frequenciaCardiaca : 0;
+  const bpmRepouso = typeof data.frequenciaCardiacaRepouso === 'number' ? data.frequenciaCardiacaRepouso : 64;
 
   return {
     idosoId: data.idosoId,
-    nomeIdoso: data.nomeIdoso || 'Dona Maria',
-    passosHoje: data.passosHoje,
-    metaPassos: data.metaPassos || 4000,
+    nomeIdoso: data.nomeIdoso || 'Idoso Monitorado',
+    passosHoje: passos,
+    metaPassos: meta,
     progressoPassos: progresso,
-    frequenciaCardiaca: data.frequenciaCardiaca,
-    frequenciaCardiacaRepouso: data.frequenciaCardiacaRepouso || 64,
-    statusCardiovascular: data.statusCardiovascular || 'Normal',
+    frequenciaCardiaca: bpm,
+    frequenciaCardiacaRepouso: bpmRepouso,
+    statusCardiovascular: data.statusCardiovascular || (bpm > 100 ? 'Atenção' : 'Estável'),
     coletadoEm: data.coletadoEm,
     atualizadoAs: formatarHora(data.coletadoEm),
     textoAtualizacao: analiseRecente.textoAtualizacao,
@@ -163,22 +156,37 @@ function normalizarEstadoAtual(data: EstadoAtualBruto): EstadoAtual {
   };
 }
 
+/**
+ * Lê o EstadoAtual do telemetry-v1 em camelCase (com fallback para snake_case)
+ */
 function normalizarEstadoAtualFromApi(idosoId: string, apiData: Record<string, any>): EstadoAtual {
-  const coletado = apiData.coletado_em || apiData.criado_em || null;
+  const coletado = apiData.coletadoEm || apiData.coletado_em || apiData.criado_em || null;
   const analiseRecente = verificarDadosRecentes(coletado);
 
-  const passos = typeof apiData.passos_contagem === 'number' ? apiData.passos_contagem : 0;
-  const bpm = typeof apiData.frequencia_cardiaca_bpm === 'number' ? apiData.frequencia_cardiaca_bpm : 0;
-  const bpmRepouso = typeof apiData.frequencia_cardiaca_repouso_bpm === 'number'
-    ? apiData.frequencia_cardiaca_repouso_bpm
-    : 64;
+  const passos = typeof apiData.passosHoje === 'number'
+    ? apiData.passosHoje
+    : typeof apiData.passos_contagem === 'number'
+      ? apiData.passos_contagem
+      : 0;
 
-  const meta = 4000;
+  const meta = typeof apiData.metaPassos === 'number' && apiData.metaPassos > 0 ? apiData.metaPassos : 4000;
   const progresso = meta > 0 ? Math.min(1, passos / meta) : 0;
+
+  const bpm = typeof apiData.frequenciaCardiaca === 'number'
+    ? apiData.frequenciaCardiaca
+    : typeof apiData.frequencia_cardiaca_bpm === 'number'
+      ? apiData.frequencia_cardiaca_bpm
+      : 0;
+
+  const bpmRepouso = typeof apiData.frequenciaCardiacaRepouso === 'number'
+    ? apiData.frequenciaCardiacaRepouso
+    : typeof apiData.frequencia_cardiaca_repouso_bpm === 'number'
+      ? apiData.frequencia_cardiaca_repouso_bpm
+      : 64;
 
   return {
     idosoId,
-    nomeIdoso: 'Idoso Monitorado',
+    nomeIdoso: apiData.nomeIdoso || 'Idoso Monitorado',
     passosHoje: passos,
     metaPassos: meta,
     progressoPassos: progresso,

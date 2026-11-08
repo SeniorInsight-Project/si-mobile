@@ -1,14 +1,7 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import type { ComorbidadeRequest, Comorbidades } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
-
-// Lista inicial padrão baseada no prontuário do Figma/Template para fallback resiliente em dev
-export const INITIAL_COMORBIDITIES: string[] = [
-  'Hipertensão Arterial',
-  'Diabetes Tipo 2',
-  'Osteoporose Leve',
-  'Alergia a Dipirona',
-];
 
 /** Comorbidades do contrato care-v1. */
 export type ComorbidadesResponse = Comorbidades;
@@ -36,15 +29,21 @@ export async function listarComorbidades(
     });
 
     if (!response.ok) {
-      console.warn(`[comorbidadeService] Falha ao listar comorbidades (${response.status}). Usando fallback local.`);
-      return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
+      if (mockPermitido()) {
+        const { INITIAL_COMORBIDITIES } = await import('../mocks/comorbidades');
+        return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
+      }
+      throw new Error(`Falha ao listar comorbidades (${response.status})`);
     }
 
     const data = await response.json();
     return data;
   } catch (error: any) {
-    console.warn('[comorbidadeService] Backend inacessível. Ativando fallback resiliente:', error?.message);
-    return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
+    if (mockPermitido()) {
+      const { INITIAL_COMORBIDITIES } = await import('../mocks/comorbidades');
+      return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
+    }
+    throw error;
   }
 }
 
