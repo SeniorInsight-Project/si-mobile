@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -20,7 +20,6 @@ import {
   listarComorbidades,
   adicionarComorbidades,
   removerComorbidade,
-  INITIAL_COMORBIDITIES,
 } from '../services/comorbidadeService';
 import {
   listarIdososDoFamiliar,
@@ -116,7 +115,7 @@ export default function ElderlyProfileScreen({
   accessRole = 'ADMIN',
   familiarId = 'familiar-dev',
 }: ElderlyProfileScreenProps) {
-  const [comorbidades, setComorbidades] = useState<string[]>(INITIAL_COMORBIDITIES);
+  const [comorbidades, setComorbidades] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);

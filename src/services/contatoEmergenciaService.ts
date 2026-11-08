@@ -1,3 +1,5 @@
+import { mockPermitido } from '../config/ambiente';
+
 export interface ContatoEmergencia {
   id: string;
   nome: string;
@@ -24,47 +26,17 @@ export interface NovoContatoEmergenciaInput {
   ativo?: boolean;
 }
 
-// Lista padrão de contatos de emergência (cuidadores e socorristas prioritários)
-export const CONTATOS_EMERGENCIA_PADRAO: ContatoEmergencia[] = [
-  {
-    id: 'contato-1',
-    nome: 'Carlos Silva',
-    parentesco: 'Filho (Cuidador Principal)',
-    telefone: '(11) 98765-4321',
-    ordem: 1,
-    whatsapp: true,
-    iniciais: 'CA',
-    corAvatar: '#EBF5FF',
-    corTexto: '#1E40AF',
-    ativo: true,
-  },
-  {
-    id: 'contato-2',
-    nome: 'Roberta Santos',
-    parentesco: 'Filha',
-    telefone: '(11) 97654-3210',
-    ordem: 2,
-    whatsapp: true,
-    iniciais: 'RO',
-    corAvatar: '#E6F4EA',
-    corTexto: '#137333',
-    ativo: true,
-  },
-  {
-    id: 'contato-3',
-    nome: 'Dr. Ricardo Silva',
-    parentesco: 'Médico Cardiologista',
-    telefone: '(11) 93456-7890',
-    ordem: 3,
-    whatsapp: true,
-    iniciais: 'DR',
-    corAvatar: '#F3E8FF',
-    corTexto: '#6B21A8',
-    ativo: true,
-  },
-];
+let contatosEmMemoria: ContatoEmergencia[] = [];
+let inicializado = false;
 
-let contatosEmMemoria: ContatoEmergencia[] = [...CONTATOS_EMERGENCIA_PADRAO];
+async function garantirContatos(): Promise<void> {
+  if (inicializado) return;
+  inicializado = true;
+  if (mockPermitido()) {
+    const { CONTATOS_EMERGENCIA_PADRAO } = await import('../mocks/contatosEmergencia');
+    contatosEmMemoria = [...(CONTATOS_EMERGENCIA_PADRAO as ContatoEmergencia[])];
+  }
+}
 
 /**
  * Lista todos os contatos de emergência do idoso, ordenados por prioridade de acionamento.
@@ -72,6 +44,7 @@ let contatosEmMemoria: ContatoEmergencia[] = [...CONTATOS_EMERGENCIA_PADRAO];
  * @returns {Promise<Array>}
  */
 export async function listarContatos(idosoId?: string): Promise<ContatoEmergencia[]> {
+  await garantirContatos();
   // Simula latência de rede/banco mínima
   await new Promise((resolve) => setTimeout(resolve, 50));
   return [...contatosEmMemoria].sort((a, b) => a.ordem - b.ordem);
@@ -87,6 +60,7 @@ export async function salvarContato(
   idosoId: string,
   contato: NovoContatoEmergenciaInput
 ): Promise<ContatoEmergencia> {
+  await garantirContatos();
   await new Promise((resolve) => setTimeout(resolve, 50));
 
   if (contato.id) {
@@ -120,6 +94,7 @@ export async function salvarContato(
  * @returns {Promise<boolean>}
  */
 export async function removerContato(idosoId: string, contatoId: string): Promise<boolean> {
+  await garantirContatos();
   await new Promise((resolve) => setTimeout(resolve, 50));
   const totalAntes = contatosEmMemoria.length;
   contatosEmMemoria = contatosEmMemoria.filter((c) => c.id !== contatoId);
@@ -142,6 +117,7 @@ export async function reordenarContatos(
   idosoId: string,
   novaListaContatos: ContatoEmergencia[]
 ): Promise<ContatoEmergencia[]> {
+  await garantirContatos();
   await new Promise((resolve) => setTimeout(resolve, 30));
   const atualizados = novaListaContatos.map((c, idx) => ({
     ...c,
@@ -154,9 +130,9 @@ export async function reordenarContatos(
 /**
  * Restaura os contatos padrão iniciais (útil para testes).
  */
-export function resetarContatos(): ContatoEmergencia[] {
-  contatosEmMemoria = [...CONTATOS_EMERGENCIA_PADRAO];
-  return contatosEmMemoria;
+export function resetarContatos(): void {
+  inicializado = false;
+  contatosEmMemoria = [];
 }
 
 function gerarIniciais(nome = ''): string {

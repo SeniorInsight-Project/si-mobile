@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -24,7 +24,6 @@ import {
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
-  INITIAL_MEMBERS,
   LIMITE_MEDICOS_RN012,
   LIMITE_FAMILIARES_RN012,
   ConviteInput,
@@ -56,7 +55,7 @@ export default function FamilyScreen({
     String(papelAcesso || '').toUpperCase() === 'ADMINISTRADOR'
   );
   const [filtroAtivo, setFiltroAtivo] = useState<string>('Todos');
-  const [membros, setMembros] = useState<MembroRede[]>(INITIAL_MEMBERS);
+  const [membros, setMembros] = useState<MembroRede[]>([]);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
   const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);

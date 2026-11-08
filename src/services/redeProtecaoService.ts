@@ -1,4 +1,5 @@
-import { runtimeConfig } from '../config/runtime';
+﻿import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import type { ConviteRede, ConviteRedeRequest } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
@@ -127,139 +128,13 @@ export interface DetalhesConvite {
  * Membros iniciais baseados fielmente no protótipo do Figma ("Rede Familiar de Apoio")
  * Utilizados para exibição imediata e fallback resiliente em ambiente de desenvolvimento e testes.
  */
-export const INITIAL_MEMBERS: MembroRede[] = [
-  {
-    id: 'member-carlos-01',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000101',
-    usuarioId: 'usr-carlos-01',
-    nome: 'Carlos Silva',
-    nomeCompleto: 'Carlos Silva',
-    iniciais: 'CS',
-    avatarBg: '#EBF5FF',
-    avatarCor: '#031753',
-    badgeBg: '#E8F8F0',
-    badgeCor: '#003B26',
-    acoes: ['call_primary', 'whatsapp_primary', 'history'],
-    verificado: true,
-    grauParentesco: 'Filho',
-    papelAcesso: 'ADMIN',
-    papelLabel: 'Administrador (Filho)',
-    badgeTipo: 'plantao', // 'plantao' | 'familia' | 'apoio' | 'especialista'
-    badgeTexto: '★ Plantão',
-    statusConexao: 'ONLINE', // 'ONLINE' | 'BUSY' | 'AWAY' | 'VERIFIED'
-    statusLabel: 'Disponível • Próximo (1.2 km)',
-    statusIcone: 'location',
-    telefone: '+55 11 98765-4321',
-    email: 'carlos.silva@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    distanciaKm: 1.2,
-    acoesTexto: 'Ações de emergência:',
-    isPlantao: true,
-    categoria: 'proximos', // 'todos' | 'proximos' | 'saude'
-    historicoRecente: [
-      { data: 'Hoje, 08:30', descricao: 'Confirmou presença e assumiu plantão' },
-      { data: 'Ontem, 20:00', descricao: 'Verificou checklist noturno' },
-    ],
-  },
-  {
-    id: 'member-roberta-02',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000102',
-    usuarioId: 'usr-roberta-02',
-    nome: 'Roberta Santos',
-    nomeCompleto: 'Roberta Santos',
-    iniciais: 'RS',
-    avatarBg: '#E8F8F0',
-    avatarCor: '#003B26',
-    badgeBg: '#EBF5FF',
-    badgeCor: '#2D418A',
-    acoes: ['call', 'whatsapp'],
-    verificado: false,
-    grauParentesco: 'Filha',
-    papelAcesso: 'CUIDADOR',
-    papelLabel: 'Cuidadora Principal (Filha)',
-    badgeTipo: 'familia',
-    badgeTexto: 'Família',
-    statusConexao: 'BUSY',
-    statusLabel: 'Em plantão até 18h • Farmácia',
-    statusIcone: 'clock',
-    telefone: '+55 11 97654-3210',
-    email: 'roberta.santos@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-    distanciaKm: 4.5,
-    acoesTexto: 'Agendou medicação hoje • 14:00',
-    isPlantao: false,
-    categoria: 'proximos',
-    historicoRecente: [
-      { data: 'Hoje, 14:00', descricao: 'Agendou medicação Losartana Potássica' },
-      { data: 'Hoje, 09:15', descricao: 'Comprou reposição na farmácia' },
-    ],
-  },
-  {
-    id: 'member-lucas-03',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000103',
-    usuarioId: 'usr-lucas-03',
-    nome: 'Lucas Silva',
-    nomeCompleto: 'Lucas Silva',
-    iniciais: 'LS',
-    avatarBg: '#F2F4F7',
-    avatarCor: '#475467',
-    badgeBg: '#F2F4F7',
-    badgeCor: '#64748B',
-    acoes: ['call', 'whatsapp'],
-    verificado: false,
-    grauParentesco: 'Neto',
-    papelAcesso: 'OBSERVADOR',
-    papelLabel: 'Cuidador Apoio (Neto)',
-    badgeTipo: 'apoio',
-    badgeTexto: 'Apoio',
-    statusConexao: 'ONLINE',
-    statusLabel: 'Notificações ativas • 8 km',
-    statusIcone: 'bell',
-    telefone: '+55 11 96543-2109',
-    email: 'lucas.silva@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    distanciaKm: 8.0,
-    acoesTexto: 'Atendeu último alerta há 2 dias',
-    isPlantao: false,
-    categoria: 'todos',
-    historicoRecente: [
-      { data: 'Há 2 dias', descricao: 'Atendeu alerta de rotina não confirmada' },
-    ],
-  },
-  {
-    id: 'member-juliana-04',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000104',
-    usuarioId: 'usr-juliana-04',
-    nome: 'Enfª Juliana Costa',
-    nomeCompleto: 'Enfª Juliana Costa',
-    iniciais: 'JC',
-    avatarBg: '#FFEBE7',
-    avatarCor: '#B51C13',
-    badgeBg: '#FFEBE7',
-    badgeCor: '#B51C13',
-    acoes: ['call', 'prontuario'],
-    verificado: true,
-    grauParentesco: 'Enfermeira',
-    papelAcesso: 'MEDICO',
-    papelLabel: 'Profissional de Saúde (COREN 2481)',
-    badgeTipo: 'especialista',
-    badgeTexto: 'Especialista',
-    statusConexao: 'VERIFIED',
-    statusLabel: 'Visitas: Terças e Quintas (09:00)',
-    statusIcone: 'calendar',
-    telefone: '+55 11 95432-1098',
-    email: 'juliana.costa@saude.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1594824813726-0a37e584ec69?w=150',
-    distanciaKm: 15.0,
-    acoesTexto: 'Última aferição: 12/8 mmHg • Normal',
-    isPlantao: false,
-    categoria: 'saude',
-    historicoRecente: [
-      { data: 'Ontem, 09:30', descricao: 'Aferiu pressão arterial (12/8 mmHg) - Normal' },
-      { data: '22 Out, 09:15', descricao: 'Checou quadro clínico e comorbidades' },
-    ],
-  },
-];
+async function obterMembrosIniciais(): Promise<MembroRede[]> {
+  if (mockPermitido()) {
+    const { INITIAL_MEMBERS } = await import('../mocks/redeProtecao');
+    return (INITIAL_MEMBERS as unknown as MembroRede[]).map(normalizarMembroBackend);
+  }
+  return [];
+}
 
 /**
  * Sequência padrão de chamada de emergência SOS
@@ -409,7 +284,7 @@ export async function listarMembrosRede(
 
     if (!response.ok) {
       console.warn(`[redeProtecaoService] Backend retornou status ${response.status}. Usando fallback do protótipo.`);
-      return INITIAL_MEMBERS.map(normalizarMembroBackend);
+      return await obterMembrosIniciais();
     }
 
     const data = await response.json();
@@ -417,56 +292,27 @@ export async function listarMembrosRede(
       return data.map(normalizarMembroBackend);
     }
 
-    return INITIAL_MEMBERS.map(normalizarMembroBackend);
+    return await obterMembrosIniciais();
   } catch (error: any) {
     console.warn('[redeProtecaoService] Backend inacessível. Ativando fallback resiliente:', error?.message);
-    return INITIAL_MEMBERS.map(normalizarMembroBackend);
+    return await obterMembrosIniciais();
   }
 }
 
 /**
  * Convites pendentes iniciais para exibição imediata e fallback resiliente
  */
-export const CONVITES_PENDENTES_INICIAIS: ConvitePendente[] = [
-  {
-    id: 'conv-pend-01',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria Silva',
-    emailDestinatario: 'marina.silva@exemplo.com',
-    papelAcessoSugerido: 'CUIDADOR',
-    papelLabel: 'Cuidadora Principal',
-    grauParentescoSugerido: 'Sobrinha',
-    mensagemPersonalizada: 'Oi Marina, junte-se à rede de cuidados da vovó Maria!',
-    token: 'tok-marina-48h',
-    linkConvite: 'seniorinsight://convite/tok-marina-48h',
-    status: 'PENDENTE',
-    criadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    dataExpiracao: new Date(Date.now() + 46 * 60 * 60 * 1000).toISOString(),
-    validadeHorasRestantes: 46,
-  },
-  {
-    id: 'conv-med-rec-01',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria Silva',
-    nomeMedico: 'Dra. Camila Souza',
-    crm: '987654/SP',
-    emailDestinatario: 'camila.souza@geriatria.med.br',
-    papelAcessoSugerido: 'MEDICO',
-    papelLabel: 'Médico(a) Especialista',
-    grauParentescoSugerido: 'Médico(a)',
-    tipoMembro: 'MEDICO',
-    mensagemPersonalizada: 'Convite para acompanhar os relatórios semanais de saúde de Dona Maria.',
-    token: 'tok-camila-recusado',
-    linkConvite: 'seniorinsight://convite/tok-camila-recusado',
-    status: 'RECUSADO',
-    mensagemRecusa: 'O médico recusou o convite',
-    criadoEm: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    recusadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    validadeHorasRestantes: 48,
-  },
-];
+let convitesPendentesEmMemoria: ConvitePendente[] = [];
+let inicializadoConvites = false;
 
-let convitesPendentesEmMemoria: ConvitePendente[] = [...CONVITES_PENDENTES_INICIAIS];
+async function garantirConvitesIniciais(): Promise<void> {
+  if (inicializadoConvites) return;
+  inicializadoConvites = true;
+  if (mockPermitido()) {
+    const { CONVITES_PENDENTES_INICIAIS } = await import('../mocks/redeProtecao');
+    convitesPendentesEmMemoria = [...(CONVITES_PENDENTES_INICIAIS as unknown as ConvitePendente[])];
+  }
+}
 
 /**
  * Simulação de geração de convite temporal (48h) para testes e fallback offline.
@@ -506,6 +352,7 @@ export async function gerarConvite(
   dadosConvite: DadosConviteInput,
   token: string | null = null
 ): Promise<ConviteResponse> {
+  await garantirConvitesIniciais();
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -692,6 +539,7 @@ export async function listarConvitesPendentes(
   idosoId: string,
   token: string | null = null
 ): Promise<ConvitePendente[]> {
+  await garantirConvitesIniciais();
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);

@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import { formatarHora } from './deviceStatusService';
 import { resolverTokenAutorizacao } from './tokenStorageService';
 
@@ -33,27 +34,6 @@ export interface AnaliseDadosRecentes {
   textoAtualizacao: string;
   horasSemDados: number;
 }
-
-/**
- * Mocks de telemetria alinhados aos critérios de aceite do DRS (HU-031 e RF-025).
- */
-const ESTADO_ATUAL_MOCK: Record<string, EstadoAtualBruto> = {
-  'e3b0c442-98fc-1c14-9afc-432100000001': {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria',
-    passosHoje: 4520,
-    metaPassos: 4000,
-    frequenciaCardiaca: 76,
-    frequenciaCardiacaRepouso: 64,
-    statusCardiovascular: 'Estável',
-    // Mock alinhado ao Cenário 1 da HU-031: "último lote chegou às 14:30"
-    coletadoEm: (() => {
-      const d = new Date();
-      d.setHours(14, 30, 0, 0);
-      return d.toISOString();
-    })(),
-  },
-};
 
 /**
  * Avalia se os dados foram coletados há menos ou mais de 48 horas (HU-031).
@@ -110,7 +90,11 @@ export async function buscarEstadoAtual(
   token: string | null = null
 ): Promise<EstadoAtual> {
   if (!idosoId) {
-    return normalizarEstadoAtual(ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001']);
+    if (mockPermitido()) {
+      const { ESTADO_ATUAL_MOCK } = await import('../mocks/telemetria');
+      return normalizarEstadoAtual(ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'] as EstadoAtualBruto);
+    }
+    throw new Error('ID do idoso não informado.');
   }
 
   try {
@@ -132,15 +116,19 @@ export async function buscarEstadoAtual(
       return normalizarEstadoAtualFromApi(idosoId, data);
     }
   } catch {
-    // Fallback silencioso para ambiente de desenvolvimento / modo offline
+    // Fallback silencioso para ambiente de desenvolvimento com mock ativado
   }
 
-  const mock = ESTADO_ATUAL_MOCK[idosoId] || {
-    ...ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
-    idosoId,
-  };
+  if (mockPermitido()) {
+    const { ESTADO_ATUAL_MOCK } = await import('../mocks/telemetria');
+    const mock = ESTADO_ATUAL_MOCK[idosoId] || {
+      ...ESTADO_ATUAL_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
+      idosoId,
+    };
+    return normalizarEstadoAtual(mock as EstadoAtualBruto);
+  }
 
-  return normalizarEstadoAtual(mock);
+  throw new Error(`Não foi possível carregar dados de telemetria do idoso.`);
 }
 
 function normalizarEstadoAtual(data: EstadoAtualBruto): EstadoAtual {
@@ -149,7 +137,7 @@ function normalizarEstadoAtual(data: EstadoAtualBruto): EstadoAtual {
 
   return {
     idosoId: data.idosoId,
-    nomeIdoso: data.nomeIdoso || 'Dona Maria',
+    nomeIdoso: data.nomeIdoso || 'Idoso Monitorado',
     passosHoje: data.passosHoje,
     metaPassos: data.metaPassos || 4000,
     progressoPassos: progresso,
