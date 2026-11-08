@@ -8,15 +8,19 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "br.com.seniorinsight.mobile",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "O SeniorInsight utiliza sua localização em tempo real para monitorar o perímetro seguro e enviar socorro imediato em caso de SOS."
       }
     },
     "android": {
+      "package": "br.com.seniorinsight.mobile",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -30,10 +34,17 @@
     },
     "scheme": "seniorinsight",
     "plugins": [
+      "expo-dev-client",
       "expo-secure-store",
       "expo-sqlite",
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#253B80"
+        }
+      ],
       [
         "expo-location",
         {
