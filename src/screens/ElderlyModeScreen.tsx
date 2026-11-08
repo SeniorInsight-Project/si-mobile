@@ -24,6 +24,7 @@ import {
   RotinaMedicamento,
 } from '../services/medicamentoService';
 import { obterRotinasDoCache } from '../services/medicamentoDatabase';
+import { obterContatosDoCache } from '../services/contatoEmergenciaDatabase';
 import {
   atualizarStatusAlarme,
   AlarmeEmergencia,
@@ -84,6 +85,7 @@ export default function ElderlyModeScreen({
   const [alarmeAtivo, setAlarmeAtivo] = useState<AlarmeEmergencia | null>(null);
   const [filaStatus, setFilaStatus] = useState<SosQueueStatusInfo | null>(null);
   const [primeiroContato, setPrimeiroContato] = useState<ContatoEmergencia | null>(null);
+  const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
 
 
@@ -94,6 +96,16 @@ export default function ElderlyModeScreen({
     }
 
     // 1. Carrega previamente do SQLite local para exibição instantânea 100% offline (RF-038)
+    // Carrega previamente contatos e rotinas do SQLite para exibição instantânea 100% offline
+    obterContatosDoCache(idAtivo)
+      .then((cachedContatos) => {
+        if (cachedContatos && cachedContatos.length > 0) {
+          setContatosEmergencia(cachedContatos);
+          setPrimeiroContato(cachedContatos[0]);
+        }
+      })
+      .catch(() => {});
+
     obterRotinasDoCache(idAtivo)
       .then((cached) => {
         if (cached && Array.isArray(cached) && cached.length > 0) {
@@ -121,6 +133,7 @@ export default function ElderlyModeScreen({
       try {
         const lista = await listarContatos(idAtivo);
         if (lista && lista.length > 0) {
+          setContatosEmergencia(lista);
           setPrimeiroContato(lista[0]);
         }
       } catch (err: any) {
@@ -522,40 +535,43 @@ export default function ElderlyModeScreen({
             disabled={disparandoSos}
           />
 
-          {/* PÍLULA DE CUIDADORES AVISADOS */}
+          {/* PÍLULA DE CUIDADORES AVISADOS (HU-011) */}
           <TouchableOpacity
             style={styles.caregiversRow}
             onPress={() => !isIdoso && onNavigate && onNavigate('EmergencyContacts')}
             disabled={isIdoso}
             activeOpacity={0.85}
+            accessibilityLabel="Contatos de emergência notificados em caso de SOS"
           >
             <View style={styles.caregiversAvatars}>
-              <View style={[styles.miniAvatar, { backgroundColor: '#031753' }]}>
-                <Text style={styles.avatarTxt}>
-                  {primeiroContato?.iniciais || 'CA'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.miniAvatar,
-                  { backgroundColor: '#10B981', marginLeft: -6 },
-                ]}
-              >
-                <Text style={styles.avatarTxt}>RO</Text>
-              </View>
-              <View
-                style={[
-                  styles.miniAvatar,
-                  { backgroundColor: '#2D418A', marginLeft: -6 },
-                ]}
-              >
-                <Text style={styles.avatarTxt}>DR</Text>
-              </View>
+              {contatosEmergencia.length === 0 ? (
+                <View style={[styles.miniAvatar, { backgroundColor: '#031753' }]}>
+                  <Text style={styles.avatarTxt}>
+                    {primeiroContato?.iniciais || 'SOS'}
+                  </Text>
+                </View>
+              ) : (
+                contatosEmergencia.map((c, i) => (
+                  <View
+                    key={c.id || i}
+                    style={[
+                      styles.miniAvatar,
+                      { backgroundColor: c.corAvatar || '#031753', marginLeft: i > 0 ? -6 : 0 },
+                    ]}
+                  >
+                    <Text style={[styles.avatarTxt, { color: c.corTexto || '#FFFFFF' }]}>
+                      {c.iniciais || 'CO'}
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
-            <Text style={styles.caregiversText}>
-              {primeiroContato
-                ? `${primeiroContato.nome.split(' ')[0]}, Roberta e familiares avisados`
-                : 'Carlos, Roberta e familiares avisados'}
+            <Text style={styles.caregiversText} numberOfLines={1}>
+              {contatosEmergencia.length === 0
+                ? 'Nenhum contato cadastrado'
+                : contatosEmergencia.length === 1
+                ? `${contatosEmergencia[0].nome.split(' ')[0]} avisado(a) em caso de emergência`
+                : `${contatosEmergencia.map((c) => c.nome.split(' ')[0]).join(', ')} avisados`}
             </Text>
           </TouchableOpacity>
         </View>
