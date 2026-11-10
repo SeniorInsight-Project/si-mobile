@@ -268,7 +268,7 @@ export async function confirmarIngestao(
   await atualizarStatusDoseCache(rotinaId, statusDesejado, horaFormatada);
 
   const payloadGateway: ConfirmarIngestaoRequest = {
-    horarioIngestao: dataHoraIngestaoISO || '',
+    dataHoraIngestao: dataHoraIngestaoISO || undefined,
     observacao: dadosConfirmacao.observacao || (statusDesejado === 'TOMADO' ? 'Dose tomada conforme prescrito' : 'Dose desmarcada'),
   };
 

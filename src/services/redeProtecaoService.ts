@@ -1,7 +1,21 @@
-﻿import { runtimeConfig } from '../config/runtime';
+import { runtimeConfig } from '../config/runtime';
 import { mockPermitido } from '../config/ambiente';
 import type { ConviteRede, ConviteRedeRequest } from '../types/api';
 import { resolverTokenAutorizacao } from './tokenStorageService';
+import { extrairMensagemErro } from './erroHelper';
+
+async function lerCorpoResposta(response: Response): Promise<unknown> {
+  try {
+    const texto = await response.text();
+    try {
+      return JSON.parse(texto);
+    } catch {
+      return texto;
+    }
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Limites da Rede de Proteção conforme RN-012 do DRS
@@ -125,28 +139,6 @@ export interface DetalhesConvite {
 }
 
 /**
- * Membros iniciais baseados fielmente no protótipo do Figma ("Rede Familiar de Apoio")
- * Utilizados para exibição imediata e fallback resiliente em ambiente de desenvolvimento e testes.
- */
-async function obterMembrosIniciais(): Promise<MembroRede[]> {
-  if (mockPermitido()) {
-    const { INITIAL_MEMBERS } = await import('../mocks/redeProtecao');
-    return (INITIAL_MEMBERS as unknown as MembroRede[]).map(normalizarMembroBackend);
-  }
-  return [];
-}
-
-/**
- * Sequência padrão de chamada de emergência SOS
- */
-export const SOS_CALL_SEQUENCE: string[] = [
-  'Carlos',
-  'Roberta',
-  'Lucas',
-  'SAMU 192',
-];
-
-/**
  * Normaliza os dados retornados do backend para o formato exibido na UI.
  */
 function normalizarMembroBackend(membro: any): MembroRede {
@@ -268,6 +260,11 @@ export async function listarMembrosRede(
   idosoId: string,
   token: string | null = null
 ): Promise<MembroRede[]> {
+  if (mockPermitido()) {
+    const { INITIAL_MEMBERS } = await import('../mocks/redeProtecao');
+    return (INITIAL_MEMBERS as unknown as MembroRede[]).map(normalizarMembroBackend);
+  }
+
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -283,64 +280,22 @@ export async function listarMembrosRede(
     });
 
     if (!response.ok) {
-      console.warn(`[redeProtecaoService] Backend retornou status ${response.status}. Usando fallback do protótipo.`);
-      return await obterMembrosIniciais();
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao carregar a rede de proteção.`));
     }
 
     const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data.map(normalizarMembroBackend);
     }
 
-    return await obterMembrosIniciais();
+    return [];
   } catch (error: any) {
-    console.warn('[redeProtecaoService] Backend inacessível. Ativando fallback resiliente:', error?.message);
-    return await obterMembrosIniciais();
+    throw new Error(extrairMensagemErro(error, 'Não foi possível carregar a rede de proteção.'));
   }
 }
 
-/**
- * Convites pendentes iniciais para exibição imediata e fallback resiliente
- */
-let convitesPendentesEmMemoria: ConvitePendente[] = [];
-let inicializadoConvites = false;
-
-async function garantirConvitesIniciais(): Promise<void> {
-  if (inicializadoConvites) return;
-  inicializadoConvites = true;
-  if (mockPermitido()) {
-    const { CONVITES_PENDENTES_INICIAIS } = await import('../mocks/redeProtecao');
-    convitesPendentesEmMemoria = [...(CONVITES_PENDENTES_INICIAIS as unknown as ConvitePendente[])];
-  }
-}
-
-/**
- * Simulação de geração de convite temporal (48h) para testes e fallback offline.
- */
-function simularGeracaoConvite(idosoId: string, dadosConvite: DadosConviteInput): ConviteResponse {
-  const dataExpiracao = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-  const tokenSimulado = `token-${Math.random().toString(36).substring(2, 12)}`;
-  const novoConvite = {
-    id: `convite-${Date.now()}`,
-    idosoId,
-    nomeIdoso: 'Dona Maria Silva',
-    emailDestinatario: dadosConvite.email,
-    token: tokenSimulado,
-    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
-    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
-    papelAcessoSugerido: dadosConvite.papelAcesso || 'CUIDADOR',
-    papelLabel: dadosConvite.papelAcesso === 'ADMIN' ? 'Administrador' : dadosConvite.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
-    grauParentescoSugerido: dadosConvite.grauParentesco || 'Familiar',
-    mensagemPersonalizada: dadosConvite.mensagemPersonalizada || '',
-    status: 'PENDENTE',
-    dataExpiracao,
-    criadoEm: new Date().toISOString(),
-    mensagemSimulacao: `Convite simulado com sucesso para ${dadosConvite.email}. Válido por 48 horas.`,
-    validadeHorasRestantes: 48,
-  };
-  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
-  return novoConvite;
-}
+export const obterMembros = listarMembrosRede;
 
 /**
  * Gera um convite temporal (48h/72h) para inclusão de novo membro na Rede de Proteção (HU16).
@@ -352,7 +307,11 @@ export async function gerarConvite(
   dadosConvite: DadosConviteInput,
   token: string | null = null
 ): Promise<ConviteResponse> {
-  await garantirConvitesIniciais();
+  if (mockPermitido()) {
+    const { mockGerarConvite } = await import('../mocks/redeProtecao');
+    return mockGerarConvite(idosoId, dadosConvite) as unknown as ConviteResponse;
+  }
+
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -375,13 +334,8 @@ export async function gerarConvite(
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[redeProtecaoService] Backend retornou 404 ao gerar convite. Ativando fallback resiliente.');
-        return simularGeracaoConvite(idosoId, dadosConvite);
-      }
-
-      const errorData = await response.json().catch(() => ({}));
-      const erro: ErroComStatus = new Error(errorData.message || `Erro ${response.status} ao gerar convite.`);
+      const errorData = await lerCorpoResposta(response);
+      const erro: ErroComStatus = new Error(extrairMensagemErro(errorData, `Erro ${response.status} ao gerar convite.`));
       erro.status = response.status;
       throw erro;
     }
@@ -395,16 +349,12 @@ export async function gerarConvite(
       grauParentescoSugerido: data.grauParentesco || dadosConvite.grauParentesco || 'Familiar',
       emailDestinatario: data.email || dadosConvite.email,
     };
-    convitesPendentesEmMemoria = [conviteFormatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
     return conviteFormatado as ConviteResponse;
   } catch (error: any) {
-    if (error?.status && error.status !== 404) {
-      // Erro de regra de negócio retornado pela API (ex: 409, 400, 403) - deve ser propagado
+    if (error?.status) {
       throw error;
     }
-
-    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite. Simulando sucesso local:', error?.message);
-    return simularGeracaoConvite(idosoId, dadosConvite);
+    throw new Error(extrairMensagemErro(error, 'Erro ao gerar convite.'));
   }
 }
 
@@ -416,35 +366,29 @@ export async function obterDetalhesConvite(tokenConvite: string): Promise<Detalh
     throw new Error('Token de convite inválido ou ausente.');
   }
 
-  const tokenLimpo = tokenConvite.trim();
-
-  // Verifica se o token simula expiração para testes
-  if (tokenLimpo.toLowerCase().includes('expirado')) {
-    return {
-      token: tokenLimpo,
-      nomeIdoso: 'Dona Maria Silva',
-      papelAcessoSugerido: 'CUIDADOR',
-      grauParentescoSugerido: 'Familiar de Apoio',
-      status: 'EXPIRADO',
-      expirado: true,
-      mensagem: 'Convite expirado. O prazo de validade temporal de 48 horas foi ultrapassado.',
-    };
+  if (mockPermitido()) {
+    const { mockObterDetalhesConvite } = await import('../mocks/redeProtecao');
+    return mockObterDetalhesConvite(tokenConvite);
   }
 
-  // Retorna os dados informativos do convite para a tela de aceite
-  return {
-    token: tokenLimpo,
-    nomeIdoso: 'Dona Maria Silva',
-    idadeIdoso: 76,
-    solicitanteNome: 'Carlos Silva',
-    solicitanteGrau: 'Filho (Administrador)',
-    papelAcessoSugerido: 'CUIDADOR',
-    papelLabel: 'Familiar de Apoio',
-    grauParentescoSugerido: 'Familiar',
-    status: 'PENDENTE',
-    expirado: false,
-    dataExpiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-  };
+  try {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const encodedToken = encodeURIComponent(tokenConvite.trim());
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/detalhes?token=${encodedToken}`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      const erro: ErroComStatus = new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao consultar convite.`));
+      erro.status = response.status;
+      throw erro;
+    }
+    return await response.json();
+  } catch (error: any) {
+    if (error?.status) throw error;
+    throw new Error(extrairMensagemErro(error, 'Erro ao consultar convite.'));
+  }
 }
 
 /**
@@ -455,6 +399,11 @@ export async function aceitarConvite(
   tokenConvite: string,
   tokenAutenticacao: string | null = null
 ): Promise<any> {
+  if (mockPermitido()) {
+    const { mockAceitarConvite } = await import('../mocks/redeProtecao');
+    return mockAceitarConvite(tokenConvite);
+  }
+
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -471,32 +420,14 @@ export async function aceitarConvite(
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[redeProtecaoService] Backend retornou 404 para aceitarConvite. Ativando fallback resiliente.');
-        if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
-          const err: ErroComStatus = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
-          err.status = 410;
-          throw err;
-        }
-        return {
-          vinculoId: `vinculo-${Date.now()}`,
-          idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-          nomeIdoso: 'Dona Maria Silva',
-          familiarId: `familiar-${Date.now()}`,
-          nomeFamiliar: 'Familiar Convidado',
-          grauParentesco: 'Familiar',
-          papelAcesso: 'CUIDADOR',
-          criadoEm: new Date().toISOString(),
-          mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
-        };
-      }
-
-      const errorData = await response.json().catch(() => ({}));
-      let mensagem = errorData.message || `Erro ${response.status} ao aceitar convite.`;
+      const errorData = await lerCorpoResposta(response);
+      let mensagem = extrairMensagemErro(errorData, `Erro ${response.status} ao aceitar convite.`);
       if (response.status === 410) {
         mensagem = 'Convite expirado. Peça um novo convite ao familiar administrador.';
       } else if (response.status === 409) {
-        mensagem = errorData.message || 'Você já possui vínculo ativo com este idoso na Rede de Proteção.';
+        mensagem = typeof errorData === 'object' && errorData && (errorData as any).message
+          ? (errorData as any).message
+          : 'Você já possui vínculo ativo com este idoso na Rede de Proteção.';
       }
       const erro: ErroComStatus = new Error(mensagem);
       erro.status = response.status;
@@ -505,30 +436,8 @@ export async function aceitarConvite(
 
     return await response.json();
   } catch (error: any) {
-    if (error.status && error.status !== 404) {
-      throw error;
-    }
-
-    console.warn('[redeProtecaoService] Erro ao aceitar convite no backend. Verificando fallback:', error?.message);
-
-    // Tratamento de convite expirado no fallback de teste
-    if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
-      const err: ErroComStatus = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
-      err.status = 410;
-      throw err;
-    }
-
-    return {
-      vinculoId: `vinculo-${Date.now()}`,
-      idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-      nomeIdoso: 'Dona Maria Silva',
-      familiarId: `familiar-${Date.now()}`,
-      nomeFamiliar: 'Familiar Convidado',
-      grauParentesco: 'Familiar',
-      papelAcesso: 'CUIDADOR',
-      criadoEm: new Date().toISOString(),
-      mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
-    };
+    if (error?.status) throw error;
+    throw new Error(extrairMensagemErro(error, 'Erro ao aceitar convite.'));
   }
 }
 
@@ -539,7 +448,11 @@ export async function listarConvitesPendentes(
   idosoId: string,
   token: string | null = null
 ): Promise<ConvitePendente[]> {
-  await garantirConvitesIniciais();
+  if (mockPermitido()) {
+    const { mockListarConvites } = await import('../mocks/redeProtecao');
+    return mockListarConvites(idosoId) as unknown as ConvitePendente[];
+  }
+
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
@@ -549,13 +462,14 @@ export async function listarConvitesPendentes(
       headers,
     });
     if (!response.ok) {
-      return [...convitesPendentesEmMemoria];
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao listar convites pendentes.`));
     }
     const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) return data;
-    return [...convitesPendentesEmMemoria];
-  } catch {
-    return [...convitesPendentesEmMemoria];
+    if (Array.isArray(data)) return data;
+    return [];
+  } catch (error: any) {
+    throw new Error(extrairMensagemErro(error, 'Não foi possível listar convites pendentes.'));
   }
 }
 
@@ -567,19 +481,27 @@ export async function cancelarConvite(
   conviteId: string,
   token: string | null = null
 ): Promise<boolean> {
+  if (mockPermitido()) {
+    const { mockCancelarConvite } = await import('../mocks/redeProtecao');
+    return mockCancelarConvite(idosoId, conviteId);
+  }
+
   try {
     const headers: Record<string, string> = { 'Accept': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
       method: 'DELETE',
       headers,
     });
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao cancelar convite.`));
+    }
+    return true;
   } catch (err: any) {
-    console.warn('[redeProtecaoService] Falha ao cancelar convite no backend, atualizando localmente:', err?.message);
+    throw new Error(extrairMensagemErro(err, 'Não foi possível cancelar o convite.'));
   }
-  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
-  return true;
 }
 
 /**
@@ -591,31 +513,28 @@ export async function editarConvite(
   novosDados: Partial<DadosConviteInput>,
   token: string | null = null
 ): Promise<ConvitePendente | null> {
+  if (mockPermitido()) {
+    const { mockEditarConvite } = await import('../mocks/redeProtecao');
+    return mockEditarConvite(idosoId, conviteId, novosDados) as unknown as ConvitePendente;
+  }
+
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     const authToken = await resolverTokenAutorizacao(token);
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
       method: 'PUT',
       headers,
       body: JSON.stringify(novosDados),
     });
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao editar convite.`));
+    }
+    return await response.json();
   } catch (err: any) {
-    console.warn('[redeProtecaoService] Falha ao editar convite no backend, atualizando localmente:', err?.message);
+    throw new Error(extrairMensagemErro(err, 'Não foi possível editar o convite.'));
   }
-  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId);
-  if (idx !== -1) {
-    convitesPendentesEmMemoria[idx] = {
-      ...convitesPendentesEmMemoria[idx],
-      emailDestinatario: novosDados.email || convitesPendentesEmMemoria[idx].emailDestinatario,
-      grauParentescoSugerido: novosDados.grauParentesco || convitesPendentesEmMemoria[idx].grauParentescoSugerido,
-      papelAcessoSugerido: novosDados.papelAcesso || convitesPendentesEmMemoria[idx].papelAcessoSugerido,
-      papelLabel: novosDados.papelAcesso === 'ADMIN' ? 'Administrador' : novosDados.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
-      mensagemPersonalizada: novosDados.mensagemPersonalizada ?? convitesPendentesEmMemoria[idx].mensagemPersonalizada,
-    };
-    return convitesPendentesEmMemoria[idx];
-  }
-  return null;
 }
 
 /**
@@ -686,30 +605,10 @@ export async function gerarConviteMedico(
     }
   }
 
-  const tokenSimulado = `med-${Math.random().toString(36).substring(2, 12)}`;
-  const dataExpiracao = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
-
-  const novoConvite: ConvitePendente = {
-    id: `convite-med-${Date.now()}`,
-    idosoId,
-    nomeIdoso: 'Dona Maria Silva',
-    nomeMedico: dadosMedico.nome.trim(),
-    crm: dadosMedico.crm.trim().toUpperCase(),
-    emailDestinatario,
-    token: tokenSimulado,
-    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
-    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
-    papelAcessoSugerido: 'MEDICO',
-    papelLabel: 'Médico(a) de Referência',
-    grauParentescoSugerido: 'Médico(a)',
-    tipoMembro: 'MEDICO',
-    mensagemPersonalizada: dadosMedico.mensagemPersonalizada || 'Convite para acompanhar os relatórios semanais e dados clínicos de Dona Maria no SeniorInsight.',
-    status: 'PENDENTE',
-    dataExpiracao,
-    criadoEm: new Date().toISOString(),
-    validadeHorasRestantes: 72,
-    mensagemSimulacao: `Convite de 72h enviado para o Dr(a). ${dadosMedico.nome.trim()} (CRM ${dadosMedico.crm.trim().toUpperCase()}).`,
-  };
+  if (mockPermitido()) {
+    const { mockGerarConviteMedico } = await import('../mocks/redeProtecao');
+    return mockGerarConviteMedico(idosoId, dadosMedico) as unknown as ConvitePendente;
+  }
 
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
@@ -725,28 +624,25 @@ export async function gerarConviteMedico(
         grauParentesco: 'Médico(a)',
         nomeMedico: dadosMedico.nome.trim(),
         crm: dadosMedico.crm.trim().toUpperCase(),
-        mensagemPersonalizada: novoConvite.mensagemPersonalizada,
+        mensagemPersonalizada: dadosMedico.mensagemPersonalizada || 'Convite para acompanhar os relatórios semanais e dados clínicos de Dona Maria no SeniorInsight.',
       }),
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const formatado: ConvitePendente = {
-        ...novoConvite,
-        ...data,
-        nomeMedico: dadosMedico.nome.trim(),
-        crm: dadosMedico.crm.trim().toUpperCase(),
-        validadeHorasRestantes: 72,
-      };
-      convitesPendentesEmMemoria = [formatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
-      return formatado;
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao gerar convite médico.`));
     }
-  } catch (err: any) {
-    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite médico, ativando fallback local:', err?.message);
-  }
 
-  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
-  return novoConvite;
+    const data = await response.json();
+    return {
+      ...data,
+      nomeMedico: dadosMedico.nome.trim(),
+      crm: dadosMedico.crm.trim().toUpperCase(),
+      validadeHorasRestantes: 72,
+    };
+  } catch (err: any) {
+    throw new Error(extrairMensagemErro(err, 'Não foi possível gerar o convite do médico.'));
+  }
 }
 
 /**
@@ -758,40 +654,53 @@ export async function recusarConvite(
   conviteId: string,
   motivo = 'O médico recusou o convite'
 ): Promise<ConvitePendente> {
-  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId || c.token === conviteId);
-  if (idx !== -1) {
-    convitesPendentesEmMemoria[idx] = {
-      ...convitesPendentesEmMemoria[idx],
-      status: 'RECUSADO',
-      mensagemRecusa: motivo,
-      recusadoEm: new Date().toISOString(),
-    };
-    return convitesPendentesEmMemoria[idx];
+  if (mockPermitido()) {
+    const { mockRecusarConvite } = await import('../mocks/redeProtecao');
+    return mockRecusarConvite(idosoId, conviteId, motivo) as unknown as ConvitePendente;
   }
 
-  const mockRecusa: ConvitePendente = {
-    id: conviteId || `conv-rec-${Date.now()}`,
-    idosoId,
-    status: 'RECUSADO',
-    mensagemRecusa: motivo,
-    nomeMedico: 'Dr. Convidado',
-    crm: '000000/SP',
-    emailDestinatario: 'medico@recusou.com',
-    papelAcessoSugerido: 'MEDICO',
-    tipoMembro: 'MEDICO',
-    recusadoEm: new Date().toISOString(),
-  };
-  convitesPendentesEmMemoria = [mockRecusa, ...convitesPendentesEmMemoria];
-  return mockRecusa;
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites/${conviteId}/recusar`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ motivo }),
+    });
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao recusar convite.`));
+    }
+    return await response.json();
+  } catch (err: any) {
+    throw new Error(extrairMensagemErro(err, 'Não foi possível recusar o convite.'));
+  }
 }
 
 /**
  * Descarta ou remove a notificação de convite recusado da visualização da família.
  */
 export async function descartarConviteRecusado(idosoId: string, conviteId: string): Promise<boolean> {
-  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
-  return true;
+  if (mockPermitido()) {
+    const { mockDescartarConviteRecusado } = await import('../mocks/redeProtecao');
+    return mockDescartarConviteRecusado(idosoId, conviteId);
+  }
+
+  try {
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites/${conviteId}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (!response.ok) {
+      const corpo = await lerCorpoResposta(response);
+      throw new Error(extrairMensagemErro(corpo, `Erro ${response.status} ao descartar convite recusado.`));
+    }
+    return true;
+  } catch (err: any) {
+    throw new Error(extrairMensagemErro(err, 'Não foi possível descartar o convite recusado.'));
+  }
 }
+
 
 
 

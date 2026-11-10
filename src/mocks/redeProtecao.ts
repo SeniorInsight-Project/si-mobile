@@ -223,3 +223,188 @@ export const CONVITES_PENDENTES_INICIAIS: ConvitePendenteMock[] = [
     validadeHorasRestantes: 48,
   },
 ];
+
+let convitesMock: ConvitePendenteMock[] = [...CONVITES_PENDENTES_INICIAIS];
+
+export function resetarConvitesMock(): void {
+  convitesMock = [...CONVITES_PENDENTES_INICIAIS];
+}
+
+export function mockListarConvites(idosoId?: string): ConvitePendenteMock[] {
+  if (!idosoId) return [...convitesMock];
+  return convitesMock.filter((c) => !c.idosoId || c.idosoId === idosoId);
+}
+
+export function mockGerarConvite(idosoId: string, dadosConvite: {
+  email: string;
+  papelAcesso?: string;
+  grauParentesco?: string;
+  mensagemPersonalizada?: string;
+}): ConvitePendenteMock {
+  const dataExpiracao = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const tokenSimulado = `token-${Math.random().toString(36).substring(2, 12)}`;
+  const novoConvite: ConvitePendenteMock = {
+    id: `convite-${Date.now()}`,
+    idosoId,
+    nomeIdoso: 'Dona Maria Silva',
+    emailDestinatario: dadosConvite.email,
+    token: tokenSimulado,
+    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
+    papelAcessoSugerido: dadosConvite.papelAcesso || 'CUIDADOR',
+    papelLabel: dadosConvite.papelAcesso === 'ADMIN' ? 'Administrador' : dadosConvite.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
+    grauParentescoSugerido: dadosConvite.grauParentesco || 'Familiar',
+    mensagemPersonalizada: dadosConvite.mensagemPersonalizada || '',
+    status: 'PENDENTE',
+    dataExpiracao,
+    criadoEm: new Date().toISOString(),
+    validadeHorasRestantes: 48,
+  };
+  convitesMock = [novoConvite, ...convitesMock.filter((c) => c.emailDestinatario !== dadosConvite.email)];
+  return novoConvite;
+}
+
+export function mockGerarConviteMedico(idosoId: string, dadosMedico: {
+  nome: string;
+  crm: string;
+  email: string;
+  mensagemPersonalizada?: string;
+}): ConvitePendenteMock {
+  const emailDestinatario = dadosMedico.email.trim().toLowerCase();
+  const dataExpiracao = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+  const tokenSimulado = `med-token-${Math.random().toString(36).substring(2, 12)}`;
+  const novoConvite: ConvitePendenteMock = {
+    id: `conv-med-${Date.now()}`,
+    idosoId,
+    nomeIdoso: 'Dona Maria Silva',
+    nomeMedico: dadosMedico.nome.trim(),
+    crm: dadosMedico.crm.trim().toUpperCase(),
+    emailDestinatario,
+    papelAcessoSugerido: 'MEDICO',
+    papelLabel: 'Médico(a) Especialista',
+    grauParentescoSugerido: 'Médico(a)',
+    tipoMembro: 'MEDICO',
+    mensagemPersonalizada: dadosMedico.mensagemPersonalizada?.trim() || 'Convite para acompanhar os relatórios semanais de saúde de Dona Maria.',
+    token: tokenSimulado,
+    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
+    status: 'PENDENTE',
+    criadoEm: new Date().toISOString(),
+    dataExpiracao,
+    validadeHorasRestantes: 72,
+  };
+  convitesMock = [novoConvite, ...convitesMock.filter((c) => c.emailDestinatario !== emailDestinatario)];
+  return novoConvite;
+}
+
+export function mockCancelarConvite(idosoId: string, conviteId: string): boolean {
+  convitesMock = convitesMock.filter((c) => c.id !== conviteId);
+  return true;
+}
+
+export function mockEditarConvite(idosoId: string, conviteId: string, novosDados: {
+  email?: string;
+  papelAcesso?: string;
+  grauParentesco?: string;
+  mensagemPersonalizada?: string;
+}): ConvitePendenteMock | null {
+  const idx = convitesMock.findIndex((c) => c.id === conviteId);
+  if (idx !== -1) {
+    convitesMock[idx] = {
+      ...convitesMock[idx],
+      emailDestinatario: novosDados.email || convitesMock[idx].emailDestinatario,
+      grauParentescoSugerido: novosDados.grauParentesco || convitesMock[idx].grauParentescoSugerido,
+      papelAcessoSugerido: novosDados.papelAcesso || convitesMock[idx].papelAcessoSugerido,
+      papelLabel: novosDados.papelAcesso === 'ADMIN' ? 'Administrador' : novosDados.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
+      mensagemPersonalizada: novosDados.mensagemPersonalizada ?? convitesMock[idx].mensagemPersonalizada,
+    };
+    return convitesMock[idx];
+  }
+  return null;
+}
+
+export function mockRecusarConvite(idosoId: string, conviteId: string, motivo = 'O médico recusou o convite'): ConvitePendenteMock {
+  const idx = convitesMock.findIndex((c) => c.id === conviteId || c.token === conviteId);
+  if (idx !== -1) {
+    convitesMock[idx] = {
+      ...convitesMock[idx],
+      status: 'RECUSADO',
+      mensagemRecusa: motivo,
+      recusadoEm: new Date().toISOString(),
+    };
+    return convitesMock[idx];
+  }
+  const mockRecusa: ConvitePendenteMock = {
+    id: conviteId || `conv-rec-${Date.now()}`,
+    idosoId,
+    status: 'RECUSADO',
+    mensagemRecusa: motivo,
+    nomeMedico: 'Dr. Convidado',
+    crm: '000000/SP',
+    emailDestinatario: 'medico@recusou.com',
+    papelAcessoSugerido: 'MEDICO',
+    tipoMembro: 'MEDICO',
+    recusadoEm: new Date().toISOString(),
+    nomeIdoso: 'Dona Maria Silva',
+    papelLabel: 'Médico(a) Especialista',
+    grauParentescoSugerido: 'Médico(a)',
+    mensagemPersonalizada: '',
+    token: `token-rec-${Date.now()}`,
+    linkConvite: '',
+    criadoEm: new Date().toISOString(),
+    validadeHorasRestantes: 0,
+  };
+  convitesMock = [mockRecusa, ...convitesMock];
+  return mockRecusa;
+}
+
+export function mockDescartarConviteRecusado(idosoId: string, conviteId: string): boolean {
+  convitesMock = convitesMock.filter((c) => c.id !== conviteId);
+  return true;
+}
+
+export function mockAceitarConvite(tokenConvite: string): any {
+  if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
+    const err: any = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
+    err.status = 410;
+    throw err;
+  }
+  return {
+    vinculoId: `vinculo-${Date.now()}`,
+    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
+    nomeIdoso: 'Dona Maria Silva',
+    familiarId: `familiar-${Date.now()}`,
+    nomeFamiliar: 'Familiar Convidado',
+    grauParentesco: 'Familiar',
+    papelAcesso: 'CUIDADOR',
+    criadoEm: new Date().toISOString(),
+    mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
+  };
+}
+
+export function mockObterDetalhesConvite(tokenConvite: string): any {
+  const tokenLimpo = tokenConvite.trim();
+  if (tokenLimpo.toLowerCase().includes('expirado')) {
+    return {
+      token: tokenLimpo,
+      nomeIdoso: 'Dona Maria Silva',
+      papelAcessoSugerido: 'CUIDADOR',
+      grauParentescoSugerido: 'Familiar de Apoio',
+      status: 'EXPIRADO',
+      expirado: true,
+      mensagem: 'Convite expirado. O prazo de validade temporal de 48 horas foi ultrapassado.',
+    };
+  }
+  return {
+    token: tokenLimpo,
+    nomeIdoso: 'Dona Maria Silva',
+    idadeIdoso: 76,
+    solicitanteNome: 'Carlos Silva',
+    solicitanteGrau: 'Filho (Administrador)',
+    papelAcessoSugerido: 'CUIDADOR',
+    papelLabel: 'Familiar de Apoio',
+    grauParentescoSugerido: 'Familiar',
+    status: 'PENDENTE',
+    expirado: false,
+    dataExpiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+  };
+}
+

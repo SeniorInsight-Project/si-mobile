@@ -6,3 +6,4 @@ export * from './telemetria';
 export * from './deviceStatus';
 export * from './contatosEmergencia';
 export * from './idosos';
+export * from './sosCallSequence';

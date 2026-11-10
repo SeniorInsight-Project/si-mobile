@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -58,6 +58,7 @@ export default function FamilyScreen({
   const [membros, setMembros] = useState<MembroRede[]>([]);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
   const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);
   const [modalDoctorInviteVisible, setModalDoctorInviteVisible] = useState<boolean>(false);
   const [conviteParaEditar, setConviteParaEditar] = useState<ConvitePendente | null>(null);
@@ -67,18 +68,16 @@ export default function FamilyScreen({
   const carregarDados = async () => {
     try {
       setCarregandoMembros(true);
+      setErroCarregamento(null);
       const [listaMembros, listaPendentes] = await Promise.all([
         listarMembrosRede(idosoId),
         listarConvitesPendentes(idosoId),
       ]);
-      if (Array.isArray(listaMembros) && listaMembros.length > 0) {
-        setMembros(listaMembros);
-      }
-      if (Array.isArray(listaPendentes)) {
-        setConvitesPendentes(listaPendentes);
-      }
+      setMembros(Array.isArray(listaMembros) ? listaMembros : []);
+      setConvitesPendentes(Array.isArray(listaPendentes) ? listaPendentes : []);
     } catch (err: any) {
       console.warn('[FamilyScreen] Erro ao carregar dados:', err?.message);
+      setErroCarregamento('Não foi possível carregar a rede');
     } finally {
       setCarregandoMembros(false);
     }
@@ -237,7 +236,7 @@ export default function FamilyScreen({
               await carregarDados();
               Alert.alert('Convite Cancelado', 'O convite foi cancelado e removido.');
             } catch (err: any) {
-              Alert.alert('Erro', 'Não foi possível cancelar o convite.');
+              Alert.alert('Erro', err?.message || 'Não foi possível cancelar o convite.');
             }
           },
         },
@@ -671,12 +670,12 @@ export default function FamilyScreen({
                             email: convite.emailDestinatario,
                             acoes: ['call', 'prontuario'],
                           };
-                          setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
                           await cancelarConvite(idosoId, convite.id);
+                          setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
                           await carregarDados();
                           Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
-                        } catch (e) {
-                          console.warn(e);
+                        } catch (e: any) {
+                          Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
                         }
                       }}
                       activeOpacity={0.8}
@@ -715,8 +714,30 @@ export default function FamilyScreen({
                 </View>
               ))}
 
+            {/* ESTADO DE ERRO */}
+            {erroCarregamento && (
+              <View style={styles.errorCardContainer}>
+                <Icon name="error" size={24} color="#DC2626" />
+                <Text style={styles.errorCardTitle}>Não foi possível carregar a rede</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={carregarDados}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ESTADO VAZIO */}
+            {!erroCarregamento && membrosFiltrados.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Nenhum membro encontrado</Text>
+              </View>
+            )}
+
             {/* ESTADO 1: CARDS DE MEMBROS E MÉDICOS VINCULADOS */}
-            {membrosFiltrados.map((membro) => (
+            {!erroCarregamento && membrosFiltrados.map((membro) => (
             <View key={membro.id} style={styles.memberCard}>
               {/* Topo do Card: Avatar + Nome + Badge de Papel */}
               <View style={styles.memberHeaderRow}>
@@ -1861,5 +1882,45 @@ const styles = StyleSheet.create({
   },
   doctorInviteCtaButtonTextDisabled: {
     color: '#DC2626',
+  },
+  errorCardContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  errorCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#991B1B',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
   },
 });
