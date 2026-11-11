@@ -328,12 +328,12 @@ export default function App() {
       case 'AcessoRestrito':
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
-        return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} idosoId={idosoSelecionadoId ?? undefined} />;
+        return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} />;
       case 'ElderlyProfile':
         return (
           <ElderlyProfileScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId ?? undefined}
+           
             accessRole={papelAcessoAtual}
             familiarId={usuarioLogado?.id}
           />
@@ -342,24 +342,23 @@ export default function App() {
         return (
           <HomeScreen
             onNavigate={navegar}
-            onSelectElderly={(id) => setIdosoSelecionadoId(id)}
             onLogout={handleLogout}
             familiarId={usuarioLogado?.id}
           />
         );
       case 'Medicines':
-        return <MedicinesScreen onNavigate={navegar} idosoId={idosoSelecionadoId ?? undefined} />;
+        return <MedicinesScreen onNavigate={navegar} />;
       case 'Family':
         return (
           <FamilyScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId ?? undefined}
+           
             isFamiliarAdmin={papelAcessoAtual === 'ADMIN'}
             papelAcesso={papelAcessoAtual}
           />
         );
       case 'EmergencyContacts':
-        return <EmergencyContactsScreen onNavigate={navegar} idosoId={idosoSelecionadoId ?? undefined} />;
+        return <EmergencyContactsScreen onNavigate={navegar} />;
       case 'AcceptInvite':
         return (
           <AcceptInviteScreen

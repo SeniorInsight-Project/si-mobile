@@ -31,6 +31,7 @@ import {
   reordenarContatos,
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
+import { useIdoso } from '../context/IdosoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -306,8 +307,11 @@ export interface EmergencyContactsScreenProps {
 
 export default function EmergencyContactsScreen({
   onNavigate,
-  idosoId,
+  idosoId: idosoIdProp,
 }: EmergencyContactsScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const [contatos, setContatos] = useState<ContatoEmergencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);

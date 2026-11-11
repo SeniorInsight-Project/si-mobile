@@ -31,6 +31,7 @@ import {
   RotinaMedicamento,
   RotinaMedicamentoInput,
 } from '../services/medicamentoService';
+import { useIdoso } from '../context/IdosoContext';
 
 export interface MedicinesScreenProps {
   onNavigate?: (screen: string) => void;
@@ -39,8 +40,11 @@ export interface MedicinesScreenProps {
 
 export default function MedicinesScreen({
   onNavigate,
-  idosoId,
+  idosoId: idosoIdProp,
 }: MedicinesScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const somenteConfirmar = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
   const [selectedDayObj, setSelectedDayObj] = useState<DiaSemanaItem>(
