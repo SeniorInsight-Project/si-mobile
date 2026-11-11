@@ -11,8 +11,11 @@
 export const CHAVE_APARELHO_PAREADO = 'si_aparelho_pareado';
 
 export interface AparelhoPareado {
+  /** Id do perfil no identity-service. Não serve de `idosoId` nas rotas do care. */
   perfilId: string;
   nome: string;
+  /** Id do idoso no care-service, devolvido no resgate; ausente se o código foi gerado sem idoso. */
+  idosoId?: string;
   /** Epoch ms do pareamento. */
   pareadoEm: number;
 }
@@ -42,10 +45,19 @@ async function obterArmazenamento(): Promise<ArmazenamentoSeguro | null> {
 }
 
 /** Guarda que o aparelho foi pareado. Não lança: sem secure store, o app segue pelo papel do token. */
-export async function marcarAparelhoPareado(dados: { perfilId: string; nome: string }): Promise<boolean> {
+export async function marcarAparelhoPareado(dados: {
+  perfilId: string;
+  nome: string;
+  idosoId?: string;
+}): Promise<boolean> {
   const store = await obterArmazenamento();
   if (!store) return false;
-  const registro: AparelhoPareado = { perfilId: dados.perfilId, nome: dados.nome, pareadoEm: Date.now() };
+  const registro: AparelhoPareado = {
+    perfilId: dados.perfilId,
+    nome: dados.nome,
+    ...(dados.idosoId ? { idosoId: dados.idosoId } : {}),
+    pareadoEm: Date.now(),
+  };
   try {
     await store.setItemAsync(CHAVE_APARELHO_PAREADO, JSON.stringify(registro));
     return true;
@@ -64,7 +76,12 @@ export async function obterAparelhoPareado(): Promise<AparelhoPareado | null> {
     if (!bruto) return null;
     const r = JSON.parse(bruto);
     if (typeof r?.perfilId !== 'string' || typeof r?.nome !== 'string') return null;
-    return { perfilId: r.perfilId, nome: r.nome, pareadoEm: typeof r.pareadoEm === 'number' ? r.pareadoEm : 0 };
+    return {
+      perfilId: r.perfilId,
+      nome: r.nome,
+      ...(typeof r.idosoId === 'string' && r.idosoId ? { idosoId: r.idosoId } : {}),
+      pareadoEm: typeof r.pareadoEm === 'number' ? r.pareadoEm : 0,
+    };
   } catch {
     return null;
   }
