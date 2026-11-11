@@ -257,7 +257,7 @@ export default function AlertsCenterScreen({
     return (
       <View key={alerta.id} style={[styles.card, styles.cardTecnico]} testID="alerta-tecnico">
         <View style={styles.tecnicoIcon}>
-          <Icon name={alerta.icone || 'info'} size={22} color={colors.textSecondary} />
+          <Icon name="info" size={22} color={colors.textSecondary} />
         </View>
         <View style={styles.flex}>
           <Text style={styles.tecnicoTitulo}>{alerta.titulo}</Text>
