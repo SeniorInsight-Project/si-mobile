@@ -57,12 +57,13 @@ export default function MedicinesScreen({
     async function carregar() {
       try {
         setLoading(true);
-        const data = await listarRotinas(idosoId, selectedDayObj?.id);
+        const data = await listarRotinas(idosoId);
         if (data && Array.isArray(data)) {
           setRotinas(data);
         }
       } catch (err: any) {
         console.warn('Erro ao listar rotinas:', err?.message);
+        Alert.alert('Erro', err?.message || 'Não foi possível carregar os medicamentos agora.');
       } finally {
         setLoading(false);
       }

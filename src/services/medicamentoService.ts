@@ -1,7 +1,6 @@
-import { runtimeConfig } from '../config/runtime';
 import { mockPermitido } from '../config/ambiente';
-import type { ConfirmarIngestaoRequest } from '../types/api';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import type { AtualizarRotinaRequest, ConfirmarIngestaoRequest, RotinaMedicamentoRequest } from '../types/api';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 import {
   obterRotinasDoCache,
   salvarRotinasNoCache,
@@ -124,11 +123,11 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
     id: rotina.id || `rotina-${Date.now()}`,
     idosoId: rotina.idosoId,
     idosoNome: rotina.idosoNome,
-    medicamentoId: rotina.medicamentoId || `med-${Date.now()}`,
+    medicamentoId: rotina.medicamentoId,
     medicamentoNome: nome,
     nomeMedicamento: nome,
-    dosagem: rotina.dosagem || '1 comprimido',
-    instrucoes: rotina.instrucoes || 'Tomar conforme orientação',
+    dosagem: rotina.dosagem || '',
+    instrucoes: rotina.instrucoes || '',
     observacoes: rotina.observacoes || '',
     horario,
     frequencia: rotina.frequencia || '1x ao dia (Diário)',
@@ -146,14 +145,15 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
 }
 
 /**
- * Normaliza objetos retornados pela API (formato contrato OpenAPI)
+ * Normaliza objetos retornados pela API (RotinaMedicamento do contrato care-v1).
  */
 export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicamento {
-  const statusContrato = (apiItem.status || 'PENDENTE').toUpperCase();
+  const statusContrato = String(apiItem.statusHoje ?? apiItem.status ?? 'PENDENTE').toUpperCase();
 
   return enriquecerDadosVisuais({
     id: apiItem.id,
     idosoId: apiItem.idosoId,
+    idosoNome: apiItem.idosoNome,
     medicamentoId: apiItem.medicamentoId,
     medicamentoNome: apiItem.medicamentoNome,
     nomeMedicamento: apiItem.medicamentoNome,
@@ -162,8 +162,8 @@ export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicam
     observacoes: apiItem.observacoes,
     horario: apiItem.horario,
     diasSemana: apiItem.diasSemana,
-    frequencia: apiItem.diasSemana === 'TODOS' ? '1x ao dia (Diário)' : (apiItem.diasSemana || 'Personalizado'),
-    tipoFormato: apiItem.tipoFormato || 'comprimido',
+    frequencia: apiItem.frequencia || (apiItem.diasSemana === 'TODOS' ? '1x ao dia (Diário)' : apiItem.diasSemana) || 'Personalizado',
+    tipoFormato: apiItem.tipoFormato,
     ativo: apiItem.ativo !== undefined ? Boolean(apiItem.ativo) : true,
     statusHoje: statusContrato,
     horarioIngestaoHoje: apiItem.horarioIngestaoHoje || null,
@@ -171,45 +171,37 @@ export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicam
   });
 }
 
+export interface OpcoesRede {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'put' | 'delete'>;
+}
+
 /**
- * Busca todas as rotinas de medicamentos de um idoso.
+ * Busca as rotinas de medicamentos do idoso: GET /api/v1/idosos/{idosoId}/rotinas-medicamentos?apenasAtivos=true.
+ * `apenasAtivos` vai sempre na query (o servidor só deve devolver rotinas ativas). Lista vazia do servidor fica
+ * vazia. Sem rede, cai no cache SQLite, que só guarda o que veio do servidor (RF-038). Em 4xx/5xx lança.
  */
 export async function listarRotinas(
   idosoId: string,
-  token: string | null = null
+  { data, cliente = apiClient }: OpcoesRede & { data?: string } = {}
 ): Promise<RotinaMedicamento[]> {
+  const query = new URLSearchParams({ apenasAtivos: 'true' });
+  if (data) query.set('data', data);
+
   try {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
-      {
-        method: 'GET',
-        headers,
-      }
+    const resposta = await cliente.get<Array<Record<string, any>>>(
+      `/api/v1/idosos/${idosoId}/rotinas-medicamentos?${query.toString()}`
     );
-
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const enriquecidos = data.map(enriquecerDadosVisuais);
-        localMedicinesStore = enriquecidos;
-        await salvarRotinasNoCache(idosoId, enriquecidos);
-        agendarLembretesMedicacao(enriquecidos).catch(() => {});
-        return enriquecidos;
-      }
-    }
+    const rotinas = (Array.isArray(resposta) ? resposta : []).map(normalizarRotinaApi);
+    localMedicinesStore = rotinas;
+    await salvarRotinasNoCache(idosoId, rotinas);
+    agendarLembretesMedicacao(rotinas).catch(() => {});
+    return rotinas;
   } catch (error: any) {
+    if (!(error instanceof ApiError) || !error.erroDeRede) throw error;
     console.warn('[medicamentoService] Backend inacessível. Recorrendo à base local SQLite:', error?.message);
   }
 
-  // Fallback 1: Recupera do SQLite local (Offline-first / RF-038)
+  // Sem rede: recupera do SQLite local (offline-first / RF-038)
   try {
     const cached = await obterRotinasDoCache(idosoId);
     if (Array.isArray(cached) && cached.length > 0) {
@@ -221,7 +213,7 @@ export async function listarRotinas(
     console.warn('[medicamentoService] Erro ao carregar cache SQLite:', cacheErr?.message);
   }
 
-  // Fallback 2: Dados em memória pré-carregados se mockPermitido
+  // Dados de demonstração só com mock permitido (dev + EXPO_PUBLIC_USAR_MOCK)
   if (mockPermitido()) {
     await garantirRotinasIniciais();
     const fallback = localMedicinesStore.map(enriquecerDadosVisuais);
@@ -230,21 +222,24 @@ export async function listarRotinas(
     return fallback;
   }
 
-  return [];
+  throw new ApiError(0, null, `/api/v1/idosos/${idosoId}/rotinas-medicamentos`);
 }
 
 /**
  * Confirma a ingestão de um medicamento na rotina (HU-056 / HU-059 / RF-039).
+ * POST /api/v1/rotinas-medicamentos/{rotinaId}/confirmar-ingestao (ConfirmarIngestaoRequest).
+ * O estado local e o cache só mudam depois que o servidor confirma; em erro lança (sem sucesso inventado),
+ * salvo com mock permitido, que registra só no aparelho.
  */
 export async function confirmarIngestao(
   arg1: string,
   arg2: ConfirmacaoIngestaoInput | string | null = null,
   arg3: ConfirmacaoIngestaoInput | string | null = null,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConfirmacaoIngestaoResponse> {
   const agora = new Date();
 
-  // Normalização de parâmetros flexíveis
+  // Normalização de parâmetros flexíveis: (rotinaId, dados) ou (idosoId, rotinaId, dados)
   let rotinaId: string;
   let dadosConfirmacao: ConfirmacaoIngestaoInput = {};
 
@@ -254,7 +249,6 @@ export async function confirmarIngestao(
   } else {
     rotinaId = arg1;
     dadosConfirmacao = typeof arg2 === 'string' ? { observacao: arg2 } : (arg2 || {});
-    if (typeof arg3 === 'string') token = arg3;
   }
 
   const statusDesejado = dadosConfirmacao.status || 'TOMADO';
@@ -263,122 +257,110 @@ export async function confirmarIngestao(
     : null;
   const dataHoraIngestaoISO = statusDesejado === 'TOMADO' ? agora.toISOString() : null;
 
-  // Atualiza estado em memória e banco SQLite
-  atualizarStatusLocal(rotinaId, statusDesejado, horaFormatada);
-  await atualizarStatusDoseCache(rotinaId, statusDesejado, horaFormatada);
-
-  const payloadGateway: ConfirmarIngestaoRequest = {
-    dataHoraIngestao: dataHoraIngestaoISO || undefined,
+  const corpo: ConfirmarIngestaoRequest = {
+    status: statusDesejado,
     observacao: dadosConfirmacao.observacao || (statusDesejado === 'TOMADO' ? 'Dose tomada conforme prescrito' : 'Dose desmarcada'),
+  };
+  if (dataHoraIngestaoISO) corpo.dataHoraIngestao = dataHoraIngestaoISO;
+
+  const registrarLocalmente = async () => {
+    atualizarStatusLocal(rotinaId, statusDesejado, horaFormatada);
+    await atualizarStatusDoseCache(rotinaId, statusDesejado, horaFormatada);
   };
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}/confirmacoes`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payloadGateway),
-      }
+    const data = await cliente.post<Record<string, any>>(
+      `/api/v1/rotinas-medicamentos/${rotinaId}/confirmar-ingestao`,
+      corpo
     );
-
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        rotinaId,
-        status: data.status || statusDesejado,
-        dataHoraIngestao: data.horarioIngestao || dataHoraIngestaoISO,
-        horarioIngestaoHoje: horaFormatada,
-        observacao: payloadGateway.observacao || '',
-        sucesso: true,
-      };
-    }
+    await registrarLocalmente();
+    return {
+      rotinaId,
+      status: data?.status || statusDesejado,
+      dataHoraIngestao: data?.dataHoraIngestao || dataHoraIngestaoISO,
+      horarioIngestaoHoje: horaFormatada,
+      observacao: corpo.observacao || '',
+      sucesso: true,
+    };
   } catch (error: any) {
-    console.warn('[medicamentoService] Backend inacessível. Operação salva localmente:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Operação salva localmente (mock):', error?.message);
   }
 
+  await registrarLocalmente();
   return {
     rotinaId,
     status: statusDesejado,
     dataHoraIngestao: dataHoraIngestaoISO,
     horarioIngestaoHoje: horaFormatada,
-    observacao: payloadGateway.observacao || '',
+    observacao: corpo.observacao || '',
     sucesso: true,
   };
 }
 
+/** Só os campos do contrato, e só os que vieram preenchidos. */
+function omitirVazios<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== '')) as Partial<T>;
+}
+
 /**
  * Cria uma nova rotina de medicamento (HU-056).
+ * POST /api/v1/idosos/{idosoId}/rotinas-medicamentos com RotinaMedicamentoRequest (nomeMedicamento, dosagem,
+ * instrucoes, horario, frequencia, diasSemana, dataInicio, dataFim, observacoes). O tipo de formato
+ * (comprimido, gotas...) é só visual e não vai na requisição. 4xx lança; a rotina só entra no cache com o id do servidor.
  */
 export async function criarRotina(
   idosoId: string,
   dadosRotina: Partial<RotinaMedicamento> & Record<string, any>,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<RotinaMedicamento> {
   const nomeMed = (dadosRotina.nomeMedicamento || dadosRotina.medicamentoNome || '').trim();
-  const payloadGateway = {
-    medicamentoNome: nomeMed,
-    dosagem: dadosRotina.dosagem,
-    horario: dadosRotina.horario,
-    diasSemana: dadosRotina.diasSemana || 'TODOS',
-    tipoFormato: dadosRotina.tipoFormato || 'comprimido',
-    instrucoes: dadosRotina.instrucoes || '',
-    observacoes: dadosRotina.observacoes || '',
-  };
+  const corpo = {
+    ...omitirVazios({
+      medicamentoId: dadosRotina.medicamentoId,
+      nomeMedicamento: dadosRotina.medicamentoId ? undefined : nomeMed,
+      dosagem: dadosRotina.dosagem,
+      instrucoes: dadosRotina.instrucoes,
+      diasSemana: dadosRotina.diasSemana,
+      dataInicio: dadosRotina.dataInicio,
+      dataFim: dadosRotina.dataFim,
+      observacoes: dadosRotina.observacoes,
+    }),
+    horario: dadosRotina.horario as string,
+    frequencia: (dadosRotina.frequencia || '') as string,
+  } satisfies RotinaMedicamentoRequest;
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payloadGateway),
-      }
+    const novaRotina = await cliente.post<Record<string, any>>(
+      `/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
+      corpo
     );
+    const enriquecida = normalizarRotinaApi({
+      ...novaRotina,
+      medicamentoNome: novaRotina.medicamentoNome || nomeMed,
+      tipoFormato: dadosRotina.tipoFormato,
+    });
 
-    if (response.ok) {
-      const novaRotina = await response.json();
-      const enriquecida = enriquecerDadosVisuais({
-        ...novaRotina,
-        medicamentoNome: novaRotina.medicamentoNome || nomeMed,
-        nomeMedicamento: novaRotina.medicamentoNome || nomeMed,
-        tipoFormato: dadosRotina.tipoFormato || novaRotina.tipoFormato,
-      });
+    localMedicinesStore = localMedicinesStore.filter((r) => r.id !== enriquecida.id);
+    localMedicinesStore.push(enriquecida);
+    localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
 
-      localMedicinesStore = localMedicinesStore.filter((r) => r.id !== enriquecida.id);
-      localMedicinesStore.push(enriquecida);
-      localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
-
-      await salvarRotinasNoCache(idosoId, localMedicinesStore);
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return enriquecida;
-    }
+    await salvarRotinasNoCache(idosoId, localMedicinesStore);
+    agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+    return enriquecida;
   } catch (error: any) {
-    console.warn('[medicamentoService] Falha de conexão ao criar rotina. Criando no SQLite local:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Criando rotina só no aparelho (mock):', error?.message);
   }
 
-  // Fallback offline resiliente
+  // Somente com mock permitido (dev): rotina local de demonstração
   const novaRotinaLocal = enriquecerDadosVisuais({
     id: `med-local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
     idosoId,
     medicamentoNome: nomeMed,
     nomeMedicamento: nomeMed,
     dosagem: dadosRotina.dosagem || '',
-    instrucoes: dadosRotina.instrucoes || 'Conforme orientação médica',
+    instrucoes: dadosRotina.instrucoes || '',
     horario: dadosRotina.horario || '08:00',
     frequencia: dadosRotina.frequencia || '1x ao dia (Diário)',
     diasSemana: dadosRotina.diasSemana || 'TODOS',
@@ -401,11 +383,14 @@ export async function criarRotina(
 
 /**
  * Atualiza os dados de uma rotina de medicamento existente (HU-056 / RN-004).
+ * PUT /api/v1/rotinas-medicamentos/{rotinaId} com AtualizarRotinaRequest: só horario, frequencia, diasSemana,
+ * dataInicio, dataFim, ativo, observacoes, dosagem e instrucoes, e só os que foram enviados. O contrato não
+ * permite trocar o nome do medicamento.
  */
 export async function atualizarRotina(
   rotinaId: string,
   dadosAtualizacao: Partial<RotinaMedicamento> & Record<string, any>,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<RotinaMedicamento> {
   const nomeMed = (dadosAtualizacao.nomeMedicamento || dadosAtualizacao.medicamentoNome || '').trim();
   const dadosNormalizados = {
@@ -413,38 +398,30 @@ export async function atualizarRotina(
     ...(nomeMed ? { nomeMedicamento: nomeMed, medicamentoNome: nomeMed } : {}),
   };
 
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
-      {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(dadosNormalizados),
-      }
-    );
-
-    if (response.ok) {
-      const atualizada = await response.json();
-      atualizarStoreLocal(rotinaId, atualizada);
-      const enriquecida = enriquecerDadosVisuais(atualizada);
-      if (enriquecida.idosoId) {
-        salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
-      }
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return enriquecida;
-    }
-  } catch (error: any) {
-    console.warn('[medicamentoService] Falha ao atualizar rotina no backend:', error?.message);
+  const campos: Array<keyof AtualizarRotinaRequest> = [
+    'horario', 'frequencia', 'diasSemana', 'dataInicio', 'dataFim', 'ativo', 'observacoes', 'dosagem', 'instrucoes',
+  ];
+  const corpo: Record<string, unknown> = {};
+  for (const campo of campos) {
+    if (dadosAtualizacao[campo] !== undefined) corpo[campo] = dadosAtualizacao[campo];
   }
 
-  // Atualização no store local e SQLite
+  try {
+    const atualizada = await cliente.put<Record<string, any>>(`/api/v1/rotinas-medicamentos/${rotinaId}`, corpo satisfies AtualizarRotinaRequest);
+    const doServidor = normalizarRotinaApi(atualizada);
+    atualizarStoreLocal(rotinaId, doServidor);
+    const enriquecida = localMedicinesStore.find((r) => r.id === rotinaId) ?? doServidor;
+    if (enriquecida.idosoId) {
+      salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
+    }
+    agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+    return enriquecida;
+  } catch (error: any) {
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Atualizando rotina só no aparelho (mock):', error?.message);
+  }
+
+  // Somente com mock permitido (dev)
   atualizarStoreLocal(rotinaId, dadosNormalizados);
   const itemAtualizado = localMedicinesStore.find((r) => r.id === rotinaId);
   const enriquecida = enriquecerDadosVisuais(itemAtualizado || dadosNormalizados);
@@ -457,33 +434,18 @@ export async function atualizarRotina(
 }
 
 /**
- * Remove uma rotina de medicamento (HU-056).
+ * Remove uma rotina de medicamento (HU-056). DELETE /api/v1/rotinas-medicamentos/{rotinaId} (204).
+ * Só some do cache depois que o servidor confirma.
  */
 export async function removerRotina(
   rotinaId: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<boolean> {
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
-      {
-        method: 'DELETE',
-        headers,
-      }
-    );
-
-    if (response.ok || response.status === 204) {
-      localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
-      await removerRotinaCache(rotinaId);
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return true;
-    }
+    await cliente.delete(`/api/v1/rotinas-medicamentos/${rotinaId}`);
   } catch (error: any) {
-    console.warn('[medicamentoService] Erro ao remover rotina no backend:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Removendo rotina só do aparelho (mock):', error?.message);
   }
 
   localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
