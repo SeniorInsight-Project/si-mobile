@@ -172,6 +172,7 @@ export default function ElderlyProfileScreen({
         }
       } catch (error: any) {
         console.warn('Erro ao carregar perfil do idoso:', error?.message);
+        Alert.alert('Perfil do idoso', error?.message || 'Não foi possível carregar o perfil agora. Tente de novo mais tarde.');
       } finally {
         setLoadingPerfil(false);
       }
@@ -197,6 +198,7 @@ export default function ElderlyProfileScreen({
         }
       } catch (err: any) {
         console.warn('Erro ao carregar comorbidades:', err?.message);
+        Alert.alert('Comorbidades', 'Não foi possível carregar as comorbidades agora. Tente de novo mais tarde.');
       } finally {
         setLoading(false);
       }
@@ -316,21 +318,21 @@ export default function ElderlyProfileScreen({
 
   const handleAdd = async (novaComorbidade: string) => {
     if (!idosoId) return;
+    const listaAnterior = [...comorbidades];
     try {
       setActionLoading(true);
       setComorbidades((prev) => [...prev, novaComorbidade]);
       setModalVisible(false);
 
-      await adicionarComorbidades(idosoId, [novaComorbidade]);
+      const atualizada = await adicionarComorbidades(idosoId, [novaComorbidade]);
+      if (Array.isArray(atualizada?.comorbidades)) setComorbidades(atualizada.comorbidades);
     } catch (err: any) {
       console.warn(
-        'Erro ao sincronizar nova comorbidade com o backend:',
+        'Erro ao salvar nova comorbidade no backend:',
         err?.message
       );
-      Alert.alert(
-        'Sincronização',
-        'Comorbidade salva localmente. O servidor será atualizado assim que conectado.'
-      );
+      setComorbidades(listaAnterior);
+      Alert.alert('Comorbidades', 'Não foi possível salvar a comorbidade. Tente de novo.');
     } finally {
       setActionLoading(false);
     }

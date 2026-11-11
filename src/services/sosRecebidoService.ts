@@ -1,4 +1,4 @@
-import type { AlarmeEmergenciaApi, StatusAlarme } from '../types/api';
+import type { AlarmeEmergenciaApi, AtualizarStatusAlarmeRequest, StatusAlarme } from '../types/api';
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 
 /**
@@ -141,6 +141,28 @@ export async function assumirChamado(
     return { alarme: atualizado, resultado: 'ASSUMIDO' };
   } catch (erro) {
     throw traduzir(erro, 'assumir o chamado');
+  }
+}
+
+/**
+ * Muda o estado do chamado no servidor (PUT /api/v1/sos/{alarmeId}/status). Só vale o que o servidor devolve:
+ * em erro lança SosError, sem atualizar nada localmente.
+ */
+export async function atualizarStatusChamado(
+  alarmeId: string,
+  status: StatusSos,
+  observacao: string | undefined,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<AlarmeRecebido> {
+  try {
+    return mapearAlarme(
+      await cliente.put<AlarmeApi>(`/api/v1/sos/${alarmeId}/status`, {
+        status,
+        ...(observacao ? { observacao } : {}),
+      } satisfies AtualizarStatusAlarmeRequest)
+    );
+  } catch (erro) {
+    throw traduzir(erro, 'atualizar o chamado');
   }
 }
 

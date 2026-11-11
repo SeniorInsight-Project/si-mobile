@@ -26,6 +26,9 @@ export type ComorbidadeRequest = CareSchemas['ComorbidadeRequest'];
 // care-v1: rede de proteção
 export type ConviteRede = CareSchemas['ConviteRede'];
 export type ConviteRedeRequest = CareSchemas['ConviteRedeRequest'];
+export type ConvitePublico = CareSchemas['ConvitePublico'];
+export type AtualizarConviteRequest = CareSchemas['AtualizarConviteRequest'];
+export type PapelAcesso = CareSchemas['PapelAcesso'];
 export type AceiteConvite = CareSchemas['AceiteConvite'];
 export type MembroRedeApi = CareSchemas['MembroRede'];
 export type StatusConvite = CareSchemas['StatusConvite'];

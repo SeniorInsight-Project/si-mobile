@@ -1,17 +1,18 @@
-import { runtimeConfig } from '../config/runtime';
-import type {
-  AlarmeEmergenciaApi,
-  AtualizarStatusAlarmeRequest,
-  DispararSosRequest,
-  StatusAlarme,
-} from '../types/api';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import type { AlarmeEmergenciaApi, DispararSosRequest, StatusAlarme } from '../types/api';
+import { apiClient, type ApiClient } from './apiClient';
+import {
+  atualizarStatusChamado,
+  buscarAlarme,
+  buscarAlarmeAtivo,
+  type AlarmeRecebido,
+  type OpcoesRede,
+} from './sosRecebidoService';
 
-/** Alarme do contrato care-v1 mais o que o app guarda no modo offline (idempotencyKey, campos opcionais). */
+/** Alarme do contrato care-v1 mais o que o app guarda na fila offline (idempotencyKey, campos opcionais). */
 export interface AlarmeEmergencia extends Partial<Omit<AlarmeEmergenciaApi, 'status'>> {
   id: string;
   idempotencyKey?: string;
-  /** StatusAlarme do contrato; string porque o fallback local também grava aqui. */
+  /** StatusAlarme do contrato; string porque a fila offline também grava aqui. */
   status: string;
   [key: string]: any;
 }
@@ -24,28 +25,18 @@ export interface DispararSosPayload extends Omit<DispararSosRequest, 'latitude' 
   idempotencyKey?: string | null;
 }
 
-export interface AlarmeSosError extends Error {
-  status?: number;
-}
-
-// Estado local para fallback resiliente / offline
-let alarmesLocais: AlarmeEmergencia[] = [];
-
 /**
- * Serviço de integração com o Botão de Alarme e SOS de Emergência (HU35).
- * Endpoints no backend-core:
- * - POST /api/v1/idosos/{idosoId}/sos (SLA < 100ms, HTTP 202 Accepted)
- * - PUT  /api/v1/sos/{alarmeId}/status
- * - GET  /api/v1/sos/{alarmeId}
- * - GET  /api/v1/idosos/{idosoId}/sos
+ * Botão de SOS do idoso (HU35), pelo contrato care-v1:
+ * - POST /api/v1/idosos/{idosoId}/sos (202 Accepted), com Idempotency-Key.
+ *
+ * Consultar e mudar o estado do chamado é do sosRecebidoService (GET /api/v1/sos/{id},
+ * GET /api/v1/idosos/{id}/sos e PUT /api/v1/sos/{id}/status): aqui só se delega. O estado é sempre o do servidor;
+ * em erro as funções lançam, sem guardar alarme local.
  */
 
 /**
  * Dispara o alarme de emergência SOS com localização e nível de bateria.
- * @param {string} idosoId
- * @param {object} dados - { latitude, longitude, nivelBateria, observacao }
- * @param {string|null} token
- * @returns {Promise<object>} AlarmeEmergenciaResponseDTO
+ * Em erro lança ApiError (status 0 sem rede); a fila offline (sosQueueService) reenvia com a mesma chave.
  */
 export async function dispararSos(
   idosoId: string,
@@ -56,184 +47,30 @@ export async function dispararSos(
     observacao = 'Botão SOS acionado no aplicativo móvel.',
     idempotencyKey = null,
   }: DispararSosPayload = {},
-  token: string | null = null
+  { cliente = apiClient }: { cliente?: Pick<ApiClient, 'post'> } = {}
 ): Promise<AlarmeEmergencia> {
-  const agora = new Date().toISOString();
+  const corpo: DispararSosRequest = { observacao };
+  if (latitude !== null && latitude !== undefined) corpo.latitude = latitude;
+  if (longitude !== null && longitude !== undefined) corpo.longitude = longitude;
+  if (nivelBateria !== null && nivelBateria !== undefined) corpo.nivelBateria = nivelBateria;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
-  const authToken = await resolverTokenAutorizacao(token);
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-    headers['X-Idempotency-Key'] = idempotencyKey;
-  }
-
-  const payload: DispararSosRequest = {
-    observacao,
-  };
-  if (latitude !== null && latitude !== undefined) payload.latitude = latitude;
-  if (longitude !== null && longitude !== undefined) payload.longitude = longitude;
-  if (nivelBateria !== null && nivelBateria !== undefined) payload.nivelBateria = nivelBateria;
-
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+  return cliente.post<AlarmeEmergenciaApi>(`/api/v1/idosos/${idosoId}/sos`, corpo, {
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
   });
-
-  if (response.status === 202 || response.ok) {
-    const data: AlarmeEmergenciaApi = await response.json();
-    alarmesLocais.unshift(data);
-    return data;
-  }
-
-  const erroMsg = `Falha ao registrar alarme SOS (HTTP ${response.status})`;
-  console.warn(`[alarmeSosService] ${erroMsg}`);
-  const erro: AlarmeSosError = new Error(erroMsg);
-  erro.status = response.status;
-  throw erro;
 }
 
-export function registrarAlarmeLocalmente(alarme: AlarmeEmergencia): void {
-  if (alarme) {
-    alarmesLocais.unshift(alarme);
-  }
-}
-
-/**
- * Atualiza o status do alarme (ex: EM_ATENDIMENTO, RESOLVIDO, CANCELADO).
- * @param {string} alarmeId
- * @param {string} novoStatus - 'EM_ATENDIMENTO' | 'RESOLVIDO' | 'CANCELADO'
- * @param {string} observacao
- * @param {string|null} token
- */
-export async function atualizarStatusAlarme(
+/** Muda o estado do alarme (EM_ATENDIMENTO, RESOLVIDO ou CANCELADO) no servidor. */
+export function atualizarStatusAlarme(
   alarmeId: string,
-  novoStatus: string,
+  novoStatus: StatusAlarme,
   observacao = '',
-  token: string | null = null
-): Promise<AlarmeEmergencia> {
-  const agora = new Date().toISOString();
-
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}/status`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        status: novoStatus as StatusAlarme,
-        observacao,
-      } satisfies AtualizarStatusAlarmeRequest),
-    });
-
-    if (response.ok) {
-      const data: AlarmeEmergenciaApi = await response.json();
-      atualizarAlarmeLocal(alarmeId, novoStatus, observacao);
-      return data;
-    }
-
-    console.warn(`[alarmeSosService] Falha ao atualizar status (${response.status}). Atualizando localmente.`);
-    return atualizarAlarmeLocal(alarmeId, novoStatus, observacao);
-  } catch (error: any) {
-    console.warn('[alarmeSosService] Erro de rede ao atualizar status:', error?.message);
-    return atualizarAlarmeLocal(alarmeId, novoStatus, observacao);
-  }
+  opcoes: OpcoesRede = {}
+): Promise<AlarmeRecebido> {
+  return atualizarStatusChamado(alarmeId, novoStatus, observacao, opcoes);
 }
 
-/**
- * Consulta os detalhes de um alarme de emergência pelo ID.
- */
-export async function obterAlarme(
-  alarmeId: string,
-  token: string | null = null
-): Promise<AlarmeEmergencia | null> {
-  try {
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+/** Consulta um alarme pelo id (lança SosError se não achar ou sem rede). */
+export const obterAlarme = buscarAlarme;
 
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/sos/${alarmeId}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error: any) {
-    console.warn('[alarmeSosService] Erro ao buscar alarme:', error?.message);
-  }
-
-  return alarmesLocais.find((a) => a.id === alarmeId) || null;
-}
-
-/**
- * Lista os alarmes de socorro disparados para o idoso especificado.
- */
-export async function listarAlarmesIdoso(
-  idosoId: string,
-  token: string | null = null
-): Promise<AlarmeEmergencia[]> {
-  try {
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/sos`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        alarmesLocais = data;
-        return data;
-      }
-    }
-  } catch (error: any) {
-    console.warn('[alarmeSosService] Erro ao listar alarmes:', error?.message);
-  }
-
-  return alarmesLocais.filter((a) => !idosoId || a.idosoId === idosoId);
-}
-
-function atualizarAlarmeLocal(
-  alarmeId: string,
-  novoStatus: string,
-  observacao: string
-): AlarmeEmergencia {
-  const index = alarmesLocais.findIndex((a) => a.id === alarmeId);
-  const agora = new Date().toISOString();
-  if (index !== -1) {
-    alarmesLocais[index] = {
-      ...alarmesLocais[index],
-      status: novoStatus,
-      observacao: observacao || alarmesLocais[index].observacao,
-      atualizadoEm: agora,
-    };
-    return alarmesLocais[index];
-  }
-
-  const fallback: AlarmeEmergencia = {
-    id: alarmeId,
-    status: novoStatus,
-    observacao,
-    atualizadoEm: agora,
-  };
-  alarmesLocais.push(fallback);
-  return fallback;
-}
+/** O chamado em aberto do idoso, ou null se não há. */
+export const obterAlarmeAtivo = buscarAlarmeAtivo;
