@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -27,7 +27,6 @@ import {
   criarRotina,
   atualizarRotina,
   removerRotina,
-  INITIAL_MEDICINES,
   RotinaMedicamento,
   RotinaMedicamentoInput,
 } from '../services/medicamentoService';
@@ -44,7 +43,7 @@ export default function MedicinesScreen({
   idosoId = DEFAULT_IDOSO_ID,
 }: MedicinesScreenProps) {
   const somenteConfirmar = usePapel() === 'IDOSO';
-  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
+  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
   const [selectedDayObj, setSelectedDayObj] = useState<DiaSemanaItem>(
     DIAS_DA_SEMANA_PADRAO[3]
   ); // Quinta-feira, 24 Out

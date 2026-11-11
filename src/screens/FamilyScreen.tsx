@@ -24,7 +24,6 @@ import {
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
-  INITIAL_MEMBERS,
   LIMITE_MEDICOS_RN012,
   LIMITE_FAMILIARES_RN012,
   ConviteInput,
@@ -32,6 +31,7 @@ import {
   DadosConviteMedicoInput,
   MembroRede,
 } from '../services/redeProtecaoService';
+import { mockPermitido } from '../config/ambiente';
 import { typography } from '../theme';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
@@ -56,30 +56,32 @@ export default function FamilyScreen({
     String(papelAcesso || '').toUpperCase() === 'ADMINISTRADOR'
   );
   const [filtroAtivo, setFiltroAtivo] = useState<string>('Todos');
-  const [membros, setMembros] = useState<MembroRede[]>(INITIAL_MEMBERS);
+  const [membros, setMembros] = useState<MembroRede[]>([]);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendente[]>([]);
   const [carregandoMembros, setCarregandoMembros] = useState<boolean>(false);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [modalInviteVisible, setModalInviteVisible] = useState<boolean>(false);
   const [modalDoctorInviteVisible, setModalDoctorInviteVisible] = useState<boolean>(false);
   const [conviteParaEditar, setConviteParaEditar] = useState<ConvitePendente | null>(null);
   const [submittingInvite, setSubmittingInvite] = useState<boolean>(false);
   const [submittingDoctorInvite, setSubmittingDoctorInvite] = useState<boolean>(false);
+  // Ações de simulação ([Debug] Aceitar/Recusar) só existem com mock ligado: fora dele,
+  // chamariam a API real (cancelar/recusar convite) e mostrariam um resultado falso.
+  const simulacaoPermitida = mockPermitido();
 
   const carregarDados = async () => {
     try {
       setCarregandoMembros(true);
+      setErroCarregamento(null);
       const [listaMembros, listaPendentes] = await Promise.all([
         listarMembrosRede(idosoId),
         listarConvitesPendentes(idosoId),
       ]);
-      if (Array.isArray(listaMembros) && listaMembros.length > 0) {
-        setMembros(listaMembros);
-      }
-      if (Array.isArray(listaPendentes)) {
-        setConvitesPendentes(listaPendentes);
-      }
+      setMembros(Array.isArray(listaMembros) ? listaMembros : []);
+      setConvitesPendentes(Array.isArray(listaPendentes) ? listaPendentes : []);
     } catch (err: any) {
       console.warn('[FamilyScreen] Erro ao carregar dados:', err?.message);
+      setErroCarregamento('Não foi possível carregar a rede');
     } finally {
       setCarregandoMembros(false);
     }
@@ -238,7 +240,7 @@ export default function FamilyScreen({
               await carregarDados();
               Alert.alert('Convite Cancelado', 'O convite foi cancelado e removido.');
             } catch (err: any) {
-              Alert.alert('Erro', 'Não foi possível cancelar o convite.');
+              Alert.alert('Erro', err?.message || 'Não foi possível cancelar o convite.');
             }
           },
         },
@@ -652,48 +654,52 @@ export default function FamilyScreen({
                   </View>
 
                   <View style={styles.pendingActionsRow}>
-                    <TouchableOpacity
-                      style={styles.pendingBtnDebug}
-                      onPress={async () => {
-                        try {
-                          const novoVinculado = {
-                            id: `med-${Date.now()}`,
-                            nome: convite.nomeMedico || 'Dr. Convidado',
-                            nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
-                            crm: convite.crm || '123456/SP',
-                            grauParentesco: 'Médico',
-                            papelAcesso: 'MEDICO',
-                            tipoMembro: 'MEDICO',
-                            categoria: 'saude',
-                            badgeTexto: 'Médico Vinculado',
-                            badgeTipo: 'especialista',
-                            online: true,
-                            telefone: '+55 11 98888-7777',
-                            email: convite.emailDestinatario,
-                            acoes: ['call', 'prontuario'],
-                          };
-                          setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
-                          await cancelarConvite(idosoId, convite.id);
-                          await carregarDados();
-                          Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.pendingBtnRejectDebug}
-                      onPress={() => handleSimularRecusaMedico(convite.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
-                    </TouchableOpacity>
+                    {simulacaoPermitida && (
+                      <>
+                        <TouchableOpacity
+                          style={styles.pendingBtnDebug}
+                          onPress={async () => {
+                            try {
+                              const novoVinculado = {
+                                id: `med-${Date.now()}`,
+                                nome: convite.nomeMedico || 'Dr. Convidado',
+                                nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
+                                crm: convite.crm || '123456/SP',
+                                grauParentesco: 'Médico',
+                                papelAcesso: 'MEDICO',
+                                tipoMembro: 'MEDICO',
+                                categoria: 'saude',
+                                badgeTexto: 'Médico Vinculado',
+                                badgeTipo: 'especialista',
+                                online: true,
+                                telefone: '+55 11 98888-7777',
+                                email: convite.emailDestinatario,
+                                acoes: ['call', 'prontuario'],
+                              };
+                              await cancelarConvite(idosoId, convite.id);
+                              setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
+                              await carregarDados();
+                              Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
+                            } catch (e: any) {
+                              Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
+                            }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
+                        </TouchableOpacity>
+    
+                        <TouchableOpacity
+                          style={styles.pendingBtnRejectDebug}
+                          onPress={() => handleSimularRecusaMedico(convite.id)}
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
 
                     <TouchableOpacity
                       style={styles.pendingBtnShare}
@@ -716,8 +722,30 @@ export default function FamilyScreen({
                 </View>
               ))}
 
+            {/* ESTADO DE ERRO */}
+            {erroCarregamento && (
+              <View style={styles.errorCardContainer}>
+                <Icon name="error" size={24} color="#DC2626" />
+                <Text style={styles.errorCardTitle}>Não foi possível carregar a rede</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={carregarDados}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ESTADO VAZIO */}
+            {!erroCarregamento && membrosFiltrados.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Nenhum membro encontrado</Text>
+              </View>
+            )}
+
             {/* ESTADO 1: CARDS DE MEMBROS E MÉDICOS VINCULADOS */}
-            {membrosFiltrados.map((membro) => (
+            {!erroCarregamento && membrosFiltrados.map((membro) => (
             <View key={membro.id} style={styles.memberCard}>
               {/* Topo do Card: Avatar + Nome + Badge de Papel */}
               <View style={styles.memberHeaderRow}>
@@ -1032,10 +1060,10 @@ export default function FamilyScreen({
           onNavigate('AcceptInvite', { token });
         }
       }}
-      onSimulateReject={(conviteId: string) => {
+      onSimulateReject={simulacaoPermitida ? (conviteId: string) => {
         setModalDoctorInviteVisible(false);
         handleSimularRecusaMedico(conviteId);
-      }}
+      } : undefined}
       loading={submittingDoctorInvite}
     />
 
@@ -1862,5 +1890,45 @@ const styles = StyleSheet.create({
   },
   doctorInviteCtaButtonTextDisabled: {
     color: '#DC2626',
+  },
+  errorCardContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  errorCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#991B1B',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
   },
 });

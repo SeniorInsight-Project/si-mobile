@@ -1,4 +1,5 @@
 import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import type { IdosoRequest } from '../types/api';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
 import { resolverTokenAutorizacao } from './tokenStorageService';
@@ -21,17 +22,14 @@ export interface CadastroIdosoInput {
   celular: string;
 }
 
-export const INITIAL_ELDERLIES: Idoso[] = [
-  {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nome: 'Dona Maria Aparecida',
-    dataNascimento: '14/05/1948',
-    sexo: 'Feminino',
-    celular: '(11) 98765-4321',
-  },
-];
+let localElderliesStore: Idoso[] = [];
 
-let localElderliesStore: Idoso[] = [...INITIAL_ELDERLIES];
+async function garantirIdososIniciais(): Promise<void> {
+  if (localElderliesStore.length === 0 && mockPermitido()) {
+    const { INITIAL_ELDERLIES } = await import('../mocks/idosos');
+    localElderliesStore = [...(INITIAL_ELDERLIES as unknown as Idoso[])];
+  }
+}
 
 function normalizarIdoso(idoso: any): Idoso {
   return {
@@ -71,6 +69,10 @@ export async function listarIdososDoFamiliar(
 
     if (!response.ok) {
       console.warn(`[elderlyService] Falha ao listar idosos (${response.status}). Usando fallback local.`);
+      if (mockPermitido()) {
+        await garantirIdososIniciais();
+        return [...localElderliesStore];
+      }
       return [...localElderliesStore];
     }
 
@@ -80,9 +82,15 @@ export async function listarIdososDoFamiliar(
       return [...localElderliesStore];
     }
 
+    if (mockPermitido()) {
+      await garantirIdososIniciais();
+    }
     return [...localElderliesStore];
   } catch (error: any) {
     console.warn('[elderlyService] Backend inacessível. Ativando fallback resiliente:', error?.message);
+    if (mockPermitido()) {
+      await garantirIdososIniciais();
+    }
     return [...localElderliesStore];
   }
 }

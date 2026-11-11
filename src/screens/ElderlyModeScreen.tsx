@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -20,7 +20,6 @@ import { colors, typography } from '../theme';
 import {
   listarRotinas,
   confirmarIngestao,
-  INITIAL_MEDICINES,
   RotinaMedicamento,
 } from '../services/medicamentoService';
 import { obterRotinasDoCache } from '../services/medicamentoDatabase';
@@ -55,7 +54,7 @@ export default function ElderlyModeScreen({
   onLogout,
 }: ElderlyModeScreenProps) {
   const isIdoso = usePapel() === 'IDOSO';
-  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
+  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
