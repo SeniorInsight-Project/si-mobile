@@ -91,11 +91,11 @@ export default function AcceptInviteScreen({
   const handleConfirmarAceite = async () => {
     try {
       setSubmitting(true);
-      await aceitarConvite(inviteToken, currentUser?.token ?? null);
+      const aceite = await aceitarConvite(inviteToken);
       setSucesso(true);
       Alert.alert(
         'Convite Aceito!',
-        `Você agora faz parte da Rede de Cuidados de ${convite?.nomeIdoso || 'Dona Maria'}.`,
+        `Você agora faz parte da Rede de Cuidados de ${aceite?.nomeIdoso || convite?.nomeIdoso || 'do idoso'}.`,
         [
           {
             text: 'Acessar Rede',

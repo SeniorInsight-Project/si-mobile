@@ -182,17 +182,15 @@ describe('Rede de Proteção - Tratamento de Erros e Regra de Mock (HU-012/HU-01
 
   test('Membro sem telefone no back não ganha número fictício', async () => {
     process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
-    globalThis.fetch = async () => ({
-      ok: true,
-      status: 200,
-      json: async () => [
+    const cliente = {
+      get: async () => [
         { vinculoId: 'v-1', nomeCompleto: 'Ana Souza', papelAcesso: 'CUIDADOR' },
         { vinculoId: 'v-2', nomeCompleto: 'Dr. Paulo Lima', papelAcesso: 'MEDICO', crm: '123/SP' },
       ],
-    }) as unknown as Response;
+    } as any;
 
     try {
-      const membros = await listarMembrosRede(TEST_IDOSO_ID);
+      const membros = await listarMembrosRede(TEST_IDOSO_ID, { cliente });
       assert.equal(membros.length, 2);
       for (const membro of membros) {
         assert.equal(membro.telefone, '');
