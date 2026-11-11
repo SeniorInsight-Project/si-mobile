@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { typography } from '../theme';
 import {
   listarComorbidades,
@@ -23,14 +24,11 @@ import {
 } from '../services/comorbidadeService';
 import {
   listarIdososDoFamiliar,
-  salvarCadastroIdoso,
   atualizarDadosIdoso,
-  obterIdosoLocalPorId,
   ElderlyProfile,
 } from '../services/elderlyService';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
-
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
+import { useIdoso } from '../context/IdosoContext';
 
 const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 
@@ -104,17 +102,20 @@ function calcularIdade(dataNascimento: string): number | null {
 
 export interface ElderlyProfileScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   accessRole?: string;
-  familiarId?: string;
+  familiarId?: string | null;
 }
 
 export default function ElderlyProfileScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId: idosoIdProp,
   accessRole = 'ADMIN',
-  familiarId = 'familiar-dev',
+  familiarId,
 }: ElderlyProfileScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const [comorbidades, setComorbidades] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
@@ -129,7 +130,7 @@ export default function ElderlyProfileScreen({
   const [editando, setEditando] = useState<boolean>(true);
   // Código de pareamento (HU-008): gerado pelo identity-service logo depois de cadastrar um idoso novo ou
   // quando o familiar pede. Abrir o perfil não gera código: cada geração invalida o anterior no servidor.
-  const [gerarCodigoAoAbrir, setGerarCodigoAoAbrir] = useState<boolean>(false);
+  const gerarCodigoAoAbrir = false; // o código nasce no RegisterElderly
 
   // Campos complementares da ficha conforme o .fig
   const [fatorSanguineo, setFatorSanguineo] = useState<string>('O+ Positivo');
@@ -143,11 +144,19 @@ export default function ElderlyProfileScreen({
   const avisoIdade = idade !== null && idade < 49;
 
   useEffect(() => {
-    async function carregarPerfil() {
+    const idAtivo = idosoId;
+    if (!idAtivo) {
+      setProfile(null);
+      setForm(EMPTY_FORM);
+      setLoadingPerfil(false);
+      return;
+    }
+
+    async function carregarPerfil(id: string) {
       try {
         setLoadingPerfil(true);
         const locais = await listarIdososDoFamiliar(familiarId);
-        const idosoAtual = locais.find((item) => item.idosoId === idosoId) || obterIdosoLocalPorId(idosoId);
+        const idosoAtual = locais.find((item) => item.idosoId === id);
 
         if (idosoAtual) {
           setProfile(idosoAtual);
@@ -159,9 +168,11 @@ export default function ElderlyProfileScreen({
           });
           setEditando(false);
         } else {
-          setEditando(true);
+          // Sem perfil: o cadastro é feito só pelo fluxo RegisterElderly (idosoCadastroService).
+          setEditando(false);
           setProfile(null);
           setForm(EMPTY_FORM);
+          if (onNavigate) onNavigate('RegisterElderly');
         }
       } catch (error: any) {
         console.warn('Erro ao carregar perfil do idoso:', error?.message);
@@ -171,20 +182,23 @@ export default function ElderlyProfileScreen({
       }
     }
 
-    carregarPerfil();
+    carregarPerfil(idAtivo);
   }, [idosoId, familiarId]);
 
   useEffect(() => {
-    async function carregarDados() {
+    const idAtivo = idosoId;
+    if (!idAtivo) {
+      setComorbidades([]);
+      setLoading(false);
+      return;
+    }
+
+    async function carregarDados(id: string) {
       try {
         setLoading(true);
-        const data = await listarComorbidades(idosoId);
-        if (
-          data &&
-          Array.isArray(data.comorbidades) &&
-          data.comorbidades.length > 0
-        ) {
-          setComorbidades(data.comorbidades);
+        const data = await listarComorbidades(id);
+        if (data && Array.isArray(data)) {
+          setComorbidades(data);
         }
       } catch (err: any) {
         console.warn('Erro ao carregar comorbidades:', err?.message);
@@ -194,7 +208,7 @@ export default function ElderlyProfileScreen({
       }
     }
 
-    carregarDados();
+    carregarDados(idAtivo);
   }, [idosoId]);
 
   const atualizarCampo = (campo: keyof ElderlyFormState, valor: string) => {
@@ -246,16 +260,15 @@ export default function ElderlyProfileScreen({
         celular: form.celular,
       };
 
-      const idosoNovo = !profile?.idosoId;
-      const salvo = profile?.idosoId
-        ? await atualizarDadosIdoso(profile.idosoId, payload)
-        : await salvarCadastroIdoso({ ...payload, idosoId });
+      // Só edita idoso existente (PUT pelo apiClient). Cadastro novo é o fluxo RegisterElderly.
+      if (!profile?.idosoId) {
+        if (onNavigate) onNavigate('RegisterElderly');
+        return;
+      }
+      const salvo = await atualizarDadosIdoso(profile.idosoId, payload);
 
       setProfile(salvo);
       setEditando(false);
-
-      // HU-008 cenário 1: idoso novo salvo -> código de pareamento exibido. Editar dados não troca o código.
-      if (idosoNovo) setGerarCodigoAoAbrir(true);
 
       if (avisoIdade) {
         Alert.alert(
@@ -273,6 +286,8 @@ export default function ElderlyProfileScreen({
   };
 
   const handleRemove = (nome: string) => {
+    if (!idosoId) return;
+    const idAtivo = idosoId;
     Alert.alert(
       'Remover Comorbidade',
       `Deseja realmente remover "${nome}" do prontuário do idoso?`,
@@ -287,7 +302,7 @@ export default function ElderlyProfileScreen({
 
             try {
               setActionLoading(true);
-              await removerComorbidade(idosoId, nome);
+              await removerComorbidade(idAtivo, nome);
             } catch (err: any) {
               console.warn('Falha na API ao remover, revertendo:', err?.message);
               setComorbidades(listaAnterior);
@@ -305,6 +320,7 @@ export default function ElderlyProfileScreen({
   };
 
   const handleAdd = async (novaComorbidade: string) => {
+    if (!idosoId) return;
     const listaAnterior = [...comorbidades];
     try {
       setActionLoading(true);
@@ -355,7 +371,11 @@ export default function ElderlyProfileScreen({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* CARD 1: IDENTIDADE E MÉTRICAS RÁPIDAS (rx=32, #FFFFFF) */}
+        {!idosoId ? (
+          <SemIdosoCard onNavigate={onNavigate} />
+        ) : (
+          <>
+            {/* CARD 1: IDENTIDADE E MÉTRICAS RÁPIDAS (rx=32, #FFFFFF) */}
         <View style={styles.elderlyCard}>
           <View style={styles.cardTopGlow} />
 
@@ -691,6 +711,8 @@ export default function ElderlyProfileScreen({
             </Text>
           </TouchableOpacity>
         </View>
+          </>
+        )}
       </ScrollView>
 
       {/* MODAL DE ADIÇÃO DE COMORBIDADE */}

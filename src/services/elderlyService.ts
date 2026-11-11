@@ -2,6 +2,7 @@ import { mockPermitido } from '../config/ambiente';
 import type { IdosoRequest } from '../types/api';
 import { apiClient, type ApiClient } from './apiClient';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
+import { decodificarJwt, obterAccessTokenValido } from './authSession';
 
 export interface OpcoesRede {
   cliente?: Pick<ApiClient, 'get' | 'post' | 'put'>;
@@ -68,15 +69,21 @@ function paraIdosoRequest(dados: CadastroIdosoInput): IdosoRequest {
 }
 
 /**
- * Idosos do familiar: GET /api/v1/familiares/{familiarId}/idosos. Lista vazia fica vazia; em erro lança
- * (a tela mostra a falha). Com mock permitido (dev), erro ou lista vazia caem nos idosos de demonstração.
+ * Idosos do familiar: GET /api/v1/familiares/{familiarId}/idosos. Sem `familiarId`, usa o `sub` do JWT da
+ * sessão e, sem token, o alias `me`. Lista vazia fica vazia; em erro lança (a tela mostra a falha). Com mock
+ * permitido (dev), erro ou lista vazia caem nos idosos de demonstração.
  */
 export async function listarIdososDoFamiliar(
-  familiarId = 'familiar-dev',
-  { cliente = apiClient }: OpcoesRede = {}
+  familiarId?: string | null,
+  {
+    cliente = apiClient,
+    obterToken = obterAccessTokenValido,
+  }: OpcoesRede & { obterToken?: () => Promise<string | null> } = {}
 ): Promise<Idoso[]> {
+  const idFamiliar = familiarId || decodificarJwt(await obterToken().catch(() => null))?.sub || 'me';
+
   try {
-    const data = await cliente.get<any[]>(`/api/v1/familiares/${familiarId}/idosos`);
+    const data = await cliente.get<any[]>(`/api/v1/familiares/${idFamiliar}/idosos`);
     if (Array.isArray(data) && data.length > 0) {
       localElderliesStore = data.map(normalizarIdoso);
       return [...localElderliesStore];

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,8 +15,11 @@ import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
+import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
+import { useIdoso } from '../context/IdosoContext';
 import {
   buscarStatusDispositivo,
   verificarPerdaDados,
@@ -45,8 +48,8 @@ function calcularIdade(dataNascimento?: string): number | null {
 
 export interface HomeScreenProps {
   onNavigate?: (screen: string) => void;
-  onSelectElderly?: (idosoId: string) => void;
-  familiarId?: string;
+  onSelectElderly?: (idosoId: string | null) => void;
+  familiarId?: string | null;
   plano?: string;
   onLogout?: () => void;
 }
@@ -55,7 +58,7 @@ export default function HomeScreen({
   onNavigate,
   onSelectElderly,
   onLogout,
-  familiarId = 'familiar-dev',
+  familiarId,
   plano = 'PREMIUM',
 }: HomeScreenProps) {
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
@@ -69,7 +72,22 @@ export default function HomeScreen({
   const [scoreData, setScoreData] = useState<ScoreBemEstar | null>(null);
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
 
-  // Lista dos idosos do familiar (HU-008)
+  const { idosoId: idosoSelecionadoId, setIdosoId, setNomeIdoso } = useIdoso();
+  const idosoSelecionadoRef = useRef<string | null>(idosoSelecionadoId);
+  idosoSelecionadoRef.current = idosoSelecionadoId;
+  const idosoSelecionado = idosos.find((idoso) => idoso.idosoId === idosoSelecionadoId) ?? null;
+
+  // Seleciona o idoso (card ou fallback): atualiza id e nome no contexto.
+  const selecionarIdoso = useCallback(
+    (idoso: ElderlyProfile | null) => {
+      setIdosoId(idoso?.idosoId ?? null);
+      setNomeIdoso(idoso?.nome || null);
+      if (onSelectElderly) onSelectElderly(idoso?.idosoId ?? null);
+    },
+    [setIdosoId, setNomeIdoso, onSelectElderly]
+  );
+
+  // Lista dos idosos do familiar (HU-008): mantém a seleção atual se ainda existir, senão cai no primeiro.
   useEffect(() => {
     async function carregarIdosos() {
       try {
@@ -78,21 +96,13 @@ export default function HomeScreen({
         const lista = Array.isArray(data) ? data : [];
         setIdosos(lista);
 
-        // Carrega status do celular do idoso ativo (HU-027 e HU-028)
-        const idosoAlvo = lista[0]?.idosoId || 'e3b0c442-98fc-1c14-9afc-432100000001';
-        const nomeAlvo = lista[0]?.nome || 'Dona Maria';
-        const status = await buscarStatusDispositivo(idosoAlvo);
-        setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
-        const checagemPerda = verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3);
-        setPerdaDados(checagemPerda);
-
-        // Carrega estado atual da telemetria (HU-031)
-        const estadoTelemetria = await buscarEstadoAtual(idosoAlvo);
-        setTelemetria(estadoTelemetria);
-
-        // Carrega semáforo do bem-estar e score de risco (HU-032 e HU-033)
-        const scoreResult = await buscarScoreBemEstar(idosoAlvo, plano);
-        setScoreData(scoreResult);
+        const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
+        if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
+          selecionarIdoso(escolhido);
+        } else if (escolhido) {
+          // Mesmo idoso: só garante o nome no contexto.
+          setNomeIdoso(escolhido.nome || null);
+        }
       } catch (error: any) {
         console.warn('Erro ao carregar idosos na Home:', error?.message);
       } finally {
@@ -101,7 +111,45 @@ export default function HomeScreen({
     }
 
     carregarIdosos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familiarId]);
+
+  // Status do celular, telemetria e score do idoso SELECIONADO (HU-027, HU-028, HU-031, HU-032 e HU-033).
+  useEffect(() => {
+    if (!idosoSelecionadoId || !idosoSelecionado) {
+      setDeviceStatus(null);
+      setPerdaDados(null);
+      setTelemetria(null);
+      setScoreData(null);
+      return;
+    }
+
+    let ativo = true;
+    const nomeAlvo = idosoSelecionado.nome || 'o idoso';
+    async function carregarDadosDoIdoso(id: string) {
+      try {
+        const status = await buscarStatusDispositivo(id);
+        if (!ativo) return;
+        setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
+        setPerdaDados(verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3));
+
+        const estadoTelemetria = await buscarEstadoAtual(id);
+        if (!ativo) return;
+        setTelemetria(estadoTelemetria);
+
+        const scoreResult = await buscarScoreBemEstar(id, plano);
+        if (!ativo) return;
+        setScoreData(scoreResult);
+      } catch (error: any) {
+        console.warn('Erro ao carregar dados do idoso na Home:', error?.message);
+      }
+    }
+
+    carregarDadosDoIdoso(idosoSelecionadoId);
+    return () => {
+      ativo = false;
+    };
+  }, [idosoSelecionadoId, idosoSelecionado?.nome, plano]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -114,8 +162,8 @@ export default function HomeScreen({
             text: 'Assumir Resgate',
             style: 'default',
             onPress: async () => {
-              const idosoId = idosos[0]?.idosoId;
-              const nomeIdoso = idosos[0]?.nome || 'o idoso';
+              const idosoId = idosoSelecionado?.idosoId;
+              const nomeIdoso = idosoSelecionado?.nome || 'o idoso';
               if (!idosoId) {
                 Alert.alert('Resgate', 'Nenhum idoso vinculado para assumir o chamado.');
                 return;
@@ -222,7 +270,13 @@ export default function HomeScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* AVISO DE PERDA DE DADOS (HU-028) */}
+        {loadingIdosos ? (
+          <ActivityIndicator color="#031753" size="small" style={{ marginVertical: 24 }} />
+        ) : idosos.length === 0 ? (
+          <SemIdosoCard onNavigate={onNavigate} />
+        ) : (
+          <>
+            {/* AVISO DE PERDA DE DADOS (HU-028) */}
         {perdaDados && perdaDados.semDados && (
           <TouchableOpacity
             style={styles.dataLossAlertBanner}
@@ -243,15 +297,12 @@ export default function HomeScreen({
         )}
 
         {/* CARD 1: IDOSOS DA FAMÍLIA (HU-008), um resumo por idoso (rx=32, #FFFFFF) */}
-        {loadingIdosos ? (
-          <ActivityIndicator color="#031753" size="small" style={{ marginBottom: 18 }} />
-        ) : (
-          idosos.map((idoso) => (
+        {idosos.map((idoso) => (
             <TouchableOpacity
               key={idoso.idosoId}
               style={styles.elderlySummaryCard}
               onPress={() => {
-                if (onSelectElderly) onSelectElderly(idoso.idosoId);
+                selecionarIdoso(idoso);
                 if (onNavigate) onNavigate('ElderlyProfile');
               }}
               activeOpacity={0.9}
@@ -317,34 +368,18 @@ export default function HomeScreen({
                 </View>
               </TouchableOpacity>
             </TouchableOpacity>
-          ))
-        )}
+          ))}
 
-        {!loadingIdosos && idosos.length === 0 && (
-          <TouchableOpacity
-            style={styles.elderlySummaryCard}
-            onPress={() => onNavigate && onNavigate('RegisterElderly')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.elderlyTexts}>
-              <Text style={styles.elderlyName}>Nenhum idoso cadastrado</Text>
-              <Text style={styles.monitoredBy}>Toque aqui para cadastrar o primeiro idoso.</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {!loadingIdosos && (
-          <TouchableOpacity
-            style={styles.addElderlyButton}
-            onPress={() => onNavigate && onNavigate('RegisterElderly')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            testID="home-cadastrar-idoso"
-          >
-            <Icon name="person_add" size={20} color="#031753" />
-            <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.addElderlyButton}
+          onPress={() => onNavigate && onNavigate('RegisterElderly')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          testID="home-cadastrar-idoso"
+        >
+          <Icon name="person_add" size={20} color="#031753" />
+          <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
+        </TouchableOpacity>
 
         {/* CARD 2: SEMÁFORO DO BEM-ESTAR (HU-032, HU-033, RN-008, RN-016, RN-017) */}
         {scoreData?.requerPremium ? (
@@ -710,6 +745,8 @@ export default function HomeScreen({
           resgateAtivo={resgateAtivo}
           responsavelNome="Carlos Silva"
         />
+          </>
+        )}
       </ScrollView>
 
       {/* MODAL DE STATUS DO CELULAR DO IDOSO (HU-027) */}

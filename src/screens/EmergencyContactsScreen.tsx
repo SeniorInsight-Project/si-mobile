@@ -22,6 +22,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import { colors, typography, rounded, shadows } from '../theme';
 import {
   listarContatos,
@@ -30,6 +31,7 @@ import {
   reordenarContatos,
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
+import { useIdoso } from '../context/IdosoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -300,13 +302,16 @@ function DraggableContactCard({
 
 export interface EmergencyContactsScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
 }
 
 export default function EmergencyContactsScreen({
   onNavigate,
-  idosoId = 'e3b0c442-98fc-1c14-9afc-432100000001',
+  idosoId: idosoIdProp,
 }: EmergencyContactsScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const [contatos, setContatos] = useState<ContatoEmergencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -327,7 +332,8 @@ export default function EmergencyContactsScreen({
   };
 
   const handleMoverContato = async (deIndex: number, paraIndex: number) => {
-    if (paraIndex < 0 || paraIndex >= contatos.length || deIndex === paraIndex) return;
+    if (!idosoId || paraIndex < 0 || paraIndex >= contatos.length || deIndex === paraIndex) return;
+    const idAtivo = idosoId;
     dispararHaptic();
     animarTransiçãoLista();
     const novaLista = [...contatos];
@@ -338,7 +344,7 @@ export default function EmergencyContactsScreen({
     setContatos(comOrdem);
 
     try {
-      await reordenarContatos(idosoId, comOrdem);
+      await reordenarContatos(idAtivo, comOrdem);
     } catch (err: any) {
       console.warn('[EmergencyContactsScreen] Erro ao persistir nova ordem:', err?.message);
     }
@@ -349,9 +355,15 @@ export default function EmergencyContactsScreen({
   }, [idosoId]);
 
   const carregarLista = async () => {
+    if (!idosoId) {
+      setContatos([]);
+      setLoading(false);
+      return;
+    }
+    const idAtivo = idosoId;
     try {
       setLoading(true);
-      const data = await listarContatos(idosoId);
+      const data = await listarContatos(idAtivo);
       setContatos(data);
     } catch (err: any) {
       console.warn('[EmergencyContactsScreen] Erro ao carregar contatos:', err?.message);
@@ -373,6 +385,8 @@ export default function EmergencyContactsScreen({
   };
 
   const handleAdicionarContato = async () => {
+    if (!idosoId) return;
+    const idAtivo = idosoId;
     if (!nome.trim()) {
       Alert.alert('Campo Obrigatório', 'Por favor, informe o nome completo do contato.');
       return;
@@ -386,7 +400,7 @@ export default function EmergencyContactsScreen({
 
     try {
       setSubmitting(true);
-      const novo = await salvarContato(idosoId, {
+      const novo = await salvarContato(idAtivo, {
         nome: nome.trim(),
         telefone,
         parentesco,
@@ -408,6 +422,8 @@ export default function EmergencyContactsScreen({
   };
 
   const handleRemoverContato = (contato: ContatoEmergencia) => {
+    if (!idosoId) return;
+    const idAtivo = idosoId;
     Alert.alert(
       'Remover Contato',
       `Deseja realmente remover ${contato.nome} da lista de socorro de emergência?`,
@@ -417,7 +433,7 @@ export default function EmergencyContactsScreen({
           text: 'Remover',
           style: 'destructive',
           onPress: async () => {
-            await removerContato(idosoId, contato.id);
+            await removerContato(idAtivo, contato.id);
             setContatos((prev) => prev.filter((c) => c.id !== contato.id));
           },
         },
@@ -469,6 +485,12 @@ export default function EmergencyContactsScreen({
 
           {loading ? (
             <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
+          ) : contatos.length === 0 ? (
+            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
+              <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
+                A sincronização de contatos de emergência com o servidor estará disponível em breve (care#100). Nenhum contato cadastrado ainda.
+              </Text>
+            </View>
           ) : (
             contatos.map((contato, index) => (
               <DraggableContactCard

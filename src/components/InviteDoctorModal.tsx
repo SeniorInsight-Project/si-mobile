@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Icon from './Icon';
 import { ConvitePendente, DadosConviteMedicoInput } from '../services/redeProtecaoService';
+import { useIdoso } from '../context/IdosoContext';
 
 export interface InviteDoctorModalProps {
   visible: boolean;
@@ -37,6 +38,8 @@ export default function InviteDoctorModal({
   totalMedicos = 0,
   loading = false,
 }: InviteDoctorModalProps) {
+  const { nomeIdoso: nomeIdosoContexto } = useIdoso();
+  const deIdoso = nomeIdosoContexto ? `de ${nomeIdosoContexto}` : 'do idoso';
   const [nome, setNome] = useState('');
   const [crm, setCrm] = useState('');
   const [email, setEmail] = useState('');
@@ -102,7 +105,7 @@ export default function InviteDoctorModal({
     if (!conviteGerado) return;
     try {
       const link = conviteGerado.linkConvite || `seniorinsight://convite/${conviteGerado.token}`;
-      const nomeIdoso = conviteGerado.nomeIdoso || 'Dona Maria Silva';
+      const nomeIdoso = conviteGerado.nomeIdoso || nomeIdosoContexto || null;
       const crmTexto = conviteGerado.crm ? `(CRM ${conviteGerado.crm})` : '';
       await Share.share({
         title: 'Convite para Corpo Clínico SeniorInsight',
@@ -270,7 +273,7 @@ export default function InviteDoctorModal({
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoBannerTitle}>Acesso Clínico & Relatório Semanal</Text>
                     <Text style={styles.infoBannerText}>
-                      O médico receberá acesso seguro aos relatórios semanais consolidados, batimentos, passos e comorbidades de Dona Maria.
+                      O médico receberá acesso seguro aos relatórios semanais consolidados, batimentos, passos e comorbidades {deIdoso}.
                     </Text>
                   </View>
                 </View>
@@ -356,7 +359,7 @@ export default function InviteDoctorModal({
                   <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                     <TextInput
                       style={[styles.inputField, styles.textAreaField]}
-                      placeholder="Ex: Olá Dr. Roberto, gostaria de convidá-lo para acompanhar o tratamento e relatórios de saúde de Dona Maria."
+                      placeholder={`Ex: Olá Dr. Roberto, gostaria de convidá-lo para acompanhar o tratamento e relatórios de saúde ${deIdoso}.`}
                       placeholderTextColor="#94A3B8"
                       value={mensagemPersonalizada}
                       onChangeText={setMensagemPersonalizada}

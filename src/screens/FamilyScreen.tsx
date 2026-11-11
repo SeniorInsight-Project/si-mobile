@@ -15,6 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
+import SemIdosoCard from '../components/SemIdosoCard';
 import {
   listarMembrosRede,
   gerarConvite,
@@ -33,22 +34,24 @@ import {
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
 import { typography } from '../theme';
-
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
+import { useIdoso } from '../context/IdosoContext';
 
 export interface FamilyScreenProps {
   onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   isFamiliarAdmin?: boolean | string;
   papelAcesso?: string;
 }
 
 export default function FamilyScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId: idosoIdProp,
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto, nomeIdoso } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const isAdmin = Boolean(
     isFamiliarAdmin === true ||
     isFamiliarAdmin === 'true' ||
@@ -70,6 +73,12 @@ export default function FamilyScreen({
   const simulacaoPermitida = mockPermitido();
 
   const carregarDados = async () => {
+    if (!idosoId) {
+      setMembros([]);
+      setConvitesPendentes([]);
+      setCarregandoMembros(false);
+      return;
+    }
     try {
       setCarregandoMembros(true);
       setErroCarregamento(null);
@@ -143,6 +152,7 @@ export default function FamilyScreen({
   };
 
   const handleEnviarConvite = async (dadosConvite: ConviteInput) => {
+    if (!idosoId) throw new Error('Nenhum idoso selecionado.');
     try {
       setSubmittingInvite(true);
       const resultado = await gerarConvite(idosoId, dadosConvite);
@@ -180,6 +190,7 @@ export default function FamilyScreen({
   };
 
   const handleEnviarConviteMedico = async (dadosMedico: DadosConviteMedicoInput) => {
+    if (!idosoId) throw new Error('Nenhum idoso selecionado.');
     try {
       setSubmittingDoctorInvite(true);
       const resultado = await gerarConviteMedico(idosoId, dadosMedico, {
@@ -197,6 +208,7 @@ export default function FamilyScreen({
   };
 
   const handleSimularRecusaMedico = async (conviteId: string) => {
+    if (!idosoId) return;
     try {
       await recusarConvite(idosoId, conviteId);
       await carregarDados();
@@ -207,6 +219,7 @@ export default function FamilyScreen({
   };
 
   const handleDescartarRecusado = async (conviteId: string) => {
+    if (!idosoId) return;
     try {
       await descartarConviteRecusado(idosoId, conviteId);
       await carregarDados();
@@ -216,6 +229,7 @@ export default function FamilyScreen({
   };
 
   const handleSalvarEdicaoConvite = async (conviteId: string, novosDados: Partial<ConviteInput>) => {
+    if (!idosoId) return;
     try {
       await editarConvite(idosoId, conviteId, novosDados);
       await carregarDados();
@@ -226,6 +240,8 @@ export default function FamilyScreen({
   };
 
   const handleCancelarConvite = (convite: ConvitePendente) => {
+    if (!idosoId) return;
+    const idAtivo = idosoId;
     Alert.alert(
       'Cancelar Convite',
       `Deseja realmente cancelar o convite enviado para ${convite.emailDestinatario}? O link de acesso deixará de funcionar imediatamente.`,
@@ -236,7 +252,7 @@ export default function FamilyScreen({
           style: 'destructive',
           onPress: async () => {
             try {
-              await cancelarConvite(idosoId, convite.id);
+              await cancelarConvite(idAtivo, convite.id);
               await carregarDados();
               Alert.alert('Convite Cancelado', 'O convite foi cancelado e removido.');
             } catch (err: any) {
@@ -253,7 +269,7 @@ export default function FamilyScreen({
       const link = convite.linkConvite || `seniorinsight://convite/${convite.token}`;
       await Share.share({
         title: 'Convite para Rede de Cuidados SeniorInsight',
-        message: `Olá! Você foi convidado para a Rede de Cuidados de ${convite.nomeIdoso || 'Dona Maria Silva'} no SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,
+        message: `Olá! Você foi convidado para a Rede de Cuidados de ${convite.nomeIdoso || nomeIdoso || 'do idoso'} no SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,
         url: link,
       });
     } catch (err: any) {
@@ -659,6 +675,7 @@ export default function FamilyScreen({
                         <TouchableOpacity
                           style={styles.pendingBtnDebug}
                           onPress={async () => {
+                            if (!idosoId) return;
                             try {
                               const novoVinculado = {
                                 id: `med-${Date.now()}`,
