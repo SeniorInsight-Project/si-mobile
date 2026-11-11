@@ -22,6 +22,7 @@ import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
 import { useIdoso } from '../context/IdosoContext';
 import {
   buscarStatusDispositivo,
+  LIMITE_BATERIA_BAIXA,
   verificarPerdaDados,
   StatusDispositivo,
   ResultadoPerdaDados,
@@ -65,7 +66,7 @@ export default function HomeScreen({
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
   const [loadingIdosos, setLoadingIdosos] = useState<boolean>(false);
-  const [deviceStatus, setDeviceStatus] = useState<(StatusDispositivo & { nomeIdoso: string }) | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<StatusDispositivo | null>(null);
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
   const [telemetria, setTelemetria] = useState<EstadoAtual | null>(null);
@@ -76,6 +77,7 @@ export default function HomeScreen({
   const idosoSelecionadoRef = useRef<string | null>(idosoSelecionadoId);
   idosoSelecionadoRef.current = idosoSelecionadoId;
   const idosoSelecionado = idosos.find((idoso) => idoso.idosoId === idosoSelecionadoId) ?? null;
+  const bateriaBaixa = typeof deviceStatus?.nivelBateria === 'number' && deviceStatus.nivelBateria <= LIMITE_BATERIA_BAIXA;
 
   // Seleciona o idoso (card ou fallback): atualiza id e nome no contexto.
   const selecionarIdoso = useCallback(
@@ -130,7 +132,7 @@ export default function HomeScreen({
       try {
         const status = await buscarStatusDispositivo(id);
         if (!ativo) return;
-        setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
+        setDeviceStatus(status);
         setPerdaDados(verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3));
 
         const estadoTelemetria = await buscarEstadoAtual(id);
@@ -355,15 +357,15 @@ export default function HomeScreen({
                   <Icon
                     name="battery_full"
                     size={13}
-                    color={(deviceStatus?.nivelBateria ?? 62) <= 20 ? '#B51C13' : '#10B981'}
+                    color={bateriaBaixa ? '#B51C13' : '#10B981'}
                   />
                   <Text
                     style={[
                       styles.telemetryText,
-                      (deviceStatus?.nivelBateria ?? 62) <= 20 && { color: '#B51C13' },
+                      bateriaBaixa && { color: '#B51C13' },
                     ]}
                   >
-                    {deviceStatus?.nivelBateria ?? 62}%
+                    {deviceStatus?.nivelBateria ?? '--'}%
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -563,7 +565,7 @@ export default function HomeScreen({
                 </View>
                 <View style={styles.subCardValueRow}>
                   <Text style={styles.subCardValue}>
-                    {telemetria?.frequenciaCardiaca ?? 74}
+                    {telemetria?.frequenciaCardiaca ?? '--'}
                   </Text>
                   <Text style={styles.subCardUnit}>bpm</Text>
                 </View>
@@ -651,16 +653,18 @@ export default function HomeScreen({
               accessibilityLabel={
                 telemetria?.semDadosRecentes
                   ? 'Passos hoje: Sem dados recentes'
-                  : `Passos hoje: ${telemetria?.passosHoje ?? 0} passos. Meta de 4 mil passos.`
+                  : `Passos hoje: ${telemetria?.passosHoje ?? 'sem autorização'}${telemetria?.metaPassos ? `. Meta de ${telemetria.metaPassos} passos` : ''}.`
               }
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
                   <Icon name="walk" size={18} color="#B51C13" />
                 </View>
-                <View style={styles.metaBadge}>
-                  <Text style={styles.metaBadgeText}>Meta 4k</Text>
-                </View>
+                {telemetria?.metaPassos ? (
+                  <View style={styles.metaBadge}>
+                    <Text style={styles.metaBadgeText}>Meta {telemetria.metaPassos.toLocaleString('pt-BR')}</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={styles.metricLabelPeach}>Passos Hoje</Text>
 
@@ -673,7 +677,7 @@ export default function HomeScreen({
                 <>
                   <View style={styles.metricValueRow}>
                     <Text style={styles.metricValueLarge}>
-                      {(telemetria?.passosHoje ?? 0).toLocaleString('pt-BR')}
+                      {telemetria?.passosHoje?.toLocaleString('pt-BR') ?? '--'}
                     </Text>
                     <Text style={styles.metricUnitPeach}>passos</Text>
                   </View>
@@ -698,17 +702,12 @@ export default function HomeScreen({
               accessibilityLabel={
                 telemetria?.semDadosRecentes
                   ? 'Frequência cardíaca: Sem dados recentes'
-                  : `Frequência cardíaca: ${telemetria?.frequenciaCardiaca ?? 0} batimentos por minuto.`
+                  : `Frequência cardíaca: ${telemetria?.frequenciaCardiaca ?? 'sem autorização'} batimentos por minuto.`
               }
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
                   <Icon name="favorite" size={18} color="#031753" />
-                </View>
-                <View style={styles.otimaBadge}>
-                  <Text style={styles.otimaBadgeText}>
-                    {telemetria?.statusCardiovascular || 'Normal'}
-                  </Text>
                 </View>
               </View>
               <Text style={styles.metricLabelSky}>Último Batimento</Text>
@@ -726,12 +725,14 @@ export default function HomeScreen({
                     </Text>
                     <Text style={styles.metricUnitSky}>bpm</Text>
                   </View>
-                  <View style={styles.repousoRow}>
-                    <Icon name="vital_signs" size={12} color="#475569" />
-                    <Text style={styles.repousoText}>
-                      Repouso: {telemetria?.frequenciaCardiacaRepouso ?? 64} bpm
-                    </Text>
-                  </View>
+                  {telemetria?.frequenciaCardiacaRepouso !== undefined && (
+                    <View style={styles.repousoRow}>
+                      <Icon name="vital_signs" size={12} color="#475569" />
+                      <Text style={styles.repousoText}>
+                        Repouso: {telemetria.frequenciaCardiacaRepouso} bpm
+                      </Text>
+                    </View>
+                  )}
                 </>
               )}
             </View>
@@ -753,6 +754,7 @@ export default function HomeScreen({
       <DeviceStatusModal
         visible={modalDeviceVisible}
         status={deviceStatus}
+        nomeIdoso={idosoSelecionado?.nome}
         perdaDados={perdaDados}
         onClose={() => setModalDeviceVisible(false)}
       />
@@ -1527,18 +1529,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
-  },
-  otimaBadge: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  otimaBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2D418A',
     fontFamily: typography.fontFamily.heading,
   },
   metricLabelPeach: {
