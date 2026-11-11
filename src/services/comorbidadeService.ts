@@ -1,123 +1,51 @@
-import { runtimeConfig } from '../config/runtime';
-import { mockPermitido } from '../config/ambiente';
 import type { ComorbidadeRequest, Comorbidades } from '../types/api';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import { apiClient, type ApiClient } from './apiClient';
 
 /** Comorbidades do contrato care-v1. */
 export type ComorbidadesResponse = Comorbidades;
 
-/**
- * Serviço de integração com os endpoints de comorbidades do backend-core (HU15).
- * Rota base: /api/v1/idosos/{idosoId}/comorbidades
- */
-export async function listarComorbidades(
-  idosoId: string,
-  token: string | null = null
-): Promise<ComorbidadesResponse> {
-  try {
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/comorbidades`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      if (mockPermitido()) {
-        const { INITIAL_COMORBIDITIES } = await import('../mocks/comorbidades');
-        return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
-      }
-      throw new Error(`Falha ao listar comorbidades (${response.status})`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error: any) {
-    if (mockPermitido()) {
-      const { INITIAL_COMORBIDITIES } = await import('../mocks/comorbidades');
-      return { idosoId, comorbidades: INITIAL_COMORBIDITIES };
-    }
-    throw error;
-  }
+export interface OpcoesRede {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'delete'>;
 }
 
 /**
- * Adiciona uma ou mais comorbidades ao perfil do idoso via POST.
- * Payload esperado: { "comorbidades": ["Nome da Patologia"] }
+ * Comorbidades do idoso pelo contrato care-v1 (HU15), via apiClient (renova o token e repete após 401).
+ * Rota base: /api/v1/idosos/{idosoId}/comorbidades
+ *
+ * Em qualquer erro (rede, 401, 403, 404, 5xx) as funções lançam ApiError: a tela mostra a falha em vez de
+ * dados inventados.
+ */
+export async function listarComorbidades(
+  idosoId: string,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<ComorbidadesResponse> {
+  return cliente.get<ComorbidadesResponse>(`/api/v1/idosos/${idosoId}/comorbidades`);
+}
+
+/**
+ * Adiciona uma ou mais comorbidades ao perfil do idoso.
+ * Corpo: ComorbidadeRequest ({ comorbidades: string[] }); a resposta é a lista atualizada.
  */
 export async function adicionarComorbidades(
   idosoId: string,
   novasComorbidades: string | string[],
-  token: string | null = null
-): Promise<any> {
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/comorbidades`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        comorbidades: Array.isArray(novasComorbidades) ? novasComorbidades : [novasComorbidades],
-      } satisfies ComorbidadeRequest),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Erro ${response.status} ao adicionar comorbidade.`);
-    }
-
-    return await response.json();
-  } catch (error: any) {
-    console.warn('[comorbidadeService] Aviso ao adicionar comorbidade:', error?.message);
-    throw error;
-  }
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<ComorbidadesResponse> {
+  const corpo = {
+    comorbidades: Array.isArray(novasComorbidades) ? novasComorbidades : [novasComorbidades],
+  } satisfies ComorbidadeRequest;
+  return cliente.post<ComorbidadesResponse>(`/api/v1/idosos/${idosoId}/comorbidades`, corpo);
 }
 
 /**
- * Remove uma comorbidade específica do perfil do idoso via DELETE.
- * Endpoint: DELETE /api/v1/idosos/{idosoId}/comorbidades/{nomeComorbidade}
+ * Remove uma comorbidade do perfil do idoso.
+ * Rota: DELETE /api/v1/idosos/{idosoId}/comorbidades/{nomeComorbidade} (204).
  */
 export async function removerComorbidade(
   idosoId: string,
   nomeComorbidade: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<boolean> {
-  try {
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const encodedNome = encodeURIComponent(nomeComorbidade);
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/comorbidades/${encodedNome}`, {
-      method: 'DELETE',
-      headers,
-    });
-
-    if (!response.ok && response.status !== 204) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Erro ${response.status} ao remover comorbidade.`);
-    }
-
-    return true;
-  } catch (error: any) {
-    console.warn('[comorbidadeService] Aviso ao remover comorbidade:', error?.message);
-    throw error;
-  }
+  await cliente.delete(`/api/v1/idosos/${idosoId}/comorbidades/${encodeURIComponent(nomeComorbidade)}`);
+  return true;
 }

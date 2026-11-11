@@ -1,6 +1,8 @@
 // Ponto de entrada dos tipos gerados. Os arquivos *-v1.ts são gerados por `npm run generate`: não edite à mão.
+export type * as Billing from './billing-v1.js';
 export type * as Care from './care-v1.js';
 export type * as Identity from './identity-v1.js';
 export type * as Notification from './notification-v1.js';
 export type * as Telemetry from './telemetry-v1.js';
+export type * as Insight from './insight-v1.js';
 export type * as Report from './report-v1.js';

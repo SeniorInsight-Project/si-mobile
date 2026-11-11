@@ -1,7 +1,6 @@
-import { runtimeConfig } from '../config/runtime';
 import { mockPermitido } from '../config/ambiente';
 import { formatarHora } from './deviceStatusService';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import { apiClient, type ApiClient } from './apiClient';
 
 interface EstadoAtualBruto {
   idosoId: string;
@@ -87,7 +86,7 @@ export function verificarDadosRecentes(
  */
 export async function buscarEstadoAtual(
   idosoId: string,
-  token: string | null = null
+  { cliente = apiClient }: { cliente?: Pick<ApiClient, 'get'> } = {}
 ): Promise<EstadoAtual> {
   if (!idosoId) {
     if (mockPermitido()) {
@@ -97,26 +96,16 @@ export async function buscarEstadoAtual(
     throw new Error('ID do idoso não informado.');
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
   try {
-    const url = `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/telemetria-wearable/recente`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(url, { headers, signal: controller.signal });
+    const data = await cliente.get<Record<string, any>>(`/api/v1/idosos/${idosoId}/telemetria-wearable/recente`, { signal: controller.signal });
+    return normalizarEstadoAtualFromApi(idosoId, data);
+  } catch (erro) {
+    // Sem mock permitido a falha sobe para a tela; com mock (só em dev) cai nos dados de demonstração abaixo.
+    if (!mockPermitido()) throw erro;
+  } finally {
     clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      return normalizarEstadoAtualFromApi(idosoId, data);
-    }
-  } catch {
-    // Fallback silencioso para ambiente de desenvolvimento com mock ativado
   }
 
   if (mockPermitido()) {

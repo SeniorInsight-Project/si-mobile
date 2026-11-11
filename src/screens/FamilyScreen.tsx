@@ -1054,12 +1054,12 @@ export default function FamilyScreen({
       totalMedicos={totalMedicos}
       onClose={() => setModalDoctorInviteVisible(false)}
       onSendDoctorInvite={handleEnviarConviteMedico}
-      onOpenAcceptInvite={(token: string) => {
+      onOpenAcceptInvite={simulacaoPermitida ? (token: string) => {
         setModalDoctorInviteVisible(false);
         if (onNavigate) {
           onNavigate('AcceptInvite', { token });
         }
-      }}
+      } : undefined}
       onSimulateReject={simulacaoPermitida ? (conviteId: string) => {
         setModalDoctorInviteVisible(false);
         handleSimularRecusaMedico(conviteId);

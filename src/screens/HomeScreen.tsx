@@ -15,7 +15,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
-import { atualizarStatusAlarme } from '../services/alarmeSosService';
+import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
 import {
   buscarStatusDispositivo,
@@ -114,23 +114,44 @@ export default function HomeScreen({
             text: 'Assumir Resgate',
             style: 'default',
             onPress: async () => {
-              setResgateAtivo(true);
-              const mockId = alarmeIdAtivo || `sos-${Date.now()}`;
-              setAlarmeIdAtivo(mockId);
-              await atualizarStatusAlarme(
-                mockId,
-                'EM_ATENDIMENTO',
-                'Familiar assumiu o resgate pelo Painel Familiar.'
-              );
+              const idosoId = idosos[0]?.idosoId;
+              const nomeIdoso = idosos[0]?.nome || 'o idoso';
+              if (!idosoId) {
+                Alert.alert('Resgate', 'Nenhum idoso vinculado para assumir o chamado.');
+                return;
+              }
+              try {
+                // Só vale o chamado real do servidor: sem SOS em aberto, não há o que assumir.
+                const alarme = await obterAlarmeAtivo(idosoId);
+                if (!alarme) {
+                  Alert.alert('Resgate', `Não há chamado de SOS em aberto para ${nomeIdoso}.`);
+                  return;
+                }
+                if (alarme.status === 'EM_ATENDIMENTO') {
+                  setAlarmeIdAtivo(alarme.id);
+                  Alert.alert('Resgate', 'Outro familiar já assumiu este chamado.');
+                  return;
+                }
+                await atualizarStatusAlarme(
+                  alarme.id,
+                  'EM_ATENDIMENTO',
+                  'Familiar assumiu o resgate pelo Painel Familiar.'
+                );
+                setAlarmeIdAtivo(alarme.id);
+                setResgateAtivo(true);
+              } catch (erro: any) {
+                Alert.alert('Resgate', erro?.message || 'Não foi possível assumir o chamado agora. Tente de novo ou ligue.');
+                return;
+              }
 
               Alert.alert(
                 'Comando Assumido! 🚨',
-                'Você assumiu o socorro de Dona Maria. Escolha a ação imediata:',
+                `Você assumiu o socorro de ${nomeIdoso}. Escolha a ação imediata:`,
                 [
                   {
                     text: 'Ligar para o Idoso',
                     onPress: () => {
-                      Alert.alert('Discador', 'Chamando Dona Maria...');
+                      Alert.alert('Discador', `Chamando ${nomeIdoso}...`);
                     },
                   },
                   {
@@ -156,18 +177,23 @@ export default function HomeScreen({
             text: 'Encerrar Resgate',
             style: 'destructive',
             onPress: async () => {
-              if (alarmeIdAtivo) {
-                await atualizarStatusAlarme(
-                  alarmeIdAtivo,
-                  'ENCERRADO',
-                  'Resgate concluído com sucesso pelo cuidador.'
-                );
+              try {
+                if (alarmeIdAtivo) {
+                  await atualizarStatusAlarme(
+                    alarmeIdAtivo,
+                    'RESOLVIDO',
+                    'Resgate concluído com sucesso pelo cuidador.'
+                  );
+                }
+              } catch (erro: any) {
+                Alert.alert('Resgate', erro?.message || 'Não foi possível encerrar o chamado agora. Tente de novo.');
+                return;
               }
               setResgateAtivo(false);
               setAlarmeIdAtivo(null);
               Alert.alert(
                 'Resgate Encerrado',
-                'O status de Dona Maria voltou ao normal.'
+                'O chamado foi encerrado no servidor.'
               );
             },
           },
