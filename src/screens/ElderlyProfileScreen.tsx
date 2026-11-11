@@ -24,12 +24,11 @@ import {
 } from '../services/comorbidadeService';
 import {
   listarIdososDoFamiliar,
-  salvarCadastroIdoso,
   atualizarDadosIdoso,
-  obterIdosoLocalPorId,
   ElderlyProfile,
 } from '../services/elderlyService';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
+import { useIdoso } from '../context/IdosoContext';
 
 const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 
@@ -110,10 +109,13 @@ export interface ElderlyProfileScreenProps {
 
 export default function ElderlyProfileScreen({
   onNavigate,
-  idosoId,
+  idosoId: idosoIdProp,
   accessRole = 'ADMIN',
   familiarId,
 }: ElderlyProfileScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const [comorbidades, setComorbidades] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
@@ -128,7 +130,7 @@ export default function ElderlyProfileScreen({
   const [editando, setEditando] = useState<boolean>(true);
   // Código de pareamento (HU-008): gerado pelo identity-service logo depois de cadastrar um idoso novo ou
   // quando o familiar pede. Abrir o perfil não gera código: cada geração invalida o anterior no servidor.
-  const [gerarCodigoAoAbrir, setGerarCodigoAoAbrir] = useState<boolean>(false);
+  const gerarCodigoAoAbrir = false; // o código nasce no RegisterElderly
 
   // Campos complementares da ficha conforme o .fig
   const [fatorSanguineo, setFatorSanguineo] = useState<string>('O+ Positivo');
@@ -154,7 +156,7 @@ export default function ElderlyProfileScreen({
       try {
         setLoadingPerfil(true);
         const locais = await listarIdososDoFamiliar(familiarId);
-        const idosoAtual = locais.find((item) => item.idosoId === id) || obterIdosoLocalPorId(id);
+        const idosoAtual = locais.find((item) => item.idosoId === id);
 
         if (idosoAtual) {
           setProfile(idosoAtual);
@@ -166,9 +168,11 @@ export default function ElderlyProfileScreen({
           });
           setEditando(false);
         } else {
-          setEditando(true);
+          // Sem perfil: o cadastro é feito só pelo fluxo RegisterElderly (idosoCadastroService).
+          setEditando(false);
           setProfile(null);
           setForm(EMPTY_FORM);
+          if (onNavigate) onNavigate('RegisterElderly');
         }
       } catch (error: any) {
         console.warn('Erro ao carregar perfil do idoso:', error?.message);
@@ -256,16 +260,15 @@ export default function ElderlyProfileScreen({
         celular: form.celular,
       };
 
-      const idosoNovo = !profile?.idosoId;
-      const salvo = profile?.idosoId
-        ? await atualizarDadosIdoso(profile.idosoId, payload)
-        : await salvarCadastroIdoso({ ...payload, idosoId: idosoId || undefined });
+      // Só edita idoso existente (PUT pelo apiClient). Cadastro novo é o fluxo RegisterElderly.
+      if (!profile?.idosoId) {
+        if (onNavigate) onNavigate('RegisterElderly');
+        return;
+      }
+      const salvo = await atualizarDadosIdoso(profile.idosoId, payload);
 
       setProfile(salvo);
       setEditando(false);
-
-      // HU-008 cenário 1: idoso novo salvo -> código de pareamento exibido. Editar dados não troca o código.
-      if (idosoNovo) setGerarCodigoAoAbrir(true);
 
       if (avisoIdade) {
         Alert.alert(
