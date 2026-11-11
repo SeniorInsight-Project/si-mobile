@@ -179,5 +179,29 @@ describe('Rede de Proteção - Tratamento de Erros e Regra de Mock (HU-012/HU-01
     const sucesso = await cancelarConvite(TEST_IDOSO_ID, 'conv-inexistente');
     assert.equal(sucesso, true);
   });
+
+  test('Membro sem telefone no back não ganha número fictício', async () => {
+    process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => [
+        { vinculoId: 'v-1', nomeCompleto: 'Ana Souza', papelAcesso: 'CUIDADOR' },
+        { vinculoId: 'v-2', nomeCompleto: 'Dr. Paulo Lima', papelAcesso: 'MEDICO', crm: '123/SP' },
+      ],
+    }) as unknown as Response;
+
+    try {
+      const membros = await listarMembrosRede(TEST_IDOSO_ID);
+      assert.equal(membros.length, 2);
+      for (const membro of membros) {
+        assert.equal(membro.telefone, '');
+        assert.ok(!membro.acoesTexto.includes('Dona Maria'));
+      }
+    } finally {
+      globalThis.fetch = fetchOriginal;
+      process.env.EXPO_PUBLIC_USAR_MOCK = mockOriginal;
+    }
+  });
 });
 

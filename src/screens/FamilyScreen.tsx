@@ -31,6 +31,7 @@ import {
   DadosConviteMedicoInput,
   MembroRede,
 } from '../services/redeProtecaoService';
+import { mockPermitido } from '../config/ambiente';
 import { typography } from '../theme';
 
 const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
@@ -64,6 +65,9 @@ export default function FamilyScreen({
   const [conviteParaEditar, setConviteParaEditar] = useState<ConvitePendente | null>(null);
   const [submittingInvite, setSubmittingInvite] = useState<boolean>(false);
   const [submittingDoctorInvite, setSubmittingDoctorInvite] = useState<boolean>(false);
+  // Ações de simulação ([Debug] Aceitar/Recusar) só existem com mock ligado: fora dele,
+  // chamariam a API real (cancelar/recusar convite) e mostrariam um resultado falso.
+  const simulacaoPermitida = mockPermitido();
 
   const carregarDados = async () => {
     try {
@@ -650,48 +654,52 @@ export default function FamilyScreen({
                   </View>
 
                   <View style={styles.pendingActionsRow}>
-                    <TouchableOpacity
-                      style={styles.pendingBtnDebug}
-                      onPress={async () => {
-                        try {
-                          const novoVinculado = {
-                            id: `med-${Date.now()}`,
-                            nome: convite.nomeMedico || 'Dr. Convidado',
-                            nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
-                            crm: convite.crm || '123456/SP',
-                            grauParentesco: 'Médico',
-                            papelAcesso: 'MEDICO',
-                            tipoMembro: 'MEDICO',
-                            categoria: 'saude',
-                            badgeTexto: 'Médico Vinculado',
-                            badgeTipo: 'especialista',
-                            online: true,
-                            telefone: '+55 11 98888-7777',
-                            email: convite.emailDestinatario,
-                            acoes: ['call', 'prontuario'],
-                          };
-                          await cancelarConvite(idosoId, convite.id);
-                          setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
-                          await carregarDados();
-                          Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
-                        } catch (e: any) {
-                          Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.pendingBtnRejectDebug}
-                      onPress={() => handleSimularRecusaMedico(convite.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
-                    </TouchableOpacity>
+                    {simulacaoPermitida && (
+                      <>
+                        <TouchableOpacity
+                          style={styles.pendingBtnDebug}
+                          onPress={async () => {
+                            try {
+                              const novoVinculado = {
+                                id: `med-${Date.now()}`,
+                                nome: convite.nomeMedico || 'Dr. Convidado',
+                                nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
+                                crm: convite.crm || '123456/SP',
+                                grauParentesco: 'Médico',
+                                papelAcesso: 'MEDICO',
+                                tipoMembro: 'MEDICO',
+                                categoria: 'saude',
+                                badgeTexto: 'Médico Vinculado',
+                                badgeTipo: 'especialista',
+                                online: true,
+                                telefone: '+55 11 98888-7777',
+                                email: convite.emailDestinatario,
+                                acoes: ['call', 'prontuario'],
+                              };
+                              await cancelarConvite(idosoId, convite.id);
+                              setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
+                              await carregarDados();
+                              Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
+                            } catch (e: any) {
+                              Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
+                            }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
+                        </TouchableOpacity>
+    
+                        <TouchableOpacity
+                          style={styles.pendingBtnRejectDebug}
+                          onPress={() => handleSimularRecusaMedico(convite.id)}
+                          activeOpacity={0.8}
+                        >
+                          <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
 
                     <TouchableOpacity
                       style={styles.pendingBtnShare}
@@ -1052,10 +1060,10 @@ export default function FamilyScreen({
           onNavigate('AcceptInvite', { token });
         }
       }}
-      onSimulateReject={(conviteId: string) => {
+      onSimulateReject={simulacaoPermitida ? (conviteId: string) => {
         setModalDoctorInviteVisible(false);
         handleSimularRecusaMedico(conviteId);
-      }}
+      } : undefined}
       loading={submittingDoctorInvite}
     />
 

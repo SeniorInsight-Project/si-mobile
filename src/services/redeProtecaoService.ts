@@ -241,10 +241,11 @@ function normalizarMembroBackend(membro: any): MembroRede {
     infoIcon: isPlantao ? 'notifications' : ehMedico ? 'description' : 'schedule',
     infoTexto: isPlantao ? 'Recebe alertas SOS críticos' : ehMedico ? 'Relatório semanal de saúde ativo' : 'Notificações de cuidado ativas',
     infoDestaque: isPlantao,
-    telefone: membro.telefone || '+55 11 98765-4321',
+    // Sem telefone do back, fica vazio: a UI já mostra "Telefone indisponível" em vez de discar um número falso.
+    telefone: membro.telefone || '',
     email: membro.email || '',
     avatarUrl: membro.avatarUrl || null,
-    acoesTexto: ehMedico ? 'Corpo clínico de Dona Maria' : 'Conectado recentemente',
+    acoesTexto: ehMedico ? 'Corpo clínico do idoso' : 'Conectado recentemente',
     acoes,
     isPlantao,
     categoria: ehMedico ? 'saude' : categoria,
