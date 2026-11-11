@@ -71,7 +71,7 @@ export default function ElderlyModeScreen({
           if (pareado?.nome) {
             setNomePareado(pareado.nome);
           }
-          const idFinal = idosoId || pareado?.perfilId || null;
+          const idFinal = idosoId || pareado?.idosoId || null;
           setIdAtivo(idFinal);
         }
       } catch (err) {

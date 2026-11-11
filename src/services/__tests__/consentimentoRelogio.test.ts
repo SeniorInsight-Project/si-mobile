@@ -9,7 +9,7 @@ import {
   obterConsentimentos,
   salvarConsentimentos,
   ConsentimentoError,
-  ROTA_CONSENTIMENTOS,
+  rotaConsentimentos,
   type Consentimentos,
 } from '../consentimentoService';
 import { ApiError } from '../apiClient';
@@ -19,6 +19,8 @@ import {
   obterEstadoConexao,
   type EstadoConexao,
 } from '../relogioService';
+
+const IDOSO_ID = "3f2b8c1e-5d4a-4b7e-9c10-6a1d2e3f4a5b";
 
 const com = (parcial: Partial<Consentimentos>): Consentimentos => ({ ...CONSENTIMENTO_PADRAO, ...parcial });
 
@@ -34,7 +36,7 @@ describe('Autorização de dados por tipo (HU-018 / HU-019 / RN-001)', () => {
   });
 
   test('lê do servidor e normaliza: só `true` liga; campo ausente fica desligado', async () => {
-    const c = await obterConsentimentos({ cliente: clienteGet({ BATIMENTOS: true, PASSOS: 'true', SONO: 1 }) });
+    const c = await obterConsentimentos(IDOSO_ID, { cliente: clienteGet({ BATIMENTOS: true, PASSOS: 'true', SONO: 1 }) });
     assert.deepEqual(c, { ...CONSENTIMENTO_PADRAO, BATIMENTOS: true });
   });
 
@@ -72,16 +74,16 @@ describe('Autorização de dados por tipo (HU-018 / HU-019 / RN-001)', () => {
   test('salvar envia os 5 booleanos para a rota de consentimentos', async () => {
     const chamadas: any[] = [];
     const cliente = { get: (async () => ({})) as any, put: (async (c: string, b: unknown) => { chamadas.push({ c, b }); return undefined; }) as any };
-    await salvarConsentimentos(com({ SONO: true }), { cliente });
-    assert.equal(chamadas[0].c, ROTA_CONSENTIMENTOS);
+    await salvarConsentimentos(IDOSO_ID, com({ SONO: true }), { cliente });
+    assert.equal(chamadas[0].c, rotaConsentimentos(IDOSO_ID));
     assert.deepEqual(Object.keys(chamadas[0].b).sort(), ['BATIMENTOS', 'LOCALIZACAO', 'OXIGENACAO', 'PASSOS', 'SONO']);
   });
 
   test('SEM fallback local: se o servidor falha, carregar e salvar lançam erro', async () => {
-    await assert.rejects(obterConsentimentos({ cliente: clienteErro(500) }), ConsentimentoError);
-    await assert.rejects(salvarConsentimentos(com({ PASSOS: true }), { cliente: clienteErro(500) }), /Nada foi alterado/);
-    await assert.rejects(obterConsentimentos({ cliente: clienteErro(0) }), /Sem internet/);
-    await assert.rejects(obterConsentimentos({ cliente: clienteErro(404) }), ConsentimentoError, 'rota inexistente é erro, não "tudo desligado"');
+    await assert.rejects(obterConsentimentos(IDOSO_ID, { cliente: clienteErro(500) }), ConsentimentoError);
+    await assert.rejects(salvarConsentimentos(IDOSO_ID, com({ PASSOS: true }), { cliente: clienteErro(500) }), /Nada foi alterado/);
+    await assert.rejects(obterConsentimentos(IDOSO_ID, { cliente: clienteErro(0) }), /Sem internet/);
+    await assert.rejects(obterConsentimentos(IDOSO_ID, { cliente: clienteErro(404) }), ConsentimentoError, 'rota inexistente é erro, não "tudo desligado"');
   });
 });
 

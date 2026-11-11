@@ -19,6 +19,9 @@ export type ErroApi = CareSchemas['Erro'];
 export type IdosoApi = CareSchemas['Idoso'];
 export type IdosoRequest = CareSchemas['IdosoRequest'];
 
+// care-v1: consentimentos
+export type ConsentimentosApi = CareSchemas['Consentimentos'];
+
 // care-v1: comorbidades
 export type Comorbidades = CareSchemas['Comorbidades'];
 export type ComorbidadeRequest = CareSchemas['ComorbidadeRequest'];
