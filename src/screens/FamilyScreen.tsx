@@ -34,6 +34,7 @@ import {
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
 import { typography } from '../theme';
+import { useIdoso } from '../context/IdosoContext';
 
 export interface FamilyScreenProps {
   onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
@@ -44,10 +45,13 @@ export interface FamilyScreenProps {
 
 export default function FamilyScreen({
   onNavigate,
-  idosoId,
+  idosoId: idosoIdProp,
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto, nomeIdoso } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
   const isAdmin = Boolean(
     isFamiliarAdmin === true ||
     isFamiliarAdmin === 'true' ||
@@ -265,7 +269,7 @@ export default function FamilyScreen({
       const link = convite.linkConvite || `seniorinsight://convite/${convite.token}`;
       await Share.share({
         title: 'Convite para Rede de Cuidados SeniorInsight',
-        message: `Olá! Você foi convidado para a Rede de Cuidados de ${convite.nomeIdoso || 'Dona Maria Silva'} no SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,
+        message: `Olá! Você foi convidado para a Rede de Cuidados de ${convite.nomeIdoso || nomeIdoso || 'do idoso'} no SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,
         url: link,
       });
     } catch (err: any) {
