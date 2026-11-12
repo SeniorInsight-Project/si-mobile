@@ -46,20 +46,18 @@ test('verificarPerdaDados deve sinalizar perda diurna após 3h sem dados (Cenár
   assert.equal(resultado.mensagem, 'Sem dados de Maria desde 09:00. Verifique o celular dela.');
 });
 
-test('buscarStatusDispositivo deve retornar lista de sensores contemplando Cenário 2 da HU-027 (oxigenação revogada)', async () => {
+test('buscarStatusDispositivo deve retornar lista de sensores contemplando Cenário 2 da HU-027 (oxigenação desligada)', async () => {
   const status = await buscarStatusDispositivo('e3b0c442-98fc-1c14-9afc-432100000001');
 
   assert.ok(status, 'Status deve ser retornado');
   assert.equal(status.nivelBateria, 62);
   assert.equal(typeof status.ultimaSincronizacao, 'string');
 
-  const oxigenacao = status.tiposDados.find((t) => t.id === 'oxigenacao');
+  const oxigenacao = status.sensores.find((s) => s.tipo === 'OXIGENACAO');
   assert.ok(oxigenacao, 'Sensor de oxigenação deve existir');
   assert.equal(oxigenacao.ativo, false);
-  assert.equal(oxigenacao.revogadoPeloIdoso, true);
-  assert.equal(oxigenacao.detalhe, 'Desativada pelo idoso');
 
-  const passos = status.tiposDados.find((t) => t.id === 'passos');
+  const passos = status.sensores.find((s) => s.tipo === 'PASSOS');
   assert.ok(passos);
   assert.equal(passos.ativo, true);
 });

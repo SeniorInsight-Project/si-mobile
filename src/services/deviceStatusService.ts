@@ -1,25 +1,18 @@
 import { mockPermitido } from '../config/ambiente';
-import { apiClient, type ApiClient } from './apiClient';
+import { apiClient } from './apiClient';
+import { statusDoContrato, type StatusDispositivoLido } from './mappers/telemetria';
+import { exigirIdoso, lerTelemetria, rotaStatusAparelho, type ClienteTelemetria } from './telemetriaApi';
+import type { StatusAparelhoApi } from '../types/api';
 
-export interface TipoDadoDispositivo {
-  id: string;
-  nome: string;
-  ativo: boolean;
-  revogadoPeloIdoso: boolean;
-  detalhe: string;
-}
+export type { SensorDispositivo } from './mappers/telemetria';
 
-export interface StatusDispositivo {
-  idosoId: string;
-  nomeIdoso: string;
-  modeloCelular: string;
-  versaoApp: string;
-  sistemaOperacional: string;
-  nivelBateria: number;
-  conectado: boolean;
-  ultimaSincronizacao: string;
-  tiposDados: TipoDadoDispositivo[];
-}
+const MENSAGEM_FALHA = 'Não foi possível obter o status do dispositivo.';
+
+/** Bateria nesse nível ou abaixo vira aviso para o familiar (HU-027). */
+export const LIMITE_BATERIA_BAIXA = 20;
+
+/** Status do celular coletor do idoso (HU-027), como o telemetry-v1 informa. */
+export type StatusDispositivo = StatusDispositivoLido;
 
 export interface ResultadoPerdaDados {
   semDados: boolean;
@@ -104,97 +97,28 @@ export function verificarPerdaDados(
   };
 }
 
-/**
- * Consulta o status do celular do idoso na API com fallback mock resiliente.
- */
-export async function buscarStatusDispositivo(
-  idosoId: string,
-  { cliente = apiClient }: { cliente?: Pick<ApiClient, 'get'> } = {}
-): Promise<StatusDispositivo> {
-  if (!idosoId) {
-    if (mockPermitido()) {
-      const { STATUS_DISPOSITIVO_MOCK } = await import('../mocks/deviceStatus');
-      return STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'] as StatusDispositivo;
-    }
-    throw new Error('ID do idoso não informado.');
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
-  try {
-    const data = await cliente.get<Record<string, any>>(`/api/v1/idosos/${idosoId}/telemetria-wearable/recente`, { signal: controller.signal });
-    return normalizarRespostaApi(idosoId, data);
-  } catch (erro) {
-    // Sem mock permitido a falha sobe para a tela; com mock (só em dev) cai nos dados de demonstração abaixo.
-    if (!mockPermitido()) throw erro;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (mockPermitido()) {
-    const { STATUS_DISPOSITIVO_MOCK } = await import('../mocks/deviceStatus');
-    const mock = STATUS_DISPOSITIVO_MOCK[idosoId] || {
-      ...STATUS_DISPOSITIVO_MOCK['e3b0c442-98fc-1c14-9afc-432100000001'],
-      idosoId,
-    };
-    return mock as StatusDispositivo;
-  }
-
-  throw new Error(`Não foi possível obter o status do dispositivo.`);
+/** Só com mock permitido (dev): devolve o StatusAparelho de demonstração no formato do contrato. */
+async function statusDeDemonstracao(idosoId?: string): Promise<StatusAparelhoApi> {
+  const { STATUS_DISPOSITIVO_MOCK } = await import('../mocks/deviceStatus');
+  const { IDOSO_DEMONSTRACAO } = await import('../mocks/telemetria');
+  return (idosoId && STATUS_DISPOSITIVO_MOCK[idosoId]) || { ...STATUS_DISPOSITIVO_MOCK[IDOSO_DEMONSTRACAO], idosoId: idosoId ?? IDOSO_DEMONSTRACAO };
 }
 
 /**
- * Normaliza os dados vindos do backend para o modelo completo do status do celular.
+ * Status do celular do idoso em GET /api/v1/telemetry/idosos/{id}/status.
+ * Falha vira TelemetriaError.
  */
-function normalizarRespostaApi(idosoId: string, apiData: Record<string, any>): StatusDispositivo {
-  const ultima = apiData.coletado_em || apiData.criado_em || new Date().toISOString();
-  const bateria = typeof apiData.nivel_bateria === 'number' ? apiData.nivel_bateria : 62;
-
-  return {
-    idosoId,
-    nomeIdoso: 'Idoso Monitorado',
-    modeloCelular: apiData.device_model || 'Celular Coletor Android',
-    versaoApp: 'v1.0.4',
-    sistemaOperacional: 'Android',
-    nivelBateria: bateria,
-    conectado: true,
-    ultimaSincronizacao: ultima,
-    tiposDados: [
-      {
-        id: 'passos',
-        nome: 'Passos e Movimentação',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Health Connect',
-      },
-      {
-        id: 'batimentos',
-        nome: 'Frequência Cardíaca',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via Smartwatch',
-      },
-      {
-        id: 'oxigenacao',
-        nome: 'Oxigenação (SpO2)',
-        ativo: false,
-        revogadoPeloIdoso: true,
-        detalhe: 'Desativada pelo idoso',
-      },
-      {
-        id: 'gps',
-        nome: 'Localização em Tempo Real',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via GPS do celular',
-      },
-      {
-        id: 'queda',
-        nome: 'Detecção de Queda',
-        ativo: true,
-        revogadoPeloIdoso: false,
-        detalhe: 'Ativo via sensores do relógio',
-      },
-    ],
-  };
+export async function buscarStatusDispositivo(
+  idosoId: string,
+  { cliente = apiClient }: { cliente?: ClienteTelemetria } = {}
+): Promise<StatusDispositivo> {
+  if (!idosoId && mockPermitido()) return statusDoContrato(await statusDeDemonstracao());
+  const id = exigirIdoso(idosoId);
+  try {
+    return statusDoContrato(await lerTelemetria<StatusAparelhoApi>(cliente, rotaStatusAparelho(id), MENSAGEM_FALHA));
+  } catch (erro) {
+    // Sem mock permitido a falha sobe para a tela; com mock (só em dev) cai nos dados de demonstração.
+    if (!mockPermitido()) throw erro;
+    return statusDoContrato(await statusDeDemonstracao(id));
+  }
 }

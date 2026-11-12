@@ -1,4 +1,12 @@
 import { apiClient, ApiError, type ApiClient } from './apiClient';
+import {
+  consentimentosDoContrato,
+  consentimentosParaContrato,
+  type Consentimentos,
+} from './mappers/consentimentos';
+import type { ConsentimentosApi } from '../types/api';
+
+export type { Consentimentos };
 
 /**
  * Autorização de uso dos dados por tipo (HU-018, HU-019 / RF-010, RF-011, RF-012 / RN-001).
@@ -6,14 +14,13 @@ import { apiClient, ApiError, type ApiClient } from './apiClient';
  * - Só o idoso titular autoriza. Cada tipo é um consentimento separado e começa DESLIGADO
  *   (consentimento específico e explícito para dado de saúde — LGPD Art. 11).
  * - Localização é independente: desligada, só é enviada durante um SOS (RN-009).
- * - ROTA SEM CONTRATO AINDA: GET/PUT /api/v1/identity/me/consentimentos (proposta, a levar ao si-contracts).
- *   Até existir, a tela mostra o erro; não há estado local nem dado de exemplo.
+ * - Rota do care-v1: GET/PUT /api/v1/idosos/{idosoId}/consentimentos. O `idosoId` é o do care-service
+ *   (vem do resgate do pareamento), nunca o `perfilId` do identity. Sem ele não há chamada: a tela pede
+ *   novo pareamento. Não há estado local nem dado de exemplo.
  */
-export type TipoDado = 'BATIMENTOS' | 'PASSOS' | 'SONO' | 'OXIGENACAO' | 'LOCALIZACAO';
+export type TipoDado = keyof Consentimentos;
 
 export const TIPOS_SAUDE: readonly TipoDado[] = ['BATIMENTOS', 'PASSOS', 'SONO', 'OXIGENACAO'];
-
-export type Consentimentos = Record<TipoDado, boolean>;
 
 export const ROTULOS_DADO: Record<TipoDado, string> = {
   BATIMENTOS: 'Batimentos',
@@ -32,18 +39,33 @@ export const CONSENTIMENTO_PADRAO: Consentimentos = {
   LOCALIZACAO: false,
 };
 
-export const ROTA_CONSENTIMENTOS = '/api/v1/identity/me/consentimentos';
+export function rotaConsentimentos(idosoId: string): string {
+  return `/api/v1/idosos/${idosoId}/consentimentos`;
+}
+
+export type CodigoErroConsentimento = 'SEM_IDOSO' | 'SEM_INTERNET' | 'FALHA';
+
+export const MENSAGEM_SEM_IDOSO =
+  'Não encontramos o seu cadastro neste aparelho. Peça à sua família um novo código de pareamento.';
 
 export class ConsentimentoError extends Error {
-  constructor(mensagem: string) {
+  readonly codigo: CodigoErroConsentimento;
+
+  constructor(mensagem: string, codigo: CodigoErroConsentimento = 'FALHA') {
     super(mensagem);
     this.name = 'ConsentimentoError';
+    this.codigo = codigo;
   }
+}
+
+function exigirIdoso(idosoId: string | null | undefined): string {
+  if (!idosoId) throw new ConsentimentoError(MENSAGEM_SEM_IDOSO, 'SEM_IDOSO');
+  return idosoId;
 }
 
 function traduzir(erro: unknown, acao: 'carregar' | 'salvar'): ConsentimentoError {
   if (erro instanceof ApiError && erro.erroDeRede) {
-    return new ConsentimentoError('Sem internet. Conecte-se e tente de novo.');
+    return new ConsentimentoError('Sem internet. Conecte-se e tente de novo.', 'SEM_INTERNET');
   }
   return new ConsentimentoError(
     acao === 'carregar'
@@ -87,29 +109,28 @@ export interface OpcoesRede {
   cliente?: Pick<ApiClient, 'get' | 'put'>;
 }
 
-function normalizar(dados: Partial<Record<TipoDado, unknown>> | null | undefined): Consentimentos {
-  const base = { ...CONSENTIMENTO_PADRAO };
-  (Object.keys(base) as TipoDado[]).forEach((tipo) => {
-    base[tipo] = dados?.[tipo] === true;
-  });
-  return base;
-}
-
-export async function obterConsentimentos({ cliente = apiClient }: OpcoesRede = {}): Promise<Consentimentos> {
+export async function obterConsentimentos(
+  idosoId: string | null | undefined,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<Consentimentos> {
+  const id = exigirIdoso(idosoId);
   try {
-    return normalizar(await cliente.get<Partial<Record<TipoDado, unknown>>>(ROTA_CONSENTIMENTOS));
+    return consentimentosDoContrato(await cliente.get<ConsentimentosApi>(rotaConsentimentos(id)));
   } catch (erro) {
     throw traduzir(erro, 'carregar');
   }
 }
 
 export async function salvarConsentimentos(
+  idosoId: string | null | undefined,
   consentimentos: Consentimentos,
   { cliente = apiClient }: OpcoesRede = {}
 ): Promise<Consentimentos> {
+  const id = exigirIdoso(idosoId);
+  const corpo = consentimentosParaContrato(consentimentos);
   try {
-    const resposta = await cliente.put<Partial<Record<TipoDado, unknown>> | undefined>(ROTA_CONSENTIMENTOS, consentimentos);
-    return resposta ? normalizar(resposta) : { ...consentimentos };
+    const resposta = await cliente.put<ConsentimentosApi | undefined>(rotaConsentimentos(id), corpo);
+    return resposta ? consentimentosDoContrato(resposta) : { ...corpo };
   } catch (erro) {
     throw traduzir(erro, 'salvar');
   }

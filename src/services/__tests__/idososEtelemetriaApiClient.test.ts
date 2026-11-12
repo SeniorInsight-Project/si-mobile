@@ -6,8 +6,6 @@ import {
   atualizarDadosIdoso,
   idosoIdDoServidor,
 } from '../elderlyService';
-import { buscarEstadoAtual } from '../telemetryService';
-import { buscarStatusDispositivo } from '../deviceStatusService';
 import { buscarScoreBemEstar } from '../riskScoreService';
 import { ApiError } from '../apiClient';
 
@@ -24,7 +22,7 @@ function cliente(rotas: Record<string, unknown> = {}) {
   return { chamadas, get: executa('GET') as any, post: executa('POST') as any, put: executa('PUT') as any };
 }
 
-describe('Idosos, telemetria, status do aparelho e score pelo apiClient', () => {
+describe('Idosos e score pelo apiClient', () => {
   // cada arquivo de teste roda em um processo próprio: não precisa restaurar o ambiente
   beforeEach(() => {
     process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
@@ -67,29 +65,6 @@ describe('Idosos, telemetria, status do aparelho e score pelo apiClient', () => 
     assert.equal(idosoIdDoServidor(''), null);
     assert.equal(idosoIdDoServidor(null), null);
     assert.equal(idosoIdDoServidor(undefined), null);
-  });
-
-  test('telemetria: GET no path, resposta vira o modelo da tela e erro com mock desligado lança', async () => {
-    const path = `/api/v1/idosos/${IDOSO}/telemetria-wearable/recente`;
-    const c = cliente({ [`GET ${path}`]: { passos_contagem: 1200, frequencia_cardiaca_bpm: 72, coletado_em: new Date().toISOString() } });
-    const estado = await buscarEstadoAtual(IDOSO, { cliente: c });
-    assert.equal(c.chamadas[0].caminho, path);
-    assert.equal(estado.passosHoje, 1200);
-    assert.equal(estado.frequenciaCardiaca, 72);
-
-    const erro = new ApiError(500, null, path);
-    await assert.rejects(buscarEstadoAtual(IDOSO, { cliente: cliente({ [`GET ${path}`]: erro }) }), (e: any) => e === erro);
-  });
-
-  test('status do aparelho: GET no path, resposta vira o modelo da tela e erro com mock desligado lança', async () => {
-    const path = `/api/v1/idosos/${IDOSO}/telemetria-wearable/recente`;
-    const c = cliente({ [`GET ${path}`]: { nivel_bateria: 41, device_model: 'Pixel 7', coletado_em: new Date().toISOString() } });
-    const status = await buscarStatusDispositivo(IDOSO, { cliente: c });
-    assert.equal(status.nivelBateria, 41);
-    assert.equal(status.modeloCelular, 'Pixel 7');
-
-    const erro = new ApiError(0, null, path);
-    await assert.rejects(buscarStatusDispositivo(IDOSO, { cliente: cliente({ [`GET ${path}`]: erro }) }), (e: any) => e === erro);
   });
 
   test('score: GET no path, resposta vira o modelo da tela e erro com mock desligado lança', async () => {

@@ -6,6 +6,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
+import { useIdoso } from '../context/IdosoContext';
 import {
   CONSENTIMENTO_PADRAO,
   ConsentimentoError,
@@ -44,18 +45,20 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
   const [erroCarga, setErroCarga] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState('');
+  // Idoso do care-service (do pareamento). Sem ele, o service devolve o pedido de novo pareamento.
+  const { idosoId } = useIdoso();
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErroCarga('');
     try {
-      setConsentimentos(await obterConsentimentos());
+      setConsentimentos(await obterConsentimentos(idosoId));
     } catch (e) {
       setErroCarga(e instanceof ConsentimentoError ? e.message : 'Não foi possível carregar suas escolhas agora.');
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [idosoId]);
 
   useEffect(() => {
     carregar();
@@ -71,7 +74,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
     setSalvando(true);
     setAviso('');
     try {
-      await salvarConsentimentos(consentimentos);
+      await salvarConsentimentos(idosoId, consentimentos);
     } catch (e) {
       // não segue em frente: escolha de dados que não foi gravada não vale
       setAviso(e instanceof ConsentimentoError ? e.message : 'Não foi possível salvar suas escolhas agora.');

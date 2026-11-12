@@ -109,7 +109,7 @@ export default function App() {
     });
     if (pareado) {
       conviteRef.current = null;
-      setIdosoSelecionadoId(pareado.perfilId);
+      setIdosoSelecionadoId(pareado.idosoId ?? null);
       setNomeIdosoSelecionado(pareado.nome);
       setTelaAtual('ElderlyMode');
       return true;
@@ -151,7 +151,7 @@ export default function App() {
     sessaoAtivaRef.current = true;
     setCodigoDoLink(null);
     setPareamento(resultado);
-    setIdosoSelecionadoId(resultado.perfilId);
+    setIdosoSelecionadoId(resultado.idosoId ?? null);
     setNomeIdosoSelecionado(resultado.nomeIdoso);
     setUsuarioLogado({
       id: resultado.perfilId,
