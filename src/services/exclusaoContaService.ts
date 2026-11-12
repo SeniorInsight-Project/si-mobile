@@ -1,6 +1,7 @@
 import { apiClient, ApiError, type ApiClient } from './apiClient';
 import { decodificarJwt, obterAccessTokenValido } from './authSession';
 import { comprovanteDoContrato, type ComprovanteExclusao } from './mappers/exclusao';
+import { erroDaRecusa } from './mappers/erroExclusao';
 import type { PedidoExclusao, SolicitarExclusaoRequest } from '../types/api';
 
 export type { ComprovanteExclusao };
@@ -24,6 +25,8 @@ export const TIMEOUT_REDE_MS = 10000;
 export type ErroExclusao =
   | 'FRASE_INVALIDA'
   | 'ASSINATURA_ATIVA'
+  | 'PEDIDO_EM_ANDAMENTO'
+  | 'TITULAR_NAO_ENCONTRADO'
   | 'SEM_TITULAR'
   | 'SEM_CONEXAO'
   | 'RECUSADO'
@@ -32,11 +35,15 @@ export type ErroExclusao =
 export const MENSAGENS_EXCLUSAO: Record<ErroExclusao, string> = {
   FRASE_INVALIDA: 'Digite EXCLUIR para confirmar.',
   ASSINATURA_ATIVA: 'Há uma assinatura Premium ativa. Cancele a assinatura antes de confirmar a exclusão.',
+  PEDIDO_EM_ANDAMENTO:
+    'Já existe um pedido de exclusão em andamento. Os seus dados estão sendo apagados; o prazo é de até 15 dias.',
+  TITULAR_NAO_ENCONTRADO:
+    'Não encontramos a sua conta. Nada foi apagado. Entre de novo no app e, se continuar, fale com o suporte.',
   SEM_TITULAR: 'Não conseguimos identificar a sua sessão. Nada foi apagado. Entre de novo no app e tente outra vez.',
   SEM_CONEXAO: 'Não foi possível enviar o pedido agora. Nada foi apagado. Tente de novo com internet.',
   RECUSADO: 'O servidor não aceitou o pedido. Nada foi apagado. Tente de novo mais tarde.',
   RESPOSTA_INVALIDA:
-    'O pedido pode ter sido registrado, mas não recebemos o protocolo. Veja o comprovante no seu e-mail antes de tentar de novo.',
+    'O pedido pode ter sido registrado, mas não recebemos o protocolo. Antes de tentar de novo, aguarde alguns minutos.',
 };
 
 export class ExclusaoError extends Error {
@@ -86,9 +93,7 @@ export async function titularDaSessao({ obterToken = obterAccessTokenValido }: S
 }
 
 function foiRecusadoPeloServidor(erro: unknown): boolean {
-  return (
-    erro instanceof ApiError && erro.status >= 400 && erro.status < 500 && !erro.erroDeRede && erro.status !== 404
-  );
+  return erro instanceof ApiError && erro.status >= 400 && erro.status < 500 && !erro.erroDeRede;
 }
 
 function comprovanteSimulado(): ComprovanteExclusao {
@@ -128,7 +133,10 @@ export async function solicitarExclusao(
   } catch (erro) {
     if (erro instanceof ExclusaoError) throw erro;
     // O servidor respondeu e recusou (4xx): não se simula sucesso.
-    if (foiRecusadoPeloServidor(erro)) throw new ExclusaoError('RECUSADO');
+    if (foiRecusadoPeloServidor(erro)) {
+      const { status, corpo } = erro as ApiError;
+      throw new ExclusaoError(erroDaRecusa(status, corpo) ?? 'RECUSADO');
+    }
     console.warn('[exclusaoContaService] O servidor não concluiu o pedido.');
   } finally {
     clearTimeout(temporizador);
