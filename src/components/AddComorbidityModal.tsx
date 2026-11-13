@@ -13,19 +13,16 @@ import {
 } from 'react-native';
 import Icon from './Icon';
 import { colors, typography, shadows, rounded } from '../theme';
+import { AVISO_OUTRAS_COMORBIDADES, CONDICOES_CLINICAS_DRS } from '../services/comorbidadeService';
 
-const SUGGESTIONS = [
-  { name: 'Hipertensão Arterial', icon: 'favorite', color: colors.peach.text },
-  { name: 'Diabetes Tipo 2', icon: 'water_drop', color: colors.sky.text },
-  { name: 'Osteoporose Leve', icon: 'walk', color: colors.mint.text },
-  { name: 'Doença de Alzheimer', icon: 'psychology', color: colors.lavender.text },
-  { name: 'Doença de Parkinson', icon: 'bolt', color: colors.amber.text },
-  { name: 'Insuficiência Cardíaca', icon: 'vital_signs', color: colors.secondaryCoral },
-  { name: 'Dislipidemia (Colesterol)', icon: 'vital_signs', color: colors.primaryNavy },
-  { name: 'Asma Crônica', icon: 'vital_signs', color: colors.sky.text },
-  { name: 'Alergia a Dipirona', icon: 'shield_alert', color: colors.lavender.text },
-  { name: 'Glaucoma', icon: 'visibility', color: colors.primaryNavy },
-];
+const CONDICOES_DRS_UI: Record<(typeof CONDICOES_CLINICAS_DRS)[number], { icon: string; color: string }> = {
+  'Hipertensão': { icon: 'favorite', color: colors.peach.text },
+  'Diabetes': { icon: 'water_drop', color: colors.sky.text },
+  'Cardiopatia': { icon: 'monitor_heart', color: colors.secondaryCoral },
+  'DPOC': { icon: 'vital_signs', color: colors.primaryNavy },
+  'Osteoporose': { icon: 'walk', color: colors.mint.text },
+  'Histórico de quedas': { icon: 'warning', color: colors.amber.text },
+};
 
 export interface AddComorbidityModalProps {
   visible: boolean;
@@ -99,15 +96,61 @@ export default function AddComorbidityModal({
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>Adicionar Comorbidade</Text>
               <Text style={styles.subtitle}>
-                Selecione uma condição comum ou digite o nome para registrar no prontuário.
+                Marque condições da lista clínica (consideradas no semáforo) ou informe em "Outras".
               </Text>
             </View>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Fechar">
               <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Input manual */}
+          {/* Lista fechada das 6 condições do DRS (HU-010 Cenário 1) */}
+          <Text style={styles.sectionLabel}>Condições consideradas no semáforo</Text>
+
+          <ScrollView
+            style={styles.suggestionsScroll}
+            contentContainerStyle={styles.suggestionsContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {CONDICOES_CLINICAS_DRS.map((nomeCondicao) => {
+              const item = CONDICOES_DRS_UI[nomeCondicao];
+              const isAlreadyAdded = existingComorbidities.some(
+                (c) => c.trim().toLowerCase() === nomeCondicao.toLowerCase()
+              );
+
+              return (
+                <TouchableOpacity
+                  key={nomeCondicao}
+                  style={[
+                    styles.suggestionPill,
+                    isAlreadyAdded && styles.suggestionPillDisabled,
+                  ]}
+                  onPress={() => !isAlreadyAdded && handleAdd(nomeCondicao)}
+                  disabled={isAlreadyAdded || loading}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.suggestionIconWrapper}>
+                    <Icon name={item.icon} size={16} color={item.color} />
+                  </View>
+                  <Text
+                    style={[
+                      styles.suggestionText,
+                      isAlreadyAdded && styles.suggestionTextDisabled,
+                    ]}
+                  >
+                    {nomeCondicao}
+                  </Text>
+                  {isAlreadyAdded && (
+                    <Icon name="check" size={16} color={colors.success} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Campo "Outras" com aviso explícito (HU-010 Cenário 2) */}
+          <Text style={styles.sectionLabel}>Outras condições</Text>
+
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
               <View style={{ marginRight: 8 }}>
@@ -115,7 +158,7 @@ export default function AddComorbidityModal({
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: Arritmia, Artrose..."
+                placeholder="Outras (ex: Arritmia, Artrose...)"
                 placeholderTextColor={colors.textMuted}
                 value={inputText}
                 onChangeText={(text) => {
@@ -141,52 +184,14 @@ export default function AddComorbidityModal({
             </TouchableOpacity>
           </View>
 
+          <View style={styles.avisoOutrasBox}>
+            <Icon name="info" size={16} color={colors.amber.text} />
+            <Text style={styles.avisoOutrasText}>{AVISO_OUTRAS_COMORBIDADES}</Text>
+          </View>
+
           {errorMessage !== '' && (
             <Text style={styles.errorText}>{errorMessage}</Text>
           )}
-
-          {/* Sugestões rápidas */}
-          <Text style={styles.sectionLabel}>Sugestões Clínicas Frequentes</Text>
-
-          <ScrollView
-            style={styles.suggestionsScroll}
-            contentContainerStyle={styles.suggestionsContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {SUGGESTIONS.map((item) => {
-              const isAlreadyAdded = existingComorbidities.some(
-                (c) => c.trim().toLowerCase() === item.name.toLowerCase()
-              );
-
-              return (
-                <TouchableOpacity
-                  key={item.name}
-                  style={[
-                    styles.suggestionPill,
-                    isAlreadyAdded && styles.suggestionPillDisabled,
-                  ]}
-                  onPress={() => !isAlreadyAdded && handleAdd(item.name)}
-                  disabled={isAlreadyAdded || loading}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.suggestionIconWrapper}>
-                    <Icon name={item.icon} size={15} color={item.color} />
-                  </View>
-                  <Text
-                    style={[
-                      styles.suggestionText,
-                      isAlreadyAdded && styles.suggestionTextDisabled,
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                  {isAlreadyAdded && (
-                    <Icon name="check" size={14} color={colors.success} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -234,15 +239,15 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 20,
     fontFamily: typography.fontFamily.body,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
@@ -312,6 +317,7 @@ const styles = StyleSheet.create({
   suggestionPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
     backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
     borderColor: colors.border,
@@ -325,9 +331,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   suggestionIconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -337,7 +343,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.onSurface,
     fontFamily: typography.fontFamily.body,
@@ -345,5 +351,24 @@ const styles = StyleSheet.create({
   suggestionTextDisabled: {
     color: colors.successDark,
     fontWeight: '700',
+  },
+  avisoOutrasBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.amber.background,
+    borderWidth: 1,
+    borderColor: colors.amber.border,
+    borderRadius: rounded.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  avisoOutrasText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.amber.text,
+    fontFamily: typography.fontFamily.body,
   },
 });

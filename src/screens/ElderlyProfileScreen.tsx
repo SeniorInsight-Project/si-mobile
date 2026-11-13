@@ -16,11 +16,14 @@ import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { typography } from '../theme';
+import { colors, typography } from '../theme';
 import {
   listarComorbidades,
   adicionarComorbidades,
   removerComorbidade,
+  podeEditarComorbidades,
+  ehCondicaoDoSemaforo,
+  AVISO_OUTRAS_COMORBIDADES,
 } from '../services/comorbidadeService';
 import {
   listarIdososDoFamiliar,
@@ -29,6 +32,7 @@ import {
 } from '../services/elderlyService';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
 import { useIdoso } from '../context/IdosoContext';
+import { usePapel } from '../context/PapelContext';
 
 const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 
@@ -138,7 +142,8 @@ export default function ElderlyProfileScreen({
     'Dr. Silva - Cardiologista'
   );
 
-  const podeEditar = accessRole !== 'OBSERVADOR';
+  const papelApp = usePapel();
+  const podeEditar = papelApp !== 'IDOSO' && podeEditarComorbidades(accessRole);
 
   const idade = useMemo(() => calcularIdade(form.dataNascimento), [form.dataNascimento]);
   const avisoIdade = idade !== null && idade < 49;
@@ -442,9 +447,17 @@ export default function ElderlyProfileScreen({
           </View>
 
           <View style={styles.comorbiditiesCard}>
+            {!podeEditar && (
+              <View style={{ backgroundColor: colors.surfaceSubtle, borderRadius: 12, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 14, color: colors.textSecondary, fontWeight: '600' }}>
+                  Modo somente leitura (Familiar de Apoio)
+                </Text>
+              </View>
+            )}
             <Text style={styles.sectionInstruction}>
-              Toque nos cartuchos para ver detalhes ou no botão de exclusão para
-              atualizar a ficha clínica.
+              {podeEditar
+                ? 'Condições da lista clínica entram no cálculo do semáforo. Use o botão de exclusão para atualizar a ficha.'
+                : 'Visualização da ficha clínica do idoso.'}
             </Text>
 
             {loading ? (
@@ -464,11 +477,16 @@ export default function ElderlyProfileScreen({
                   />
                 ))}
 
+                {comorbidades.some((item) => !ehCondicaoDoSemaforo(item)) && (
+                  <Text style={{ fontSize: 14, color: colors.amber.text, marginTop: 8, fontWeight: '600' }}>
+                    * Condições em "Outras": {AVISO_OUTRAS_COMORBIDADES.toLowerCase()}.
+                  </Text>
+                )}
+
                 {comorbidades.length === 0 && (
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyStateText}>
-                      Nenhuma comorbidade registrada. Clique em "Adicionar" para
-                      incluir patologias ou alergias.
+                      Nenhuma comorbidade registrada.
                     </Text>
                   </View>
                 )}

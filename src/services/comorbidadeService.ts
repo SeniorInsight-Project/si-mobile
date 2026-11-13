@@ -1,6 +1,30 @@
 import type { ComorbidadeRequest, Comorbidades } from '../types/api';
 import { apiClient, type ApiClient } from './apiClient';
 
+/** Lista fechada das 6 condições clínicas do DRS (HU-010) consideradas no cálculo do semáforo. */
+export const CONDICOES_CLINICAS_DRS = [
+  'Hipertensão',
+  'Diabetes',
+  'Cardiopatia',
+  'DPOC',
+  'Osteoporose',
+  'Histórico de quedas',
+] as const;
+
+export const AVISO_OUTRAS_COMORBIDADES = 'Não entra no cálculo do semáforo';
+
+export function ehCondicaoDoSemaforo(nome: string): boolean {
+  const normalizado = nome.trim().toLowerCase();
+  return CONDICOES_CLINICAS_DRS.some((c) => c.toLowerCase() === normalizado);
+}
+
+/** RN-011: apenas Familiar Administrador pode editar comorbidades; Familiar de Apoio/Observador é somente leitura. */
+export function podeEditarComorbidades(papelVinculo?: string | null): boolean {
+  if (!papelVinculo) return true;
+  const upper = papelVinculo.toUpperCase();
+  return upper !== 'OBSERVADOR' && upper !== 'FAMILIAR_APOIO' && upper !== 'APOIO';
+}
+
 /** Comorbidades do contrato care-v1. */
 export type ComorbidadesResponse = Comorbidades;
 
