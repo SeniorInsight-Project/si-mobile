@@ -40,6 +40,12 @@ import {
   type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
+import {
+  inicializarPushUsuario,
+  obterIdentificadorAparelho,
+  registrarOuvinteToqueNotificacao,
+  removerTokenPush,
+} from './src/services/pushService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -143,7 +149,26 @@ export default function App() {
   );
 
   const handleLogout = useCallback(() => {
-    sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
+    removerTokenPush(obterIdentificadorAparelho())
+      .catch((err) => console.warn('[App] Falha ao remover token de push:', err?.message))
+      .finally(() => {
+        sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!usuarioLogado?.id) return;
+    inicializarPushUsuario().catch((err) =>
+      console.warn('[App] Falha ao inicializar notificações push:', err?.message)
+    );
+  }, [usuarioLogado?.id]);
+
+  useEffect(() => {
+    return registrarOuvinteToqueNotificacao((destino) => {
+      if (destino.idosoId) setIdosoSelecionadoId(destino.idosoId);
+      if (destino.alarmeId) setAlarmeSelecionadoId(destino.alarmeId);
+      setTelaAtual(destino.tela);
+    });
   }, []);
 
   // Aparelho do idoso pareado: a sessão já foi salva (resgate devolve os tokens) e o papel vem do token.
