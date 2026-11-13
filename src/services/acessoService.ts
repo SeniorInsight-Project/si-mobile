@@ -42,6 +42,7 @@ export const TELAS_FAMILIAR: readonly string[] = [
   'Alerts',
   'SosReceived',
   'DeleteAccount',
+  'Premium',
 ];
 
 export const TELA_INICIAL: Record<PapelApp, string> = {
