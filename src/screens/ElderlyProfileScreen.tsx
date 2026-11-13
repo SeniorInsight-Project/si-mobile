@@ -16,7 +16,7 @@ import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { typography } from '../theme';
+import { colors, typography } from '../theme';
 import {
   listarComorbidades,
   adicionarComorbidades,
@@ -744,9 +744,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#E6F3FA',
+    backgroundColor: colors.skyBg,
     borderWidth: 1,
-    borderColor: '#C4E4F5',
+    borderColor: colors.skyBorder,
     borderRadius: 16,
     padding: 14,
     marginBottom: 16,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    color: '#031753',
+    color: colors.navy,
     fontFamily: typography.fontFamily.body,
   },
   scrollContent: {
