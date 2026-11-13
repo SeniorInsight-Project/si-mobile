@@ -42,7 +42,7 @@ import {
   obterDireitoPremium,
 } from ../services/premiumService;
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
-import { typography } from '../theme';
+import { colors, typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
@@ -427,26 +427,26 @@ export default function HomeScreen({
 
         {/* FAIXA DE PLANO / TRIAL / ERRO DE PLANO (HU-040 a 042) */}
         {erroPlano ? (
-          <View style={{ backgroundColor: '#FFEBE5', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#FFCDC2', marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <Text style={{ flex: 1, fontSize: 14, color: '#B32A1E', fontWeight: '600' }}>{erroPlano}</Text>
+          <View style={{ backgroundColor: colors.peachBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.peachBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, fontWeight: '600' }}>{erroPlano}</Text>
             <TouchableOpacity
               onPress={carregarPlano}
-              style={{ backgroundColor: '#253B80', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+              style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}>Tentar novamente</Text>
+              <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>
         ) : (faixaTrial || avisoTrial) ? (
           <TouchableOpacity
             onPress={() => onNavigate && onNavigate('Premium')}
-            style={{ backgroundColor: '#FFF8E7', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#FFE8B3', marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
+            style={{ backgroundColor: colors.amberBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.amberBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
             activeOpacity={0.85}
           >
-            <Text style={{ flex: 1, fontSize: 14, color: '#92400E', fontWeight: '700' }}>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, fontWeight: '700' }}>
               {avisoTrial || faixaTrial}
             </Text>
-            <Text style={{ fontSize: 14, color: '#253B80', fontWeight: '700' }}>Conhecer o Premium</Text>
+            <Text style={{ fontSize: 14, color: colors.primaryNavy, fontWeight: '700' }}>Conhecer o Premium</Text>
           </TouchableOpacity>
         ) : null}
 
