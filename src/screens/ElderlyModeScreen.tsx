@@ -563,7 +563,7 @@ export default function ElderlyModeScreen({
           >
             <View style={styles.caregiversAvatars}>
               {contatosEmergencia.length === 0 ? (
-                <View style={[styles.miniAvatar, { backgroundColor: '#031753' }]}>
+                <View style={[styles.miniAvatar, { backgroundColor: colors.navy }]}>
                   <Text style={styles.avatarTxt}>
                     {primeiroContato?.iniciais || 'SOS'}
                   </Text>
@@ -574,10 +574,10 @@ export default function ElderlyModeScreen({
                     key={c.id || i}
                     style={[
                       styles.miniAvatar,
-                      { backgroundColor: c.corAvatar || '#031753', marginLeft: i > 0 ? -6 : 0 },
+                      { backgroundColor: c.corAvatar || colors.navy, marginLeft: i > 0 ? -6 : 0 },
                     ]}
                   >
-                    <Text style={[styles.avatarTxt, { color: c.corTexto || '#FFFFFF' }]}>
+                    <Text style={[styles.avatarTxt, { color: c.corTexto || colors.white }]}>
                       {c.iniciais || 'CO'}
                     </Text>
                   </View>

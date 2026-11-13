@@ -528,8 +528,8 @@ export default function EmergencyContactsScreen({
           {loading ? (
             <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
           ) : erroCarregamento ? (
-            <View style={{ padding: 16, backgroundColor: '#FEF2F2', borderRadius: 16, borderWidth: 1, borderColor: '#FECACA', marginVertical: 8, alignItems: 'center' }}>
-              <Text style={{ fontSize: 14, color: '#991B1B', textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
+            <View style={{ padding: 16, backgroundColor: colors.peachBg, borderRadius: 16, borderWidth: 1, borderColor: colors.peachBorder, marginVertical: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: colors.peachText, textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
                 {erroCarregamento}
               </Text>
               <TouchableOpacity
@@ -537,11 +537,11 @@ export default function EmergencyContactsScreen({
                 onPress={carregarLista}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
+                <Text style={{ color: colors.white, fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
               </TouchableOpacity>
             </View>
           ) : contatos.length === 0 ? (
-            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
+            <View style={{ padding: 16, backgroundColor: colors.canvasBase, borderRadius: 16, borderWidth: 1, borderColor: colors.border, marginVertical: 8 }}>
               <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
                 Nenhum contato de emergência cadastrado.
               </Text>
