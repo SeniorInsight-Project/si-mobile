@@ -1,5 +1,6 @@
 import { describe, test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { ApiError } from '../apiClient';
 import {
   validarTelefone,
   salvarContato,
@@ -8,6 +9,7 @@ import {
   reordenarContatos,
   LIMITE_CONTATOS_EMERGENCIA,
   __definirContatosParaTestes,
+  rotaContatosEmergencia,
 } from '../contatoEmergenciaService';
 import {
   obterContatosDoCache,
@@ -161,6 +163,112 @@ describe('HU-011: Contatos de Emergência (Issue #25)', () => {
         );
       } finally {
         __simularFalhaBanco(false);
+      }
+    });
+  });
+
+  describe('Integração via apiClient fora do mock (care-v1)', () => {
+    const mockOriginal = process.env.EXPO_PUBLIC_USAR_MOCK;
+
+    test('listarContatos fora do mock consulta GET /contatos-emergencia e persiste no cache', async () => {
+      process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
+      try {
+        const clienteMock = {
+          get: async <T>(path: string): Promise<T> => {
+            assert.equal(path, rotaContatosEmergencia(IDOSO_ID));
+            return [
+              {
+                id: 'c-api-1',
+                idosoId: IDOSO_ID,
+                nome: 'Maria Silva',
+                telefone: '(11) 99999-1111',
+                grauParentesco: 'Filha',
+                prioridade: 1,
+              },
+            ] as unknown as T;
+          },
+          post: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+          put: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+          delete: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+        };
+
+        const lista = await listarContatos(IDOSO_ID, { cliente: clienteMock });
+        assert.equal(lista.length, 1);
+        assert.equal(lista[0].nome, 'Maria Silva');
+
+        const cache = await obterContatosDoCache(IDOSO_ID);
+        assert.equal(cache.length, 1);
+        assert.equal(cache[0].id, 'c-api-1');
+      } finally {
+        process.env.EXPO_PUBLIC_USAR_MOCK = mockOriginal;
+      }
+    });
+
+    test('listarContatos fora do mock sem cache e com 404 do back rejeita com aviso tratado (nunca [] silencioso)', async () => {
+      process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
+      try {
+        const clienteMock = {
+          get: async <T>(): Promise<T> => {
+            throw new ApiError(404, 'Not Found', rotaContatosEmergencia(IDOSO_ID));
+          },
+          post: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+          put: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+          delete: async <T>(): Promise<T> => {
+            throw new Error('não esperado');
+          },
+        };
+
+        await assert.rejects(
+          () => listarContatos(IDOSO_ID, { cliente: clienteMock }),
+          /Contatos de emergência ainda não disponíveis/
+        );
+      } finally {
+        process.env.EXPO_PUBLIC_USAR_MOCK = mockOriginal;
+      }
+    });
+
+    test('listarContatos fora do mock usa cache real quando a API falha', async () => {
+      process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
+      try {
+        const clienteOnline = {
+          get: async <T>(): Promise<T> =>
+            [
+              {
+                id: 'c-cache-1',
+                idosoId: IDOSO_ID,
+                nome: 'José Neto',
+                telefone: '(11) 98888-2222',
+                prioridade: 1,
+              },
+            ] as unknown as T,
+          post: async <T>(): Promise<T> => { throw new Error('não esperado'); },
+          put: async <T>(): Promise<T> => { throw new Error('não esperado'); },
+          delete: async <T>(): Promise<T> => { throw new Error('não esperado'); },
+        };
+        await listarContatos(IDOSO_ID, { cliente: clienteOnline });
+
+        const clienteOffline = {
+          ...clienteOnline,
+          get: async <T>(): Promise<T> => {
+            throw new ApiError(0, null, rotaContatosEmergencia(IDOSO_ID), 'Sem internet');
+          },
+        };
+
+        const lista = await listarContatos(IDOSO_ID, { cliente: clienteOffline });
+        assert.equal(lista.length, 1);
+        assert.equal(lista[0].nome, 'José Neto');
+      } finally {
+        process.env.EXPO_PUBLIC_USAR_MOCK = mockOriginal;
       }
     });
   });

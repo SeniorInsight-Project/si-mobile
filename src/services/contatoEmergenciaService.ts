@@ -1,4 +1,7 @@
 import { mockPermitido } from '../config/ambiente';
+import type { components } from '../types/contracts/care-v1';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
+import { extrairMensagemErro } from './erroHelper';
 import {
   salvarContatosNoCache,
   obterContatosDoCache,
@@ -6,6 +9,48 @@ import {
 } from './contatoEmergenciaDatabase';
 
 export const LIMITE_CONTATOS_EMERGENCIA = 3;
+
+type ContatoEmergenciaApi = components['schemas']['ContatoEmergencia'];
+type ContatoEmergenciaRequestApi = components['schemas']['ContatoEmergenciaRequest'];
+
+export interface OpcoesContatos {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'put' | 'delete'>;
+}
+
+export function rotaContatosEmergencia(idosoId: string): string {
+  return `/api/v1/idosos/${idosoId}/contatos-emergencia`;
+}
+
+function mapearContatoDoContrato(api: ContatoEmergenciaApi, fallbackOrdem = 1): ContatoEmergencia {
+  return {
+    id: api.id,
+    nome: api.nome,
+    parentesco: api.grauParentesco ?? 'Familiar',
+    telefone: api.telefone,
+    ordem: api.prioridade ?? fallbackOrdem,
+    whatsapp: true,
+    iniciais: gerarIniciais(api.nome),
+    corAvatar: '#EEF2FF',
+    corTexto: '#4338CA',
+    ativo: true,
+  };
+}
+
+function mapearContatoParaContrato(contato: NovoContatoEmergenciaInput, ordem: number): ContatoEmergenciaRequestApi {
+  return {
+    nome: contato.nome,
+    telefone: contato.telefone,
+    grauParentesco: contato.parentesco ?? null,
+    prioridade: contato.ordem ?? ordem,
+  };
+}
+
+function tratarErroContatos(erro: unknown, acao: string): Error {
+  if (erro instanceof ApiError && (erro.status === 404 || erro.status === 501)) {
+    return new Error('Contatos de emergência ainda não disponíveis.');
+  }
+  return new Error(extrairMensagemErro(erro, `Não foi possível ${acao} os contatos de emergência.`));
+}
 
 export interface ContatoEmergencia {
   id: string;
@@ -88,7 +133,35 @@ async function garantirContatos(idosoId?: string): Promise<void> {
 /**
  * Lista todos os contatos de emergência do idoso, ordenados por prioridade de acionamento.
  */
-export async function listarContatos(idosoId?: string): Promise<ContatoEmergencia[]> {
+export async function listarContatos(
+  idosoId?: string,
+  opcoes: OpcoesContatos = {}
+): Promise<ContatoEmergencia[]> {
+  if (!mockPermitido()) {
+    if (!idosoId) {
+      throw new Error('Selecione um idoso para consultar os contatos de emergência.');
+    }
+    const cliente = opcoes.cliente ?? apiClient;
+    try {
+      const resposta = await cliente.get<ContatoEmergenciaApi[]>(rotaContatosEmergencia(idosoId));
+      const lista = (Array.isArray(resposta) ? resposta : [])
+        .map((item, idx) => mapearContatoDoContrato(item, idx + 1))
+        .sort((a, b) => a.ordem - b.ordem);
+      contatosEmMemoria = [...lista];
+      inicializado = true;
+      await salvarContatosNoCache(idosoId, contatosEmMemoria);
+      return [...contatosEmMemoria];
+    } catch (erro) {
+      const doCache = await obterContatosDoCache(idosoId);
+      if (Array.isArray(doCache) && doCache.length > 0) {
+        contatosEmMemoria = [...doCache].sort((a, b) => a.ordem - b.ordem);
+        inicializado = true;
+        return [...contatosEmMemoria];
+      }
+      throw tratarErroContatos(erro, 'carregar');
+    }
+  }
+
   await garantirContatos(idosoId);
   return [...contatosEmMemoria].sort((a, b) => a.ordem - b.ordem);
 }
@@ -99,15 +172,40 @@ export async function listarContatos(idosoId?: string): Promise<ContatoEmergenci
 export async function salvarContato(
   idosoId: string,
   contato: NovoContatoEmergenciaInput,
-  limiteMaximo?: number
+  limiteMaximo?: number,
+  opcoes: OpcoesContatos = {}
 ): Promise<ContatoEmergencia> {
-  await garantirContatos(idosoId);
-
   // Validação de telefone (HU-011 Cenário 2)
   const validacao = validarTelefone(contato.telefone);
   if (!validacao.valido) {
     throw new Error(validacao.mensagem || 'Telefone inválido');
   }
+
+  if (!mockPermitido()) {
+    if (!contato.id && limiteMaximo !== undefined && contatosEmMemoria.length >= limiteMaximo) {
+      throw new Error(`Limite de ${limiteMaximo} contatos de emergência atingido`);
+    }
+    const cliente = opcoes.cliente ?? apiClient;
+    try {
+      const payload = mapearContatoParaContrato(contato, contatosEmMemoria.length + 1);
+      const salvoApi = contato.id
+        ? await cliente.put<ContatoEmergenciaApi>(`${rotaContatosEmergencia(idosoId)}/${contato.id}`, payload)
+        : await cliente.post<ContatoEmergenciaApi>(rotaContatosEmergencia(idosoId), payload);
+      const salvo = mapearContatoDoContrato(salvoApi, payload.prioridade ?? 1);
+      const idx = contatosEmMemoria.findIndex((c) => c.id === salvo.id);
+      if (idx !== -1) {
+        contatosEmMemoria[idx] = salvo;
+      } else {
+        contatosEmMemoria.push(salvo);
+      }
+      await salvarContatosNoCache(idosoId, contatosEmMemoria);
+      return salvo;
+    } catch (erro) {
+      throw tratarErroContatos(erro, 'salvar');
+    }
+  }
+
+  await garantirContatos(idosoId);
 
   if (contato.id) {
     const idx = contatosEmMemoria.findIndex((c) => c.id === contato.id);
@@ -143,7 +241,27 @@ export async function salvarContato(
 /**
  * Remove um contato de emergência pelo ID.
  */
-export async function removerContato(idosoId: string, contatoId: string): Promise<boolean> {
+export async function removerContato(
+  idosoId: string,
+  contatoId: string,
+  opcoes: OpcoesContatos = {}
+): Promise<boolean> {
+  if (!mockPermitido()) {
+    const cliente = opcoes.cliente ?? apiClient;
+    try {
+      await cliente.delete(`${rotaContatosEmergencia(idosoId)}/${contatoId}`);
+      const totalAntes = contatosEmMemoria.length;
+      contatosEmMemoria = contatosEmMemoria.filter((c) => c.id !== contatoId);
+      contatosEmMemoria.forEach((c, idx) => {
+        c.ordem = idx + 1;
+      });
+      await salvarContatosNoCache(idosoId, contatosEmMemoria);
+      return contatosEmMemoria.length < totalAntes;
+    } catch (erro) {
+      throw tratarErroContatos(erro, 'remover');
+    }
+  }
+
   await garantirContatos(idosoId);
   const totalAntes = contatosEmMemoria.length;
   contatosEmMemoria = contatosEmMemoria.filter((c) => c.id !== contatoId);
@@ -162,8 +280,28 @@ export async function removerContato(idosoId: string, contatoId: string): Promis
  */
 export async function reordenarContatos(
   idosoId: string,
-  novaListaContatos: ContatoEmergencia[]
+  novaListaContatos: ContatoEmergencia[],
+  opcoes: OpcoesContatos = {}
 ): Promise<ContatoEmergencia[]> {
+  if (!mockPermitido()) {
+    const cliente = opcoes.cliente ?? apiClient;
+    try {
+      const atualizados: ContatoEmergencia[] = [];
+      for (let idx = 0; idx < novaListaContatos.length; idx++) {
+        const c = novaListaContatos[idx];
+        const ordem = idx + 1;
+        const payload = mapearContatoParaContrato({ ...c, ordem }, ordem);
+        await cliente.put(`${rotaContatosEmergencia(idosoId)}/${c.id}`, payload);
+        atualizados.push({ ...c, ordem });
+      }
+      contatosEmMemoria = [...atualizados];
+      await salvarContatosNoCache(idosoId, contatosEmMemoria);
+      return [...contatosEmMemoria];
+    } catch (erro) {
+      throw tratarErroContatos(erro, 'reordenar');
+    }
+  }
+
   await garantirContatos(idosoId);
   const atualizados = novaListaContatos.map((c, idx) => ({
     ...c,

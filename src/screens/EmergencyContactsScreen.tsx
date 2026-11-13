@@ -316,6 +316,7 @@ export default function EmergencyContactsScreen({
   const idosoId = idosoIdProp ?? idosoIdContexto;
   const [contatos, setContatos] = useState<ContatoEmergencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [modalNovoContatoVisible, setModalNovoContatoVisible] = useState<boolean>(false);
   const [comoFuncionaAberto, setComoFuncionaAberto] = useState<boolean>(false);
@@ -363,16 +364,19 @@ export default function EmergencyContactsScreen({
   const carregarLista = async () => {
     if (!idosoId) {
       setContatos([]);
+      setErroCarregamento(null);
       setLoading(false);
       return;
     }
     const idAtivo = idosoId;
     try {
       setLoading(true);
+      setErroCarregamento(null);
       const data = await listarContatos(idAtivo);
       setContatos(data);
     } catch (err: any) {
       console.warn('[EmergencyContactsScreen] Erro ao carregar contatos:', err?.message);
+      setErroCarregamento(err?.message || 'Não foi possível carregar os contatos de emergência.');
     } finally {
       setLoading(false);
     }
@@ -523,10 +527,23 @@ export default function EmergencyContactsScreen({
 
           {loading ? (
             <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
+          ) : erroCarregamento ? (
+            <View style={{ padding: 16, backgroundColor: '#FEF2F2', borderRadius: 16, borderWidth: 1, borderColor: '#FECACA', marginVertical: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: '#991B1B', textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
+                {erroCarregamento}
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+                onPress={carregarLista}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
           ) : contatos.length === 0 ? (
-            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
+            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
               <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
-                A sincronização de contatos de emergência com o servidor estará disponível em breve (care#100). Nenhum contato cadastrado ainda.
+                Nenhum contato de emergência cadastrado.
               </Text>
             </View>
           ) : (

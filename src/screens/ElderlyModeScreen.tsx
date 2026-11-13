@@ -111,7 +111,9 @@ export default function ElderlyModeScreen({
           setPrimeiroContato(cachedContatos[0]);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
+      });
 
     obterRotinasDoCache(idAtivo)
       .then((cached) => {
@@ -119,7 +121,9 @@ export default function ElderlyModeScreen({
           setRotinas(cached as RotinaMedicamento[]);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
+      });
 
     const idosoIdResolvido = idAtivo;
 
