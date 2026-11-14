@@ -131,7 +131,7 @@ export default function App() {
       .finally(() => setRestaurandoSessao(false));
   }, [entrarComSessaoSalva]);
 
-  // Logout ou refresh token recusado: volta ao Login.
+  // Logout, refresh token recusado ou conta excluída: volta à tela de entrada.
   useEffect(
     () =>
       aoEncerrarSessao(() => {

@@ -1,14 +1,16 @@
 import * as SQLite from 'expo-sqlite';
 import type { ContatoEmergencia } from './contatoEmergenciaService';
 import { extrairMensagemErro } from './erroHelper';
+import { apagarArquivoSqlite } from './sqliteArquivo';
 
+const NOME_BANCO = 'seniorinsight_contatos.db';
 let sqliteDb: SQLite.SQLiteDatabase | null = null;
 
 export async function getContatosDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   if (sqliteDb) return sqliteDb;
 
   try {
-    sqliteDb = SQLite.openDatabaseSync('seniorinsight_contatos.db');
+    sqliteDb = SQLite.openDatabaseSync(NOME_BANCO);
     await sqliteDb.execAsync(`
       CREATE TABLE IF NOT EXISTS contatos_emergencia (
         id TEXT PRIMARY KEY,
@@ -111,4 +113,11 @@ export async function limparContatosDoCache(idosoId?: string): Promise<void> {
     console.warn('[contatoEmergenciaDatabase.native] falha no SQLite:', err instanceof Error ? err.message : 'erro desconhecido');
     throw new Error(extrairMensagemErro(err));
   }
+}
+
+/** Exclusão da conta (HU-022): fecha e apaga o arquivo do banco. Lança se não conseguir. */
+export async function apagarBancoContatos(): Promise<void> {
+  const conexao = sqliteDb;
+  sqliteDb = null;
+  await apagarArquivoSqlite(NOME_BANCO, conexao);
 }

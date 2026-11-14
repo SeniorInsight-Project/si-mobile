@@ -43,3 +43,9 @@ export async function limparContatosDoCache(idosoId?: string): Promise<void> {
   }
   contatosCache = [];
 }
+
+/** Exclusão da conta (HU-022). No nativo, apaga o arquivo do banco; aqui, o cache em memória. */
+export async function apagarBancoContatos(): Promise<void> {
+  if (simularFalha) throw new Error('Falha simulada ao apagar o banco');
+  contatosCache = [];
+}

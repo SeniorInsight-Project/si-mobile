@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite';
+import { apagarArquivoSqlite } from './sqliteArquivo';
 
+const NOME_BANCO = 'seniorinsight_sos.db';
 let sqliteDb: SQLite.SQLiteDatabase | null = null;
 
 /**
@@ -12,7 +14,7 @@ export async function getSosDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   }
 
   try {
-    sqliteDb = SQLite.openDatabaseSync('seniorinsight_sos.db');
+    sqliteDb = SQLite.openDatabaseSync(NOME_BANCO);
     await sqliteDb.execAsync(`
       CREATE TABLE IF NOT EXISTS sos_fila (
         idempotency_key TEXT PRIMARY KEY,
@@ -46,4 +48,11 @@ export async function limparFilaSos(): Promise<void> {
   } catch (err: any) {
     console.warn('[sosDatabase.native] Erro ao limpar fila SQLite:', err?.message);
   }
+}
+
+/** Exclusão da conta (HU-022): fecha e apaga o arquivo do banco. Lança se não conseguir. */
+export async function apagarBancoSos(): Promise<void> {
+  const conexao = sqliteDb;
+  sqliteDb = null;
+  await apagarArquivoSqlite(NOME_BANCO, conexao);
 }

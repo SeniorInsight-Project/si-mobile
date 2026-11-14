@@ -323,6 +323,12 @@ export function resetarContatos(): void {
   });
 }
 
+/** Exclusão da conta (HU-022): esquece os contatos em memória. O SQLite é apagado à parte. */
+export function descartarContatosEmMemoria(): void {
+  inicializado = false;
+  contatosEmMemoria = [];
+}
+
 export function __definirContatosParaTestes(contatos: ContatoEmergencia[]): void {
   inicializado = true;
   contatosEmMemoria = [...contatos];

@@ -13,8 +13,9 @@ import {
   MENSAGENS_EXCLUSAO,
   PRAZO_COMPROVANTE_DIAS,
   confirmacaoValida,
-  solicitarExclusao,
 } from '../services/exclusaoContaService';
+import { excluirContaEDadosLocais } from '../services/limpezaLocalService';
+import { avisarContaExcluida } from '../services/authSession';
 
 export interface DeleteAccountScreenProps {
   onNavigate: (screen: string) => void;
@@ -28,7 +29,11 @@ const O_QUE_SERA_APAGADO = [
   { icon: 'description', titulo: 'Relatórios e exportações', detalhe: 'Excluídos junto com a conta' },
 ];
 
-/** Figma: "Excluir Conta" (HU-022, RN-018, RNF-017). Vale para o idoso e para o familiar administrador. */
+/**
+ * Figma: "Excluir Conta" (HU-022, RN-018, RNF-017). Só o titular do token pede a exclusão: a rota usa o `sub`
+ * da sessão atual, então cada pessoa exclui apenas a própria conta (o familiar não exclui a conta do idoso).
+ * Aceito o pedido, os dados do aparelho são apagados antes de mostrar o comprovante; "Concluir" volta à entrada.
+ */
 export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = false }: DeleteAccountScreenProps) {
   const papel = usePapel();
   const [texto, setTexto] = useState('');
@@ -44,7 +49,8 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
     setErro('');
     setEnviando(true);
     try {
-      setComprovante(await solicitarExclusao(texto, { assinaturaAtiva }));
+      const { comprovante: recebido } = await excluirContaEDadosLocais(texto, { assinaturaAtiva });
+      setComprovante(recebido);
     } catch (e) {
       setErro(e instanceof ExclusaoError ? e.message : MENSAGENS_EXCLUSAO.SEM_CONEXAO);
     } finally {
@@ -53,9 +59,10 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
   };
 
   if (comprovante) {
+    // Sem sessão e sem dados locais: qualquer saída desta tela leva à entrada do app.
     return (
       <ScreenWrapper>
-        <AppHeader title="Excluir Conta" onNavigate={onNavigate} />
+        <AppHeader title="Excluir Conta" onNavigate={avisarContaExcluida} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.card} testID="exclusao-concluida">
             <View style={[styles.badge, { backgroundColor: colors.mintBg }]}>
@@ -73,7 +80,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
               </Text>
             )}
           </View>
-          <TouchableOpacity style={styles.danger} onPress={() => onNavigate('Logout')} accessibilityRole="button" testID="exclusao-concluir">
+          <TouchableOpacity style={styles.danger} onPress={avisarContaExcluida} accessibilityRole="button" testID="exclusao-concluir">
             <Text style={styles.dangerTexto}>Concluir</Text>
           </TouchableOpacity>
         </ScrollView>
