@@ -35,8 +35,14 @@ import {
   mensagemParaFamilia,
   type Consentimentos,
 } from '../services/consentimentoService';
+import {
+  avisoFimTrial,
+  DireitoPremium,
+  formatarFaixaTrial,
+  obterDireitoPremium,
+} from '../services/premiumService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
-import { typography } from '../theme';
+import { colors, typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
@@ -66,7 +72,7 @@ export default function HomeScreen({
   onSelectElderly,
   onLogout,
   familiarId,
-  plano = 'PREMIUM',
+  plano: planoProp,
 }: HomeScreenProps) {
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
@@ -79,6 +85,27 @@ export default function HomeScreen({
   const [scoreData, setScoreData] = useState<ScoreBemEstar | null>(null);
   const [consentimentosIdoso, setConsentimentosIdoso] = useState<Consentimentos | null>(null);
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
+  const [direitoPremium, setDireitoPremium] = useState<DireitoPremium | null>(null);
+  const [erroPlano, setErroPlano] = useState<string | null>(null);
+
+  const carregarPlano = useCallback(async () => {
+    setErroPlano(null);
+    try {
+      const res = await obterDireitoPremium();
+      setDireitoPremium(res);
+    } catch (err: any) {
+      setDireitoPremium(null);
+      setErroPlano(err?.message || 'Não foi possível verificar seu plano.');
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarPlano();
+  }, [carregarPlano]);
+
+  const plano = planoProp ?? (direitoPremium?.premiumLiberado ? 'PREMIUM' : 'FREE');
+  const faixaTrial = formatarFaixaTrial(direitoPremium);
+  const avisoTrial = avisoFimTrial(direitoPremium);
 
   const { idosoId: idosoSelecionadoId, setIdosoId, setNomeIdoso } = useIdoso();
   const idosoSelecionadoRef = useRef<string | null>(idosoSelecionadoId);
@@ -398,6 +425,31 @@ export default function HomeScreen({
           <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
         </TouchableOpacity>
 
+        {/* FAIXA DE PLANO / TRIAL / ERRO DE PLANO (HU-040 a 042) */}
+        {erroPlano ? (
+          <View style={{ backgroundColor: colors.peachBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.peachBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, fontWeight: '600' }}>{erroPlano}</Text>
+            <TouchableOpacity
+              onPress={carregarPlano}
+              style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (faixaTrial || avisoTrial) ? (
+          <TouchableOpacity
+            onPress={() => onNavigate && onNavigate('Premium')}
+            style={{ backgroundColor: colors.amberBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.amberBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
+            activeOpacity={0.85}
+          >
+            <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, fontWeight: '700' }}>
+              {avisoTrial || faixaTrial}
+            </Text>
+            <Text style={{ fontSize: 14, color: colors.primaryNavy, fontWeight: '700' }}>Conhecer o Premium</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* CARD 2: SEMÁFORO DO BEM-ESTAR (HU-032, HU-033, RN-008, RN-016, RN-017) */}
         {scoreData?.requerPremium ? (
           /* PAYWALL NO PLANO FREE (HU-032 / HU-034 Cenário 3 / RN-014) */
@@ -414,12 +466,12 @@ export default function HomeScreen({
             <Text style={styles.paywallMessage}>{scoreData.beneficioPaywall}</Text>
             <TouchableOpacity
               style={styles.paywallButton}
-              onPress={() => onNavigate && onNavigate('Subscription')}
+              onPress={() => onNavigate && onNavigate('Premium')}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Experimentar plano Premium por 14 dias grátis"
+              accessibilityLabel="Conhecer o Premium"
             >
-              <Text style={styles.paywallButtonText}>Experimentar 14 Dias Grátis</Text>
+              <Text style={styles.paywallButtonText}>Conhecer o Premium</Text>
               <Icon name="chevron_right" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>

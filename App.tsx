@@ -24,6 +24,7 @@ import SosReceivedScreen from './src/screens/SosReceivedScreen';
 import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
 import ElderlyDataScreen from './src/screens/ElderlyDataScreen';
 import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
+import PremiumScreen from './src/screens/PremiumScreen';
 import { PapelProvider } from './src/context/PapelContext';
 import { IdosoProvider } from './src/context/IdosoContext';
 import { PapelApp, resolverNavegacao } from './src/services/acessoService';
@@ -350,6 +351,8 @@ export default function App() {
         );
       case 'DeleteAccount':
         return <DeleteAccountScreen onNavigate={navegar} assinaturaAtiva={ASSINATURA_ATIVA} />;
+      case 'Premium':
+        return <PremiumScreen onNavigate={navegar} />;
       case 'AcessoRestrito':
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
