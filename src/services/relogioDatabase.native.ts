@@ -1,12 +1,14 @@
 import * as SQLite from 'expo-sqlite';
+import { apagarArquivoSqlite } from './sqliteArquivo';
 
+const NOME_BANCO = 'seniorinsight_relogio.db';
 let sqliteDb: SQLite.SQLiteDatabase | null = null;
 
 async function getDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   if (sqliteDb) return sqliteDb;
 
   try {
-    sqliteDb = SQLite.openDatabaseSync('seniorinsight_relogio.db');
+    sqliteDb = SQLite.openDatabaseSync(NOME_BANCO);
     await sqliteDb.execAsync(`
       CREATE TABLE IF NOT EXISTS relogio_sync (
         idoso_id TEXT PRIMARY KEY,
@@ -64,4 +66,11 @@ export async function limparSyncRelogioLocal(): Promise<void> {
   } catch (err: any) {
     console.warn('[relogioDatabase.native] Erro ao limpar sync:', err?.message);
   }
+}
+
+/** Exclusão da conta (HU-022): fecha e apaga o arquivo do banco. Lança se não conseguir. */
+export async function apagarBancoRelogio(): Promise<void> {
+  const conexao = sqliteDb;
+  sqliteDb = null;
+  await apagarArquivoSqlite(NOME_BANCO, conexao);
 }

@@ -1,4 +1,11 @@
-import { Platform } from 'react-native';
+let Platform: { OS: string } = { OS: 'node' };
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const rn = require('react-native');
+  if (rn?.Platform) Platform = rn.Platform;
+} catch {
+  // Ambiente Node.js de testes
+}
 
 // Tamanho exato em bytes do tile de aviso "osm.wiki/Blocked" retornado pelo Fastly/OSM
 const OSM_BLOCKED_TILE_BYTES = 6987;
@@ -131,4 +138,10 @@ export async function carregarTileOsm(z: number, x: number, y: number): Promise<
   } finally {
     inFlightTileRequests.delete(key);
   }
+}
+
+/** Exclusão da conta (HU-022): os tiles mostram a região onde o idoso esteve. */
+export function limparCacheTiles(): void {
+  tileMemoryCache.clear();
+  inFlightTileRequests.clear();
 }

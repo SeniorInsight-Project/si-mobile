@@ -17,3 +17,8 @@ export async function obterSyncRelogioLocal(idosoId: string): Promise<string | n
 export async function limparSyncRelogioLocal(): Promise<void> {
   relogioSyncMap.clear();
 }
+
+/** Exclusão da conta (HU-022). No nativo, apaga o arquivo do banco; aqui, o mapa em memória. */
+export async function apagarBancoRelogio(): Promise<void> {
+  relogioSyncMap.clear();
+}

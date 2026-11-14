@@ -105,3 +105,8 @@ export async function removerRotinaCache(rotinaId: string): Promise<boolean> {
 export async function limparCacheMedicamentos(): Promise<void> {
   memoryCache = [];
 }
+
+/** Exclusão da conta (HU-022). No nativo, apaga o arquivo do banco; aqui, o cache em memória. */
+export async function apagarBancoMedicamentos(): Promise<void> {
+  memoryCache = [];
+}

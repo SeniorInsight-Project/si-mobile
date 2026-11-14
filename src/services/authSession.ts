@@ -38,7 +38,7 @@ export interface ProvedorOidc {
   revogar(refreshToken: string): Promise<void>;
 }
 
-export type MotivoEncerramento = 'logout' | 'expirada';
+export type MotivoEncerramento = 'logout' | 'expirada' | 'conta-excluida';
 type OuvinteEncerramento = (motivo: MotivoEncerramento) => void;
 type LimpadorLocal = () => Promise<void>;
 
@@ -239,6 +239,16 @@ export async function encerrarSessaoLocal(motivo: MotivoEncerramento): Promise<v
     }
   }
   ouvintes.forEach((ouvinte) => ouvinte(motivo));
+}
+
+/**
+ * Conta excluída (HU-022): os dados locais já foram apagados pelo limpezaLocalService; aqui só se avisa
+ * os ouvintes (o App volta para a tela de entrada). Não chama limparTokens nem os limpadores do logout,
+ * que reabririam os bancos recém-apagados.
+ */
+export function avisarContaExcluida(): void {
+  renovacaoEmAndamento = null;
+  ouvintes.forEach((ouvinte) => ouvinte('conta-excluida'));
 }
 
 /**
