@@ -106,19 +106,21 @@ async function statusDeDemonstracao(idosoId?: string): Promise<StatusAparelhoApi
 
 /**
  * Status do celular do idoso em GET /api/v1/telemetry/idosos/{id}/status.
- * Falha vira TelemetriaError.
+ * Falha vira TelemetriaError. Com `permitirMock: false` a falha sobe mesmo em dev,
+ * para quem tem outro recurso (como o cache offline do relógio) antes dos dados de demonstração.
  */
 export async function buscarStatusDispositivo(
   idosoId: string,
-  { cliente = apiClient }: { cliente?: ClienteTelemetria } = {}
+  { cliente = apiClient, permitirMock = true }: { cliente?: ClienteTelemetria; permitirMock?: boolean } = {}
 ): Promise<StatusDispositivo> {
-  if (!idosoId && mockPermitido()) return statusDoContrato(await statusDeDemonstracao());
+  const usarMock = permitirMock && mockPermitido();
+  if (!idosoId && usarMock) return statusDoContrato(await statusDeDemonstracao());
   const id = exigirIdoso(idosoId);
   try {
     return statusDoContrato(await lerTelemetria<StatusAparelhoApi>(cliente, rotaStatusAparelho(id), MENSAGEM_FALHA));
   } catch (erro) {
     // Sem mock permitido a falha sobe para a tela; com mock (só em dev) cai nos dados de demonstração.
-    if (!mockPermitido()) throw erro;
+    if (!usarMock) throw erro;
     return statusDoContrato(await statusDeDemonstracao(id));
   }
 }
