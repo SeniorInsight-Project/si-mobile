@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Share, StyleSheet } fr
 import QRCode from 'react-native-qrcode-svg';
 import Icon from './Icon';
 import { colors, typography, shadows } from '../theme';
+import { idosoIdDoServidor } from '../services/elderlyService';
 import {
   MENSAGENS_PAREAMENTO,
   PareamentoError,
@@ -57,7 +58,7 @@ export default function CodigoPareamentoPainel({
     setErro('');
     setGerado(null);
     try {
-      const novo = await gerarCodigoPareamento({ nomeIdoso: nomeIdoso.trim(), idosoId });
+      const novo = await gerarCodigoPareamento({ nomeIdoso: nomeIdoso.trim(), idosoId: idosoIdDoServidor(idosoId) });
       if (!montado.current) return;
       setGerado(novo);
       setAgora(Date.now());

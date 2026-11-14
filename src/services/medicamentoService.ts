@@ -1,6 +1,6 @@
-import { runtimeConfig } from '../config/runtime';
-import type { ConfirmarIngestaoRequest } from '../types/api';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import { mockPermitido } from '../config/ambiente';
+import type { AtualizarRotinaRequest, ConfirmarIngestaoRequest, RotinaMedicamentoRequest } from '../types/api';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
 import {
   obterRotinasDoCache,
   salvarRotinasNoCache,
@@ -48,103 +48,18 @@ export interface ConfirmacaoIngestaoResponse {
   [key: string]: any;
 }
 
-/**
- * Lista inicial padrão de rotinas de medicamentos baseada no template visual do Figma (HU26 / HU-056).
- * Fornece fallback resiliente em ambiente de desenvolvimento ou offline.
- */
-export const INITIAL_MEDICINES: RotinaMedicamento[] = [
-  {
-    id: 'med-rotina-001',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    idosoNome: 'Dona Maria Aparecida',
-    medicamentoId: 'med-db-001',
-    medicamentoNome: 'Losartana 50mg',
-    nomeMedicamento: 'Losartana 50mg',
-    dosagem: '1 comprimido • Uso contínuo',
-    instrucoes: 'Tomar com 1 copo de água',
-    horario: '08:00',
-    frequencia: '1x ao dia (Diário)',
-    diasSemana: 'TODOS',
-    tipoFormato: 'comprimido',
-    ativo: true,
-    statusHoje: 'TOMADO',
-    horarioIngestaoHoje: '08:05',
-    isProximo: false,
-    iconeTipo: 'check',
-    corIcone: '#10B981',
-    corFundoThumb: '#E8F8F0',
-    thumbEmoji: '💊',
-  },
-  {
-    id: 'med-rotina-002',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    idosoNome: 'Dona Maria Aparecida',
-    medicamentoId: 'med-db-002',
-    medicamentoNome: 'Vitamina D3',
-    nomeMedicamento: 'Vitamina D3',
-    dosagem: '2.000 UI • 1 cápsula gelatinosa',
-    instrucoes: 'Junto ao café da manhã',
-    horario: '10:00',
-    frequencia: '1x ao dia (Diário)',
-    diasSemana: 'TODOS',
-    tipoFormato: 'comprimido',
-    ativo: true,
-    statusHoje: 'PENDENTE',
-    horarioIngestaoHoje: null,
-    isProximo: true,
-    iconeTipo: 'clock',
-    corIcone: '#F59E0B',
-    corFundoThumb: '#EBF5FF',
-    thumbEmoji: '💊',
-  },
-  {
-    id: 'med-rotina-003',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    idosoNome: 'Dona Maria Aparecida',
-    medicamentoId: 'med-db-003',
-    medicamentoNome: 'Metformina 850mg',
-    nomeMedicamento: 'Metformina 850mg',
-    dosagem: '1 comprimido • Controle glicêmico',
-    instrucoes: 'Logo após o almoço',
-    horario: '14:00',
-    frequencia: '1x ao dia (Diário)',
-    diasSemana: 'TODOS',
-    tipoFormato: 'xarope',
-    ativo: true,
-    statusHoje: 'PENDENTE',
-    horarioIngestaoHoje: null,
-    isProximo: false,
-    iconeTipo: 'sun',
-    corIcone: '#9A3412',
-    corFundoThumb: '#FFF1EC',
-    thumbEmoji: '🧴',
-  },
-  {
-    id: 'med-rotina-004',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    idosoNome: 'Dona Maria Aparecida',
-    medicamentoId: 'med-db-004',
-    medicamentoNome: 'Sinvastatina 20mg',
-    nomeMedicamento: 'Sinvastatina 20mg',
-    dosagem: '1 comprimido • Uso noturno',
-    instrucoes: 'Antes de dormir',
-    horario: '20:00',
-    frequencia: '1x ao dia (Diário)',
-    diasSemana: 'TODOS',
-    tipoFormato: 'gotas',
-    ativo: true,
-    statusHoje: 'PENDENTE',
-    horarioIngestaoHoje: null,
-    isProximo: false,
-    iconeTipo: 'moon',
-    corIcone: '#5B21B6',
-    corFundoThumb: '#F3EEFF',
-    thumbEmoji: '💧',
-  },
-];
-
 // Estado local em memória para garantir consistência nas operações offline/mock
-let localMedicinesStore: RotinaMedicamento[] = [...INITIAL_MEDICINES];
+let localMedicinesStore: RotinaMedicamento[] = [];
+let inicializadoMedicamentos = false;
+
+async function garantirRotinasIniciais(): Promise<void> {
+  if (inicializadoMedicamentos) return;
+  inicializadoMedicamentos = true;
+  if (mockPermitido()) {
+    const { INITIAL_MEDICINES } = await import('../mocks/medicamentos');
+    localMedicinesStore = (INITIAL_MEDICINES as unknown as RotinaMedicamento[]).map(enriquecerDadosVisuais);
+  }
+}
 
 /**
  * Auxiliar para enriquecer objetos de rotina com dados visuais (ícones, emojis e cores de thumbnail)
@@ -177,94 +92,116 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
     tipoFormato = 'comprimido';
   }
 
-  // Determina o tipo de ícone da linha do tempo baseado no status ou horário
-  let iconeTipo = 'clock';
-  let corIcone = '#0284C7';
+  const horario = rotina.horario || '08:00';
+  const horaNum = parseInt(horario.split(':')[0], 10) || 8;
 
-  if (rotina.statusHoje === 'TOMADO') {
+  let iconeTipo = 'clock';
+  let corIcone = '#F59E0B';
+
+  const statusHoje = (rotina.statusHoje || 'PENDENTE').toUpperCase();
+
+  if (statusHoje === 'TOMADO') {
     iconeTipo = 'check';
     corIcone = '#10B981';
+    corFundoThumb = '#E8F8F0';
+  } else if (statusHoje === 'ATRASADO') {
+    iconeTipo = 'clock';
+    corIcone = '#EF4444';
+    corFundoThumb = '#FFEBE5';
+  } else if (horaNum < 12) {
+    iconeTipo = 'sun';
+    corIcone = '#D97706';
+  } else if (horaNum < 18) {
+    iconeTipo = 'sun';
+    corIcone = '#9A3412';
   } else {
-    const hora = parseInt((rotina.horario || '08:00').split(':')[0], 10);
-    if (hora < 12) {
-      iconeTipo = 'clock';
-      corIcone = '#0284C7';
-    } else if (hora < 18) {
-      iconeTipo = 'sun';
-      corIcone = '#F97316';
-    } else {
-      iconeTipo = 'moon';
-      corIcone = '#8B5CF6';
-    }
+    iconeTipo = 'moon';
+    corIcone = '#5B21B6';
   }
 
   return {
-    id: rotina.id || `med-local-${Date.now()}`,
-    dosagem: rotina.dosagem || '',
-    instrucoes: rotina.instrucoes || '',
-    horario: rotina.horario || '08:00',
-    frequencia: rotina.frequencia || '1x ao dia (Diário)',
-    ativo: rotina.ativo ?? true,
-    statusHoje: rotina.statusHoje || 'PENDENTE',
-    horarioIngestaoHoje: rotina.horarioIngestaoHoje ?? null,
-    isProximo: rotina.isProximo ?? false,
-    ...rotina,
+    id: rotina.id || `rotina-${Date.now()}`,
+    idosoId: rotina.idosoId,
+    idosoNome: rotina.idosoNome,
+    medicamentoId: rotina.medicamentoId,
     medicamentoNome: nome,
     nomeMedicamento: nome,
-    thumbEmoji: rotina.thumbEmoji || thumbEmoji,
-    corFundoThumb: rotina.corFundoThumb || corFundoThumb,
+    dosagem: rotina.dosagem || '',
+    instrucoes: rotina.instrucoes || '',
+    observacoes: rotina.observacoes || '',
+    horario,
+    frequencia: rotina.frequencia || '1x ao dia (Diário)',
+    diasSemana: rotina.diasSemana || 'TODOS',
     tipoFormato,
+    ativo: rotina.ativo !== undefined ? Boolean(rotina.ativo) : true,
+    statusHoje,
+    horarioIngestaoHoje: rotina.horarioIngestaoHoje || null,
+    isProximo: Boolean(rotina.isProximo),
     iconeTipo,
     corIcone,
+    corFundoThumb,
+    thumbEmoji,
   };
 }
 
 /**
- * Lista as rotinas diárias de medicamentos do idoso (HU-056 / HU26 / RF-038).
- * Tenta buscar no Gateway (backend Spring Boot); caso indisponível, recorre ao SQLite local.
- * Endpoint: GET /api/v1/idosos/{idosoId}/rotinas-medicamentos?data=YYYY-MM-DD&apenasAtivos=false
+ * Normaliza objetos retornados pela API (RotinaMedicamento do contrato care-v1).
+ */
+export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicamento {
+  const statusContrato = String(apiItem.statusHoje ?? apiItem.status ?? 'PENDENTE').toUpperCase();
+
+  return enriquecerDadosVisuais({
+    id: apiItem.id,
+    idosoId: apiItem.idosoId,
+    idosoNome: apiItem.idosoNome,
+    medicamentoId: apiItem.medicamentoId,
+    medicamentoNome: apiItem.medicamentoNome,
+    nomeMedicamento: apiItem.medicamentoNome,
+    dosagem: apiItem.dosagem,
+    instrucoes: apiItem.instrucoes,
+    observacoes: apiItem.observacoes,
+    horario: apiItem.horario,
+    diasSemana: apiItem.diasSemana,
+    frequencia: apiItem.frequencia || (apiItem.diasSemana === 'TODOS' ? '1x ao dia (Diário)' : apiItem.diasSemana) || 'Personalizado',
+    tipoFormato: apiItem.tipoFormato,
+    ativo: apiItem.ativo !== undefined ? Boolean(apiItem.ativo) : true,
+    statusHoje: statusContrato,
+    horarioIngestaoHoje: apiItem.horarioIngestaoHoje || null,
+    isProximo: false,
+  });
+}
+
+export interface OpcoesRede {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'put' | 'delete'>;
+}
+
+/**
+ * Busca as rotinas de medicamentos do idoso: GET /api/v1/idosos/{idosoId}/rotinas-medicamentos?apenasAtivos=true.
+ * `apenasAtivos` vai sempre na query (o servidor só deve devolver rotinas ativas). Lista vazia do servidor fica
+ * vazia. Sem rede, cai no cache SQLite, que só guarda o que veio do servidor (RF-038). Em 4xx/5xx lança.
  */
 export async function listarRotinas(
   idosoId: string,
-  dataReferencia: string | null = null,
-  apenasAtivos = false,
-  token: string | null = null
+  { data, cliente = apiClient }: OpcoesRede & { data?: string } = {}
 ): Promise<RotinaMedicamento[]> {
+  const query = new URLSearchParams({ apenasAtivos: 'true' });
+  if (data) query.set('data', data);
+
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const params = new URLSearchParams();
-    if (dataReferencia) params.append('data', dataReferencia);
-    if (apenasAtivos) params.append('apenasAtivos', 'true');
-
-    const queryString = params.toString() ? `?${params.toString()}` : '';
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos${queryString}`,
-      {
-        method: 'GET',
-        headers,
-      }
+    const resposta = await cliente.get<Array<Record<string, any>>>(
+      `/api/v1/idosos/${idosoId}/rotinas-medicamentos?${query.toString()}`
     );
-
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const enriquecidos = data.map(enriquecerDadosVisuais);
-        localMedicinesStore = enriquecidos;
-        // Salva de forma transparente no cache SQLite local para funcionamento offline
-        await salvarRotinasNoCache(idosoId, enriquecidos);
-        // Agenda lembretes locais sem bloquear a interface
-        agendarLembretesMedicacao(enriquecidos).catch(() => {});
-        return enriquecidos;
-      }
-    }
+    const rotinas = (Array.isArray(resposta) ? resposta : []).map(normalizarRotinaApi);
+    localMedicinesStore = rotinas;
+    await salvarRotinasNoCache(idosoId, rotinas);
+    agendarLembretesMedicacao(rotinas).catch(() => {});
+    return rotinas;
   } catch (error: any) {
+    if (!(error instanceof ApiError) || !error.erroDeRede) throw error;
     console.warn('[medicamentoService] Backend inacessível. Recorrendo à base local SQLite:', error?.message);
   }
 
-  // Fallback 1: Recupera do SQLite local (Offline-first / RF-038)
+  // Sem rede: recupera do SQLite local (offline-first / RF-038)
   try {
     const cached = await obterRotinasDoCache(idosoId);
     if (Array.isArray(cached) && cached.length > 0) {
@@ -276,179 +213,154 @@ export async function listarRotinas(
     console.warn('[medicamentoService] Erro ao carregar cache SQLite:', cacheErr?.message);
   }
 
-  // Fallback 2: Dados em memória pré-carregados
-  const fallback = localMedicinesStore.map(enriquecerDadosVisuais);
-  // Garante que o cache SQLite seja populado com os dados iniciais
-  salvarRotinasNoCache(idosoId, fallback).catch(() => {});
-  agendarLembretesMedicacao(fallback).catch(() => {});
-  return fallback;
+  // Dados de demonstração só com mock permitido (dev + EXPO_PUBLIC_USAR_MOCK)
+  if (mockPermitido()) {
+    await garantirRotinasIniciais();
+    const fallback = localMedicinesStore.map(enriquecerDadosVisuais);
+    salvarRotinasNoCache(idosoId, fallback).catch(() => {});
+    agendarLembretesMedicacao(fallback).catch(() => {});
+    return fallback;
+  }
+
+  throw new ApiError(0, null, `/api/v1/idosos/${idosoId}/rotinas-medicamentos`);
 }
 
 /**
  * Confirma a ingestão de um medicamento na rotina (HU-056 / HU-059 / RF-039).
- * Aceita as assinaturas:
- * 1) confirmarIngestao(idosoId, rotinaId, observacao)
- * 2) confirmarIngestao(rotinaId, dadosConfirmacao, token)
- *
- * Endpoint: POST /api/v1/rotinas-medicamentos/{rotinaId}/confirmar-ingestao
+ * POST /api/v1/rotinas-medicamentos/{rotinaId}/confirmar-ingestao (ConfirmarIngestaoRequest).
+ * O estado local e o cache só mudam depois que o servidor confirma; em erro lança (sem sucesso inventado),
+ * salvo com mock permitido, que registra só no aparelho.
  */
 export async function confirmarIngestao(
   arg1: string,
   arg2: ConfirmacaoIngestaoInput | string | null = null,
   arg3: ConfirmacaoIngestaoInput | string | null = null,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConfirmacaoIngestaoResponse> {
   const agora = new Date();
 
-  // Normalização de parâmetros flexíveis
+  // Normalização de parâmetros flexíveis: (rotinaId, dados) ou (idosoId, rotinaId, dados)
   let rotinaId: string;
   let dadosConfirmacao: ConfirmacaoIngestaoInput = {};
 
   if (typeof arg2 === 'string' && arg2.length > 0) {
-    // Assinatura: (idosoId, rotinaId, observacao ou objeto de dados)
     rotinaId = arg2;
     dadosConfirmacao = typeof arg3 === 'string' ? { observacao: arg3 } : (arg3 || {});
   } else {
-    // Assinatura: (rotinaId, dadosConfirmacao, token)
     rotinaId = arg1;
     dadosConfirmacao = typeof arg2 === 'string' ? { observacao: arg2 } : (arg2 || {});
-    if (typeof arg3 === 'string') token = arg3;
   }
 
   const statusDesejado = dadosConfirmacao.status || 'TOMADO';
   const horaFormatada = statusDesejado === 'TOMADO'
     ? agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     : null;
+  const dataHoraIngestaoISO = statusDesejado === 'TOMADO' ? agora.toISOString() : null;
 
-  // 1. Atualização imediata no store local em memória
-  atualizarStatusLocal(rotinaId, statusDesejado, horaFormatada);
+  const corpo: ConfirmarIngestaoRequest = {
+    status: statusDesejado,
+    observacao: dadosConfirmacao.observacao || (statusDesejado === 'TOMADO' ? 'Dose tomada conforme prescrito' : 'Dose desmarcada'),
+  };
+  if (dataHoraIngestaoISO) corpo.dataHoraIngestao = dataHoraIngestaoISO;
 
-  // 2. Atualização imediata no SQLite local (Offline-first)
-  try {
+  const registrarLocalmente = async () => {
+    atualizarStatusLocal(rotinaId, statusDesejado, horaFormatada);
     await atualizarStatusDoseCache(rotinaId, statusDesejado, horaFormatada);
-  } catch (dbErr: any) {
-    console.warn('[medicamentoService] Falha ao persistir status no SQLite:', dbErr?.message);
-  }
+  };
 
-  // 3. Envio ao Gateway Spring Boot
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const bodyPayload = {
-      dataHoraIngestao: statusDesejado === 'TOMADO' ? (dadosConfirmacao.dataHoraIngestao || agora.toISOString()) : null,
-      dataReferencia: dadosConfirmacao.dataReferencia || agora.toISOString().split('T')[0],
-      observacao: dadosConfirmacao.observacao || (statusDesejado === 'TOMADO' ? 'Confirmado via aplicativo SeniorInsight' : 'Dose desmarcada'),
-      status: statusDesejado,
-    };
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}/confirmar-ingestao`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(bodyPayload),
-      }
+    const data = await cliente.post<Record<string, any>>(
+      `/api/v1/rotinas-medicamentos/${rotinaId}/confirmar-ingestao`,
+      corpo
     );
-
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        sucesso: true,
-        rotinaId,
-        status: data.status || statusDesejado,
-        horarioIngestaoHoje: horaFormatada,
-        ...data,
-      };
-    }
+    await registrarLocalmente();
+    return {
+      rotinaId,
+      status: data?.status || statusDesejado,
+      dataHoraIngestao: data?.dataHoraIngestao || dataHoraIngestaoISO,
+      horarioIngestaoHoje: horaFormatada,
+      observacao: corpo.observacao || '',
+      sucesso: true,
+    };
   } catch (error: any) {
-    console.warn('[medicamentoService] Falha de conexão ao confirmar ingestão. Mantido no SQLite:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Operação salva localmente (mock):', error?.message);
   }
 
-  // Resposta resiliente com garantia de sucesso para atualizar o estado do React
+  await registrarLocalmente();
   return {
-    sucesso: true,
     rotinaId,
     status: statusDesejado,
+    dataHoraIngestao: dataHoraIngestaoISO,
     horarioIngestaoHoje: horaFormatada,
-    dataHoraIngestao: statusDesejado === 'TOMADO' ? agora.toISOString() : null,
-    observacao: dadosConfirmacao.observacao || 'Atualizado localmente com sucesso',
+    observacao: corpo.observacao || '',
+    sucesso: true,
   };
 }
 
+/** Só os campos do contrato, e só os que vieram preenchidos. */
+function omitirVazios<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== '')) as Partial<T>;
+}
+
 /**
- * Cria uma nova rotina de medicamento para o idoso (HU-056 / RN-004).
- * Endpoint: POST /api/v1/idosos/{idosoId}/rotinas-medicamentos
+ * Cria uma nova rotina de medicamento (HU-056).
+ * POST /api/v1/idosos/{idosoId}/rotinas-medicamentos com RotinaMedicamentoRequest (nomeMedicamento, dosagem,
+ * instrucoes, horario, frequencia, diasSemana, dataInicio, dataFim, observacoes). O tipo de formato
+ * (comprimido, gotas...) é só visual e não vai na requisição. 4xx lança; a rotina só entra no cache com o id do servidor.
  */
 export async function criarRotina(
   idosoId: string,
   dadosRotina: Partial<RotinaMedicamento> & Record<string, any>,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<RotinaMedicamento> {
   const nomeMed = (dadosRotina.nomeMedicamento || dadosRotina.medicamentoNome || '').trim();
-
-  const payloadGateway = {
-    nomeMedicamento: nomeMed,
-    medicamentoNome: nomeMed,
-    dosagem: dadosRotina.dosagem,
-    instrucoes: dadosRotina.instrucoes || 'Tomar conforme prescrição',
-    horario: dadosRotina.horario || '08:00',
-    frequencia: dadosRotina.frequencia || '1x ao dia (Diário)',
-    diasSemana: dadosRotina.diasSemana || 'TODOS',
-    tipoFormato: dadosRotina.tipoFormato || 'comprimido',
-    observacoes: dadosRotina.observacoes || '',
-  };
+  const corpo = {
+    ...omitirVazios({
+      medicamentoId: dadosRotina.medicamentoId,
+      nomeMedicamento: dadosRotina.medicamentoId ? undefined : nomeMed,
+      dosagem: dadosRotina.dosagem,
+      instrucoes: dadosRotina.instrucoes,
+      diasSemana: dadosRotina.diasSemana,
+      dataInicio: dadosRotina.dataInicio,
+      dataFim: dadosRotina.dataFim,
+      observacoes: dadosRotina.observacoes,
+    }),
+    horario: dadosRotina.horario as string,
+    frequencia: (dadosRotina.frequencia || '') as string,
+  } satisfies RotinaMedicamentoRequest;
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payloadGateway),
-      }
+    const novaRotina = await cliente.post<Record<string, any>>(
+      `/api/v1/idosos/${idosoId}/rotinas-medicamentos`,
+      corpo
     );
+    const enriquecida = normalizarRotinaApi({
+      ...novaRotina,
+      medicamentoNome: novaRotina.medicamentoNome || nomeMed,
+      tipoFormato: dadosRotina.tipoFormato,
+    });
 
-    if (response.ok) {
-      const novaRotina = await response.json();
-      const enriquecida = enriquecerDadosVisuais({
-        ...novaRotina,
-        medicamentoNome: novaRotina.medicamentoNome || nomeMed,
-        nomeMedicamento: novaRotina.medicamentoNome || nomeMed,
-        tipoFormato: dadosRotina.tipoFormato || novaRotina.tipoFormato,
-      });
+    localMedicinesStore = localMedicinesStore.filter((r) => r.id !== enriquecida.id);
+    localMedicinesStore.push(enriquecida);
+    localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
 
-      localMedicinesStore = localMedicinesStore.filter((r) => r.id !== enriquecida.id);
-      localMedicinesStore.push(enriquecida);
-      localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
-
-      await salvarRotinasNoCache(idosoId, localMedicinesStore);
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return enriquecida;
-    }
+    await salvarRotinasNoCache(idosoId, localMedicinesStore);
+    agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+    return enriquecida;
   } catch (error: any) {
-    console.warn('[medicamentoService] Falha de conexão ao criar rotina. Criando no SQLite local:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Criando rotina só no aparelho (mock):', error?.message);
   }
 
-  // Fallback offline resiliente
+  // Somente com mock permitido (dev): rotina local de demonstração
   const novaRotinaLocal = enriquecerDadosVisuais({
     id: `med-local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
     idosoId,
     medicamentoNome: nomeMed,
     nomeMedicamento: nomeMed,
     dosagem: dadosRotina.dosagem || '',
-    instrucoes: dadosRotina.instrucoes || 'Conforme orientação médica',
+    instrucoes: dadosRotina.instrucoes || '',
     horario: dadosRotina.horario || '08:00',
     frequencia: dadosRotina.frequencia || '1x ao dia (Diário)',
     diasSemana: dadosRotina.diasSemana || 'TODOS',
@@ -471,12 +383,14 @@ export async function criarRotina(
 
 /**
  * Atualiza os dados de uma rotina de medicamento existente (HU-056 / RN-004).
- * Endpoint: PUT /api/v1/rotinas-medicamentos/{rotinaId}
+ * PUT /api/v1/rotinas-medicamentos/{rotinaId} com AtualizarRotinaRequest: só horario, frequencia, diasSemana,
+ * dataInicio, dataFim, ativo, observacoes, dosagem e instrucoes, e só os que foram enviados. O contrato não
+ * permite trocar o nome do medicamento.
  */
 export async function atualizarRotina(
   rotinaId: string,
   dadosAtualizacao: Partial<RotinaMedicamento> & Record<string, any>,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<RotinaMedicamento> {
   const nomeMed = (dadosAtualizacao.nomeMedicamento || dadosAtualizacao.medicamentoNome || '').trim();
   const dadosNormalizados = {
@@ -484,38 +398,30 @@ export async function atualizarRotina(
     ...(nomeMed ? { nomeMedicamento: nomeMed, medicamentoNome: nomeMed } : {}),
   };
 
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
-      {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(dadosNormalizados),
-      }
-    );
-
-    if (response.ok) {
-      const atualizada = await response.json();
-      atualizarStoreLocal(rotinaId, atualizada);
-      const enriquecida = enriquecerDadosVisuais(atualizada);
-      if (enriquecida.idosoId) {
-        salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
-      }
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return enriquecida;
-    }
-  } catch (error: any) {
-    console.warn('[medicamentoService] Falha ao atualizar rotina no backend:', error?.message);
+  const campos: Array<keyof AtualizarRotinaRequest> = [
+    'horario', 'frequencia', 'diasSemana', 'dataInicio', 'dataFim', 'ativo', 'observacoes', 'dosagem', 'instrucoes',
+  ];
+  const corpo: Record<string, unknown> = {};
+  for (const campo of campos) {
+    if (dadosAtualizacao[campo] !== undefined) corpo[campo] = dadosAtualizacao[campo];
   }
 
-  // Atualização no store local e SQLite
+  try {
+    const atualizada = await cliente.put<Record<string, any>>(`/api/v1/rotinas-medicamentos/${rotinaId}`, corpo satisfies AtualizarRotinaRequest);
+    const doServidor = normalizarRotinaApi(atualizada);
+    atualizarStoreLocal(rotinaId, doServidor);
+    const enriquecida = localMedicinesStore.find((r) => r.id === rotinaId) ?? doServidor;
+    if (enriquecida.idosoId) {
+      salvarRotinasNoCache(enriquecida.idosoId, localMedicinesStore).catch(() => {});
+    }
+    agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
+    return enriquecida;
+  } catch (error: any) {
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Atualizando rotina só no aparelho (mock):', error?.message);
+  }
+
+  // Somente com mock permitido (dev)
   atualizarStoreLocal(rotinaId, dadosNormalizados);
   const itemAtualizado = localMedicinesStore.find((r) => r.id === rotinaId);
   const enriquecida = enriquecerDadosVisuais(itemAtualizado || dadosNormalizados);
@@ -528,34 +434,18 @@ export async function atualizarRotina(
 }
 
 /**
- * Remove uma rotina de medicamento (HU-056).
- * Endpoint: DELETE /api/v1/rotinas-medicamentos/{rotinaId}
+ * Remove uma rotina de medicamento (HU-056). DELETE /api/v1/rotinas-medicamentos/{rotinaId} (204).
+ * Só some do cache depois que o servidor confirma.
  */
 export async function removerRotina(
   rotinaId: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<boolean> {
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(
-      `${runtimeConfig.apiBaseUrl}/api/v1/rotinas-medicamentos/${rotinaId}`,
-      {
-        method: 'DELETE',
-        headers,
-      }
-    );
-
-    if (response.ok || response.status === 204) {
-      localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
-      await removerRotinaCache(rotinaId);
-      agendarLembretesMedicacao(localMedicinesStore).catch(() => {});
-      return true;
-    }
+    await cliente.delete(`/api/v1/rotinas-medicamentos/${rotinaId}`);
   } catch (error: any) {
-    console.warn('[medicamentoService] Erro ao remover rotina no backend:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[medicamentoService] Backend inacessível. Removendo rotina só do aparelho (mock):', error?.message);
   }
 
   localMedicinesStore = localMedicinesStore.filter((r) => r.id !== rotinaId);
@@ -603,3 +493,9 @@ function atualizarStoreLocal(
   });
   localMedicinesStore.sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
 }
+
+// Aliases para compatibilidade
+export const cadastrarRotinaMedicamento = criarRotina;
+export const salvarRotinaMedicamento = criarRotina;
+export const atualizarRotinaMedicamento = atualizarRotina;
+export const excluirRotinaMedicamento = removerRotina;

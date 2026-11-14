@@ -6,6 +6,8 @@ import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
+import { useIdoso } from '../context/IdosoContext';
+import { usePapel } from '../context/PapelContext';
 import {
   CONSENTIMENTO_PADRAO,
   ConsentimentoError,
@@ -39,23 +41,28 @@ const LINHAS_SAUDE: LinhaDado[] = [
 
 /** Figma: "Idoso - Autorizar meus dados" (HU-018, HU-019, RN-001). Só o idoso chega aqui. */
 export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: ElderlyDataScreenProps) {
+  const papel = usePapel();
+  // TODO(care#111): cadastro de curatela — quando existir no back, liberar edição para familiar curador autorizado
+  const isFamiliar = papel !== 'IDOSO';
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState('');
+  // Idoso do care-service (do pareamento). Sem ele, o service devolve o pedido de novo pareamento.
+  const { idosoId } = useIdoso();
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErroCarga('');
     try {
-      setConsentimentos(await obterConsentimentos());
+      setConsentimentos(await obterConsentimentos(idosoId));
     } catch (e) {
       setErroCarga(e instanceof ConsentimentoError ? e.message : 'Não foi possível carregar suas escolhas agora.');
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [idosoId]);
 
   useEffect(() => {
     carregar();
@@ -71,7 +78,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
     setSalvando(true);
     setAviso('');
     try {
-      await salvarConsentimentos(consentimentos);
+      await salvarConsentimentos(idosoId, consentimentos);
     } catch (e) {
       // não segue em frente: escolha de dados que não foi gravada não vale
       setAviso(e instanceof ConsentimentoError ? e.message : 'Não foi possível salvar suas escolhas agora.');
@@ -92,6 +99,15 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
     <ScreenWrapper>
       <AppHeader title="Meus Dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
       <ScrollView contentContainerStyle={styles.content}>
+        {isFamiliar && (
+          <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
+            <Icon name="gavel" size={20} color="#B51C13" />
+            <Text style={styles.curatelaBannerText}>
+              Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar essas escolhas.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.card}>
           <Text style={styles.title}>Você decide o que compartilhar</Text>
           <Text style={styles.body}>
@@ -230,6 +246,24 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120, gap: 16 },
+  curatelaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.peachBg,
+    borderWidth: 1.5,
+    borderColor: colors.peachBorder,
+    borderRadius: 16,
+    padding: 16,
+  },
+  curatelaBannerText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: colors.coralDark,
+    fontFamily: typography.fontFamily.body,
+  },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 4, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
   body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },

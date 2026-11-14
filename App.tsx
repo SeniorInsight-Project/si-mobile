@@ -24,7 +24,9 @@ import SosReceivedScreen from './src/screens/SosReceivedScreen';
 import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
 import ElderlyDataScreen from './src/screens/ElderlyDataScreen';
 import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
+import PremiumScreen from './src/screens/PremiumScreen';
 import { PapelProvider } from './src/context/PapelContext';
+import { IdosoProvider } from './src/context/IdosoContext';
 import { PapelApp, resolverNavegacao } from './src/services/acessoService';
 import { ResultadoPareamento, codigoDoDeepLink } from './src/services/pareamentoService';
 import { obterAparelhoPareado } from './src/services/aparelhoPareadoService';
@@ -39,6 +41,12 @@ import {
   type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
+import {
+  inicializarPushUsuario,
+  obterIdentificadorAparelho,
+  registrarOuvinteToqueNotificacao,
+  removerTokenPush,
+} from './src/services/pushService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -54,7 +62,8 @@ const ASSINATURA_ATIVA = false;
 export default function App() {
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
-  const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string>('e3b0c442-98fc-1c14-9afc-432100000001');
+  const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string | null>(null);
+  const [nomeIdosoSelecionado, setNomeIdosoSelecionado] = useState<string | null>(null);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [usuarioLogado, setUsuarioLogado] = useState<UsuarioLogado | null>(null);
   const conviteRef = useRef<string | null>(null);
@@ -107,6 +116,8 @@ export default function App() {
     });
     if (pareado) {
       conviteRef.current = null;
+      setIdosoSelecionadoId(pareado.idosoId ?? null);
+      setNomeIdosoSelecionado(pareado.nome);
       setTelaAtual('ElderlyMode');
       return true;
     }
@@ -131,13 +142,34 @@ export default function App() {
         setUsuarioLogado(null);
         setPareamento(null);
         setPrimeiroUsoIdoso(false);
+        setIdosoSelecionadoId(null);
+        setNomeIdosoSelecionado(null);
         setTelaAtual('EntryApp');
       }),
     [],
   );
 
   const handleLogout = useCallback(() => {
-    sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
+    removerTokenPush(obterIdentificadorAparelho())
+      .catch((err) => console.warn('[App] Falha ao remover token de push:', err?.message))
+      .finally(() => {
+        sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!usuarioLogado?.id) return;
+    inicializarPushUsuario().catch((err) =>
+      console.warn('[App] Falha ao inicializar notificações push:', err?.message)
+    );
+  }, [usuarioLogado?.id]);
+
+  useEffect(() => {
+    return registrarOuvinteToqueNotificacao((destino) => {
+      if (destino.idosoId) setIdosoSelecionadoId(destino.idosoId);
+      if (destino.alarmeId) setAlarmeSelecionadoId(destino.alarmeId);
+      setTelaAtual(destino.tela);
+    });
   }, []);
 
   // Aparelho do idoso pareado: a sessão já foi salva (resgate devolve os tokens) e o papel vem do token.
@@ -145,6 +177,8 @@ export default function App() {
     sessaoAtivaRef.current = true;
     setCodigoDoLink(null);
     setPareamento(resultado);
+    setIdosoSelecionadoId(resultado.idosoId ?? null);
+    setNomeIdosoSelecionado(resultado.nomeIdoso);
     setUsuarioLogado({
       id: resultado.perfilId,
       tipo: 'IDOSO',
@@ -284,6 +318,7 @@ export default function App() {
             onCadastrado={(idoso) => {
               setIdosoRecemCadastrado(idoso);
               setIdosoSelecionadoId(idoso.idosoId);
+              setNomeIdosoSelecionado(idoso.nome);
             }}
           />
         );
@@ -291,15 +326,15 @@ export default function App() {
         return (
           <PairingCodeScreen
             onNavigate={navegar}
-            idosoId={idosoRecemCadastrado?.idosoId ?? idosoSelecionadoId}
-            nomeIdoso={idosoRecemCadastrado?.nome ?? ''}
+            idosoId={idosoRecemCadastrado?.idosoId ?? idosoSelecionadoId ?? ''}
+            nomeIdoso={idosoRecemCadastrado?.nome ?? nomeIdosoSelecionado ?? ''}
           />
         );
       case 'Alerts':
         return (
           <AlertsCenterScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? ''}
             onAbrirSos={(alarmeId) => {
               setAlarmeSelecionadoId(alarmeId);
               setTelaAtual('SosReceived');
@@ -310,12 +345,14 @@ export default function App() {
         return (
           <SosReceivedScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+            idosoId={idosoSelecionadoId ?? ''}
             alarmeId={alarmeSelecionadoId}
           />
         );
       case 'DeleteAccount':
         return <DeleteAccountScreen onNavigate={navegar} assinaturaAtiva={ASSINATURA_ATIVA} />;
+      case 'Premium':
+        return <PremiumScreen onNavigate={navegar} />;
       case 'AcessoRestrito':
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
@@ -324,16 +361,17 @@ export default function App() {
         return (
           <ElderlyProfileScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+           
             accessRole={papelAcessoAtual}
+            familiarId={usuarioLogado?.id}
           />
         );
       case 'Home':
         return (
           <HomeScreen
             onNavigate={navegar}
-            onSelectElderly={setIdosoSelecionadoId}
             onLogout={handleLogout}
+            familiarId={usuarioLogado?.id}
           />
         );
       case 'Medicines':
@@ -342,7 +380,7 @@ export default function App() {
         return (
           <FamilyScreen
             onNavigate={navegar}
-            idosoId={idosoSelecionadoId}
+           
             isFamiliarAdmin={papelAcessoAtual === 'ADMIN'}
             papelAcesso={papelAcessoAtual}
           />
@@ -366,14 +404,23 @@ export default function App() {
 
   return (
     <PapelProvider value={papel}>
-      <StatusBar style="auto" />
-      {restaurandoSessao ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#D83729" />
-        </View>
-      ) : (
-        renderScreen()
-      )}
+      <IdosoProvider
+        value={{
+          idosoId: idosoSelecionadoId,
+          setIdosoId: setIdosoSelecionadoId,
+          nomeIdoso: nomeIdosoSelecionado,
+          setNomeIdoso: setNomeIdosoSelecionado,
+        }}
+      >
+        <StatusBar style="auto" />
+        {restaurandoSessao ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color="#D83729" />
+          </View>
+        ) : (
+          renderScreen()
+        )}
+      </IdosoProvider>
     </PapelProvider>
   );
 }

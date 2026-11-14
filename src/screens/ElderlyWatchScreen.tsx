@@ -5,6 +5,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import { colors, typography, shadows } from '../theme';
+import { useIdoso } from '../context/IdosoContext';
 import { CONSENTIMENTO_PADRAO, Consentimentos, obterConsentimentos } from '../services/consentimentoService';
 import {
   EstadoPasso,
@@ -26,12 +27,13 @@ const ROTULO_ESTADO: Record<EstadoPasso, string> = { FEITO: 'FEITO', AGORA: 'AGO
 export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: ElderlyWatchScreenProps) {
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [aviso, setAviso] = useState('');
+  const { idosoId } = useIdoso();
   const conexao = useMemo(() => obterEstadoConexao(), []);
 
   useEffect(() => {
-    // Se não carregar, o passo 2 mostra "nenhum dado autorizado"; a tela Meus Dados é quem mostra o erro.
-    obterConsentimentos().then(setConsentimentos).catch(() => undefined);
-  }, []);
+    // Se não carregar (ou sem idosoId), o passo 2 mostra "nenhum dado autorizado"; a tela Meus Dados é quem mostra o erro.
+    obterConsentimentos(idosoId).then(setConsentimentos).catch(() => undefined);
+  }, [idosoId]);
 
   const passos = montarPassos(conexao, consentimentos);
   const status = classificarSincronizacao(conexao.ultimaMedicaoMs);

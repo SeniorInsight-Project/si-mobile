@@ -1,6 +1,21 @@
-import { runtimeConfig } from '../config/runtime';
-import type { ConviteRede, ConviteRedeRequest } from '../types/api';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import { mockPermitido } from '../config/ambiente';
+import type {
+  AceiteConvite,
+  AtualizarConviteRequest,
+  ConvitePublico,
+  ConviteRede,
+  ConviteRedeRequest,
+  MembroRedeApi,
+} from '../types/api';
+import { apiClient, ApiError, type ApiClient } from './apiClient';
+import { extrairMensagemErro } from './erroHelper';
+
+export interface OpcoesRede {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'patch' | 'delete'>;
+}
+
+/** Papéis de administrador: o contrato usa ADMINISTRADOR; ADMIN é o valor antigo do app. */
+const ehPapelAdmin = (papel?: string | null) => papel === 'ADMINISTRADOR' || papel === 'ADMIN';
 
 /**
  * Limites da Rede de Proteção conforme RN-012 do DRS
@@ -94,12 +109,13 @@ export interface ConviteResponse extends Omit<ConviteRede, 'token' | 'status' | 
   [key: string]: any;
 }
 
-export interface ConvitePendente extends Partial<ConviteResponse> {
+export interface ConvitePendente extends Partial<Omit<ConviteResponse, 'papelAcessoSugerido' | 'grauParentescoSugerido'>> {
   id: string;
   emailDestinatario?: string;
+  /** PapelAcesso do contrato; string porque os mocks e convites antigos também passam por aqui. */
   papelAcessoSugerido?: string;
   papelLabel?: string;
-  grauParentescoSugerido?: string;
+  grauParentescoSugerido?: string | null;
   mensagemPersonalizada?: string;
   linkConvite?: string;
   linkWeb?: string;
@@ -124,163 +140,15 @@ export interface DetalhesConvite {
 }
 
 /**
- * Membros iniciais baseados fielmente no protótipo do Figma ("Rede Familiar de Apoio")
- * Utilizados para exibição imediata e fallback resiliente em ambiente de desenvolvimento e testes.
- */
-export const INITIAL_MEMBERS: MembroRede[] = [
-  {
-    id: 'member-carlos-01',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000101',
-    usuarioId: 'usr-carlos-01',
-    nome: 'Carlos Silva',
-    nomeCompleto: 'Carlos Silva',
-    iniciais: 'CS',
-    avatarBg: '#EBF5FF',
-    avatarCor: '#031753',
-    badgeBg: '#E8F8F0',
-    badgeCor: '#003B26',
-    acoes: ['call_primary', 'whatsapp_primary', 'history'],
-    verificado: true,
-    grauParentesco: 'Filho',
-    papelAcesso: 'ADMIN',
-    papelLabel: 'Administrador (Filho)',
-    badgeTipo: 'plantao', // 'plantao' | 'familia' | 'apoio' | 'especialista'
-    badgeTexto: '★ Plantão',
-    statusConexao: 'ONLINE', // 'ONLINE' | 'BUSY' | 'AWAY' | 'VERIFIED'
-    statusLabel: 'Disponível • Próximo (1.2 km)',
-    statusIcone: 'location',
-    telefone: '+55 11 98765-4321',
-    email: 'carlos.silva@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    distanciaKm: 1.2,
-    acoesTexto: 'Ações de emergência:',
-    isPlantao: true,
-    categoria: 'proximos', // 'todos' | 'proximos' | 'saude'
-    historicoRecente: [
-      { data: 'Hoje, 08:30', descricao: 'Confirmou presença e assumiu plantão' },
-      { data: 'Ontem, 20:00', descricao: 'Verificou checklist noturno' },
-    ],
-  },
-  {
-    id: 'member-roberta-02',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000102',
-    usuarioId: 'usr-roberta-02',
-    nome: 'Roberta Santos',
-    nomeCompleto: 'Roberta Santos',
-    iniciais: 'RS',
-    avatarBg: '#E8F8F0',
-    avatarCor: '#003B26',
-    badgeBg: '#EBF5FF',
-    badgeCor: '#2D418A',
-    acoes: ['call', 'whatsapp'],
-    verificado: false,
-    grauParentesco: 'Filha',
-    papelAcesso: 'CUIDADOR',
-    papelLabel: 'Cuidadora Principal (Filha)',
-    badgeTipo: 'familia',
-    badgeTexto: 'Família',
-    statusConexao: 'BUSY',
-    statusLabel: 'Em plantão até 18h • Farmácia',
-    statusIcone: 'clock',
-    telefone: '+55 11 97654-3210',
-    email: 'roberta.santos@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-    distanciaKm: 4.5,
-    acoesTexto: 'Agendou medicação hoje • 14:00',
-    isPlantao: false,
-    categoria: 'proximos',
-    historicoRecente: [
-      { data: 'Hoje, 14:00', descricao: 'Agendou medicação Losartana Potássica' },
-      { data: 'Hoje, 09:15', descricao: 'Comprou reposição na farmácia' },
-    ],
-  },
-  {
-    id: 'member-lucas-03',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000103',
-    usuarioId: 'usr-lucas-03',
-    nome: 'Lucas Silva',
-    nomeCompleto: 'Lucas Silva',
-    iniciais: 'LS',
-    avatarBg: '#F2F4F7',
-    avatarCor: '#475467',
-    badgeBg: '#F2F4F7',
-    badgeCor: '#64748B',
-    acoes: ['call', 'whatsapp'],
-    verificado: false,
-    grauParentesco: 'Neto',
-    papelAcesso: 'OBSERVADOR',
-    papelLabel: 'Cuidador Apoio (Neto)',
-    badgeTipo: 'apoio',
-    badgeTexto: 'Apoio',
-    statusConexao: 'ONLINE',
-    statusLabel: 'Notificações ativas • 8 km',
-    statusIcone: 'bell',
-    telefone: '+55 11 96543-2109',
-    email: 'lucas.silva@seniorinsight.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    distanciaKm: 8.0,
-    acoesTexto: 'Atendeu último alerta há 2 dias',
-    isPlantao: false,
-    categoria: 'todos',
-    historicoRecente: [
-      { data: 'Há 2 dias', descricao: 'Atendeu alerta de rotina não confirmada' },
-    ],
-  },
-  {
-    id: 'member-juliana-04',
-    vinculoId: 'e3b0c442-98fc-1c14-9afc-432100000104',
-    usuarioId: 'usr-juliana-04',
-    nome: 'Enfª Juliana Costa',
-    nomeCompleto: 'Enfª Juliana Costa',
-    iniciais: 'JC',
-    avatarBg: '#FFEBE7',
-    avatarCor: '#B51C13',
-    badgeBg: '#FFEBE7',
-    badgeCor: '#B51C13',
-    acoes: ['call', 'prontuario'],
-    verificado: true,
-    grauParentesco: 'Enfermeira',
-    papelAcesso: 'MEDICO',
-    papelLabel: 'Profissional de Saúde (COREN 2481)',
-    badgeTipo: 'especialista',
-    badgeTexto: 'Especialista',
-    statusConexao: 'VERIFIED',
-    statusLabel: 'Visitas: Terças e Quintas (09:00)',
-    statusIcone: 'calendar',
-    telefone: '+55 11 95432-1098',
-    email: 'juliana.costa@saude.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1594824813726-0a37e584ec69?w=150',
-    distanciaKm: 15.0,
-    acoesTexto: 'Última aferição: 12/8 mmHg • Normal',
-    isPlantao: false,
-    categoria: 'saude',
-    historicoRecente: [
-      { data: 'Ontem, 09:30', descricao: 'Aferiu pressão arterial (12/8 mmHg) - Normal' },
-      { data: '22 Out, 09:15', descricao: 'Checou quadro clínico e comorbidades' },
-    ],
-  },
-];
-
-/**
- * Sequência padrão de chamada de emergência SOS
- */
-export const SOS_CALL_SEQUENCE: string[] = [
-  'Carlos',
-  'Roberta',
-  'Lucas',
-  'SAMU 192',
-];
-
-/**
  * Normaliza os dados retornados do backend para o formato exibido na UI.
  */
 function normalizarMembroBackend(membro: any): MembroRede {
-  const isPlantao = membro.papelAcesso === 'ADMIN' || membro.papelAcesso === 'CUIDADOR_PRINCIPAL';
+  const isPlantao = ehPapelAdmin(membro.papelAcesso) || membro.papelAcesso === 'CUIDADOR_PRINCIPAL';
   let badgeTipo = 'familia';
   let badgeTexto = 'Família';
   let categoria = 'proximos';
 
-  if (membro.papelAcesso === 'ADMIN') {
+  if (ehPapelAdmin(membro.papelAcesso)) {
     badgeTipo = 'plantao';
     badgeTexto = '★ Plantão';
     categoria = 'proximos';
@@ -348,14 +216,15 @@ function normalizarMembroBackend(membro: any): MembroRede {
   return {
     id: membro.vinculoId || membro.familiarId || membro.id || `mem-${Math.random()}`,
     vinculoId: membro.vinculoId,
-    usuarioId: membro.usuarioId,
+    // TODO(si-care-service#105): até o care devolver usuarioId, o id do usuário vem em keycloakSub.
+    usuarioId: membro.usuarioId ?? membro.keycloakSub ?? undefined,
     nome: nomeCompleto,
     nomeCompleto,
     iniciais,
     avatarBg,
     avatarCor,
     subtitulo,
-    verificado: membro.papelAcesso === 'ADMIN' || ehMedico,
+    verificado: ehPapelAdmin(membro.papelAcesso) || ehMedico,
     grauParentesco: membro.grauParentesco || (ehMedico ? 'Médico(a)' : 'Familiar'),
     crm: membro.crm || null,
     especialidade: membro.especialidade || (ehMedico ? 'Médico de Referência' : null),
@@ -374,10 +243,11 @@ function normalizarMembroBackend(membro: any): MembroRede {
     infoIcon: isPlantao ? 'notifications' : ehMedico ? 'description' : 'schedule',
     infoTexto: isPlantao ? 'Recebe alertas SOS críticos' : ehMedico ? 'Relatório semanal de saúde ativo' : 'Notificações de cuidado ativas',
     infoDestaque: isPlantao,
-    telefone: membro.telefone || '+55 11 98765-4321',
+    // Sem telefone do back, fica vazio: a UI já mostra "Telefone indisponível" em vez de discar um número falso.
+    telefone: membro.telefone || '',
     email: membro.email || '',
     avatarUrl: membro.avatarUrl || null,
-    acoesTexto: ehMedico ? 'Corpo clínico de Dona Maria' : 'Conectado recentemente',
+    acoesTexto: ehMedico ? 'Corpo clínico do idoso' : 'Conectado recentemente',
     acoes,
     isPlantao,
     categoria: ehMedico ? 'saude' : categoria,
@@ -387,400 +257,206 @@ function normalizarMembroBackend(membro: any): MembroRede {
 
 /**
  * Lista todos os membros vinculados à Rede de Proteção do Idoso (HU16).
- * Endpoint: GET /api/v1/idosos/{idosoId}/rede
+ * Endpoint: GET /api/v1/idosos/{idosoId}/rede. Lista vazia fica vazia; erro lança (a tela mostra a falha).
  */
 export async function listarMembrosRede(
   idosoId: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<MembroRede[]> {
-  try {
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/rede`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      console.warn(`[redeProtecaoService] Backend retornou status ${response.status}. Usando fallback do protótipo.`);
-      return INITIAL_MEMBERS.map(normalizarMembroBackend);
-    }
-
-    const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(normalizarMembroBackend);
-    }
-
-    return INITIAL_MEMBERS.map(normalizarMembroBackend);
-  } catch (error: any) {
-    console.warn('[redeProtecaoService] Backend inacessível. Ativando fallback resiliente:', error?.message);
-    return INITIAL_MEMBERS.map(normalizarMembroBackend);
+  if (mockPermitido()) {
+    const { INITIAL_MEMBERS } = await import('../mocks/redeProtecao');
+    return (INITIAL_MEMBERS as unknown as MembroRede[]).map(normalizarMembroBackend);
   }
+
+  const data = await cliente.get<MembroRedeApi[]>(`/api/v1/idosos/${idosoId}/rede`);
+  return Array.isArray(data) ? data.map(normalizarMembroBackend) : [];
 }
 
-/**
- * Convites pendentes iniciais para exibição imediata e fallback resiliente
- */
-export const CONVITES_PENDENTES_INICIAIS: ConvitePendente[] = [
-  {
-    id: 'conv-pend-01',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria Silva',
-    emailDestinatario: 'marina.silva@exemplo.com',
-    papelAcessoSugerido: 'CUIDADOR',
-    papelLabel: 'Cuidadora Principal',
-    grauParentescoSugerido: 'Sobrinha',
-    mensagemPersonalizada: 'Oi Marina, junte-se à rede de cuidados da vovó Maria!',
-    token: 'tok-marina-48h',
-    linkConvite: 'seniorinsight://convite/tok-marina-48h',
-    status: 'PENDENTE',
-    criadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    dataExpiracao: new Date(Date.now() + 46 * 60 * 60 * 1000).toISOString(),
-    validadeHorasRestantes: 46,
-  },
-  {
-    id: 'conv-med-rec-01',
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nomeIdoso: 'Dona Maria Silva',
-    nomeMedico: 'Dra. Camila Souza',
-    crm: '987654/SP',
-    emailDestinatario: 'camila.souza@geriatria.med.br',
-    papelAcessoSugerido: 'MEDICO',
-    papelLabel: 'Médico(a) Especialista',
-    grauParentescoSugerido: 'Médico(a)',
-    tipoMembro: 'MEDICO',
-    mensagemPersonalizada: 'Convite para acompanhar os relatórios semanais de saúde de Dona Maria.',
-    token: 'tok-camila-recusado',
-    linkConvite: 'seniorinsight://convite/tok-camila-recusado',
-    status: 'RECUSADO',
-    mensagemRecusa: 'O médico recusou o convite',
-    criadoEm: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    recusadoEm: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    validadeHorasRestantes: 48,
-  },
-];
+export const obterMembros = listarMembrosRede;
 
-let convitesPendentesEmMemoria: ConvitePendente[] = [...CONVITES_PENDENTES_INICIAIS];
+const ROTULO_PAPEL: Record<string, string> = {
+  ADMINISTRADOR: 'Administrador',
+  CUIDADOR: 'Cuidador(a)',
+  OBSERVADOR: 'Observador',
+  MEDICO: 'Médico(a)',
+};
 
-/**
- * Simulação de geração de convite temporal (48h) para testes e fallback offline.
- */
-function simularGeracaoConvite(idosoId: string, dadosConvite: DadosConviteInput): ConviteResponse {
-  const dataExpiracao = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-  const tokenSimulado = `token-${Math.random().toString(36).substring(2, 12)}`;
-  const novoConvite = {
-    id: `convite-${Date.now()}`,
-    idosoId,
-    nomeIdoso: 'Dona Maria Silva',
-    emailDestinatario: dadosConvite.email,
-    token: tokenSimulado,
-    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
-    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
-    papelAcessoSugerido: dadosConvite.papelAcesso || 'CUIDADOR',
-    papelLabel: dadosConvite.papelAcesso === 'ADMIN' ? 'Administrador' : dadosConvite.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
-    grauParentescoSugerido: dadosConvite.grauParentesco || 'Familiar',
-    mensagemPersonalizada: dadosConvite.mensagemPersonalizada || '',
-    status: 'PENDENTE',
-    dataExpiracao,
-    criadoEm: new Date().toISOString(),
-    mensagemSimulacao: `Convite simulado com sucesso para ${dadosConvite.email}. Válido por 48 horas.`,
-    validadeHorasRestantes: 48,
+const rotuloPapel = (papel?: string | null) => (ehPapelAdmin(papel) ? 'Administrador' : ROTULO_PAPEL[papel ?? ''] ?? 'Cuidador(a)');
+
+/** Monta o convite exibido na UI a partir do ConviteRede do contrato. */
+function formatarConvite(data: ConviteRede, extras: Partial<ConvitePendente> = {}): ConvitePendente {
+  return {
+    ...data,
+    linkConvite: data.token ? `seniorinsight://convite/${data.token}` : undefined,
+    linkWeb: data.token ? `https://seniorinsight.app/convite/${data.token}` : undefined,
+    papelLabel: rotuloPapel(data.papelAcessoSugerido),
+    ...extras,
   };
-  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
-  return novoConvite;
 }
 
 /**
- * Gera um convite temporal (48h/72h) para inclusão de novo membro na Rede de Proteção (HU16).
- * Endpoint: POST /api/v1/idosos/{idosoId}/convites
- * Payload: { email, papelAcesso, grauParentesco, mensagemPersonalizada }
+ * Gera um convite temporal para inclusão de novo membro na Rede de Proteção (HU16).
+ * Endpoint: POST /api/v1/idosos/{idosoId}/convites (ConviteRedeRequest). Erros 400/403/404/409 lançam ApiError.
  */
 export async function gerarConvite(
   idosoId: string,
   dadosConvite: DadosConviteInput,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConviteResponse> {
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        email: dadosConvite.email,
-        papelAcesso: dadosConvite.papelAcesso || 'CUIDADOR',
-        grauParentesco: dadosConvite.grauParentesco || 'Familiar',
-        mensagemPersonalizada: dadosConvite.mensagemPersonalizada || 'Olá, junte-se à rede de cuidados familiar no SeniorInsight.',
-      } satisfies ConviteRedeRequest),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[redeProtecaoService] Backend retornou 404 ao gerar convite. Ativando fallback resiliente.');
-        return simularGeracaoConvite(idosoId, dadosConvite);
-      }
-
-      const errorData = await response.json().catch(() => ({}));
-      const erro: ErroComStatus = new Error(errorData.message || `Erro ${response.status} ao gerar convite.`);
-      erro.status = response.status;
-      throw erro;
-    }
-
-    const data = await response.json();
-    const conviteFormatado: ConvitePendente = {
-      ...data,
-      linkConvite: `seniorinsight://convite/${data.token}`,
-      linkWeb: `https://seniorinsight.app/convite/${data.token}`,
-      papelLabel: (data.papelAcesso || dadosConvite.papelAcesso) === 'ADMIN' ? 'Administrador' : (data.papelAcesso || dadosConvite.papelAcesso) === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
-      grauParentescoSugerido: data.grauParentesco || dadosConvite.grauParentesco || 'Familiar',
-      emailDestinatario: data.email || dadosConvite.email,
-    };
-    convitesPendentesEmMemoria = [conviteFormatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== dadosConvite.email)];
-    return conviteFormatado as ConviteResponse;
-  } catch (error: any) {
-    if (error?.status && error.status !== 404) {
-      // Erro de regra de negócio retornado pela API (ex: 409, 400, 403) - deve ser propagado
-      throw error;
-    }
-
-    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite. Simulando sucesso local:', error?.message);
-    return simularGeracaoConvite(idosoId, dadosConvite);
+  if (mockPermitido()) {
+    const { mockGerarConvite } = await import('../mocks/redeProtecao');
+    return mockGerarConvite(idosoId, dadosConvite) as unknown as ConviteResponse;
   }
+
+  const corpo = {
+    email: dadosConvite.email,
+    papelAcesso: (dadosConvite.papelAcesso || 'CUIDADOR') as ConviteRedeRequest['papelAcesso'],
+    grauParentesco: dadosConvite.grauParentesco || 'Familiar',
+    mensagemPersonalizada: dadosConvite.mensagemPersonalizada || 'Olá, junte-se à rede de cuidados familiar no SeniorInsight.',
+  } satisfies ConviteRedeRequest;
+
+  const data = await cliente.post<ConviteRede>(`/api/v1/idosos/${idosoId}/convites`, corpo);
+  return formatarConvite(data) as ConviteResponse;
 }
 
 /**
- * Consulta ou simula os dados informativos de um convite a partir de seu token (HU-013).
+ * Consulta os dados de um convite pelo token, antes de aceitar (HU-013).
+ * Endpoint: GET /api/v1/convites?token= (ConvitePublico). 404 token inexistente, 409 já aceito, 410 expirado.
  */
-export async function obterDetalhesConvite(tokenConvite: string): Promise<DetalhesConvite> {
+export async function obterDetalhesConvite(
+  tokenConvite: string,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<DetalhesConvite> {
   if (!tokenConvite || typeof tokenConvite !== 'string') {
     throw new Error('Token de convite inválido ou ausente.');
   }
 
-  const tokenLimpo = tokenConvite.trim();
-
-  // Verifica se o token simula expiração para testes
-  if (tokenLimpo.toLowerCase().includes('expirado')) {
-    return {
-      token: tokenLimpo,
-      nomeIdoso: 'Dona Maria Silva',
-      papelAcessoSugerido: 'CUIDADOR',
-      grauParentescoSugerido: 'Familiar de Apoio',
-      status: 'EXPIRADO',
-      expirado: true,
-      mensagem: 'Convite expirado. O prazo de validade temporal de 48 horas foi ultrapassado.',
-    };
+  if (mockPermitido()) {
+    const { mockObterDetalhesConvite } = await import('../mocks/redeProtecao');
+    return mockObterDetalhesConvite(tokenConvite);
   }
 
-  // Retorna os dados informativos do convite para a tela de aceite
+  const token = tokenConvite.trim();
+  const c = await cliente.get<ConvitePublico>(`/api/v1/convites?token=${encodeURIComponent(token)}`);
+  const expiraEm = Date.parse(c.expiraEm);
   return {
-    token: tokenLimpo,
-    nomeIdoso: 'Dona Maria Silva',
-    idadeIdoso: 76,
-    solicitanteNome: 'Carlos Silva',
-    solicitanteGrau: 'Filho (Administrador)',
-    papelAcessoSugerido: 'CUIDADOR',
-    papelLabel: 'Familiar de Apoio',
-    grauParentescoSugerido: 'Familiar',
-    status: 'PENDENTE',
-    expirado: false,
-    dataExpiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+    token,
+    nomeIdoso: c.primeiroNomeIdoso,
+    solicitanteNome: c.nomeConvidante,
+    solicitanteGrau: c.grauParentesco ?? undefined,
+    papelAcessoSugerido: c.papelAcesso,
+    papelLabel: rotuloPapel(c.papelAcesso),
+    grauParentescoSugerido: c.grauParentesco ?? '',
+    status: c.status,
+    expirado: c.status === 'EXPIRADO' || (Number.isFinite(expiraEm) && expiraEm < Date.now()),
+    dataExpiracao: c.expiraEm,
   };
 }
 
+const MENSAGENS_ACEITE: Record<number, string> = {
+  400: 'Este convite é inválido. Peça um novo convite ao familiar administrador.',
+  403: 'Sua conta não tem permissão para aceitar este convite.',
+  410: 'Convite expirado. Peça um novo convite ao familiar administrador.',
+};
+
 /**
- * Aceita um convite temporal para vínculo na rede de proteção (HU16 / HU-013).
- * Endpoint: POST /api/v1/convites/aceitar?token=...
+ * Aceita um convite e cria o vínculo na rede de proteção (HU16 / HU-013).
+ * Endpoint: POST /api/v1/convites/aceitar?token=. Só devolve o AceiteConvite do servidor: em 400/403/409/410
+ * (e qualquer outro erro) lança ApiError com a mensagem para a tela e nunca devolve um vínculo.
  */
 export async function aceitarConvite(
   tokenConvite: string,
-  tokenAutenticacao: string | null = null
-): Promise<any> {
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<AceiteConvite> {
+  if (mockPermitido()) {
+    const { mockAceitarConvite } = await import('../mocks/redeProtecao');
+    return mockAceitarConvite(tokenConvite);
+  }
+
   try {
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(tokenAutenticacao);
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
+    return await cliente.post<AceiteConvite>(`/api/v1/convites/aceitar?token=${encodeURIComponent(tokenConvite)}`);
+  } catch (erro) {
+    if (erro instanceof ApiError && !erro.erroDeRede) {
+      const mensagem =
+        erro.status === 409
+          ? extrairMensagemErro(erro.corpo, 'Você já possui vínculo ativo com este idoso ou o limite da rede foi atingido.')
+          : MENSAGENS_ACEITE[erro.status];
+      if (mensagem) throw new ApiError(erro.status, erro.corpo, erro.url, mensagem);
     }
-
-    const encodedToken = encodeURIComponent(tokenConvite);
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/aceitar?token=${encodedToken}`, {
-      method: 'POST',
-      headers,
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[redeProtecaoService] Backend retornou 404 para aceitarConvite. Ativando fallback resiliente.');
-        if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
-          const err: ErroComStatus = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
-          err.status = 410;
-          throw err;
-        }
-        return {
-          vinculoId: `vinculo-${Date.now()}`,
-          idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-          nomeIdoso: 'Dona Maria Silva',
-          familiarId: `familiar-${Date.now()}`,
-          nomeFamiliar: 'Familiar Convidado',
-          grauParentesco: 'Familiar',
-          papelAcesso: 'CUIDADOR',
-          criadoEm: new Date().toISOString(),
-          mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
-        };
-      }
-
-      const errorData = await response.json().catch(() => ({}));
-      let mensagem = errorData.message || `Erro ${response.status} ao aceitar convite.`;
-      if (response.status === 410) {
-        mensagem = 'Convite expirado. Peça um novo convite ao familiar administrador.';
-      } else if (response.status === 409) {
-        mensagem = errorData.message || 'Você já possui vínculo ativo com este idoso na Rede de Proteção.';
-      }
-      const erro: ErroComStatus = new Error(mensagem);
-      erro.status = response.status;
-      throw erro;
-    }
-
-    return await response.json();
-  } catch (error: any) {
-    if (error.status && error.status !== 404) {
-      throw error;
-    }
-
-    console.warn('[redeProtecaoService] Erro ao aceitar convite no backend. Verificando fallback:', error?.message);
-
-    // Tratamento de convite expirado no fallback de teste
-    if (tokenConvite && tokenConvite.toLowerCase().includes('expirado')) {
-      const err: ErroComStatus = new Error('Convite expirado. Peça um novo convite ao familiar administrador.');
-      err.status = 410;
-      throw err;
-    }
-
-    return {
-      vinculoId: `vinculo-${Date.now()}`,
-      idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-      nomeIdoso: 'Dona Maria Silva',
-      familiarId: `familiar-${Date.now()}`,
-      nomeFamiliar: 'Familiar Convidado',
-      grauParentesco: 'Familiar',
-      papelAcesso: 'CUIDADOR',
-      criadoEm: new Date().toISOString(),
-      mensagem: 'Convite aceito com sucesso! Vínculo criado na Rede de Proteção de Dona Maria Silva.',
-    };
+    throw erro;
   }
 }
 
 /**
- * Lista todos os convites pendentes de um idoso (HU-012/HU-013).
+ * Lista os convites pendentes de um idoso (HU-012/HU-013).
+ * Endpoint: GET /api/v1/idosos/{idosoId}/convites/pendentes. Lista vazia fica vazia; erro lança.
  */
 export async function listarConvitesPendentes(
   idosoId: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConvitePendente[]> {
-  try {
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites/pendentes`, {
-      method: 'GET',
-      headers,
-    });
-    if (!response.ok) {
-      return [...convitesPendentesEmMemoria];
-    }
-    const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) return data;
-    return [...convitesPendentesEmMemoria];
-  } catch {
-    return [...convitesPendentesEmMemoria];
+  if (mockPermitido()) {
+    const { mockListarConvites } = await import('../mocks/redeProtecao');
+    return mockListarConvites(idosoId) as unknown as ConvitePendente[];
   }
+
+  const data = await cliente.get<ConviteRede[]>(`/api/v1/idosos/${idosoId}/convites/pendentes`);
+  return Array.isArray(data) ? data.map((c) => formatarConvite(c)) : [];
 }
 
 /**
- * Cancela um convite pendente.
+ * Cancela um convite pendente. Endpoint: DELETE /api/v1/convites/{conviteId} (204).
  */
 export async function cancelarConvite(
   idosoId: string,
   conviteId: string,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<boolean> {
-  try {
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
-      method: 'DELETE',
-      headers,
-    });
-  } catch (err: any) {
-    console.warn('[redeProtecaoService] Falha ao cancelar convite no backend, atualizando localmente:', err?.message);
+  if (mockPermitido()) {
+    const { mockCancelarConvite } = await import('../mocks/redeProtecao');
+    return mockCancelarConvite(idosoId, conviteId);
   }
-  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
+
+  await cliente.delete(`/api/v1/convites/${conviteId}`);
   return true;
 }
 
 /**
- * Edita dados de um convite pendente (email, papel, grau, mensagem).
+ * Edita dados de um convite pendente (só os campos enviados).
+ * Endpoint: PATCH /api/v1/convites/{conviteId} (AtualizarConviteRequest).
  */
 export async function editarConvite(
   idosoId: string,
   conviteId: string,
   novosDados: Partial<DadosConviteInput>,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConvitePendente | null> {
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-    await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/convites/${conviteId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(novosDados),
-    });
-  } catch (err: any) {
-    console.warn('[redeProtecaoService] Falha ao editar convite no backend, atualizando localmente:', err?.message);
+  if (mockPermitido()) {
+    const { mockEditarConvite } = await import('../mocks/redeProtecao');
+    return mockEditarConvite(idosoId, conviteId, novosDados) as unknown as ConvitePendente;
   }
-  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId);
-  if (idx !== -1) {
-    convitesPendentesEmMemoria[idx] = {
-      ...convitesPendentesEmMemoria[idx],
-      emailDestinatario: novosDados.email || convitesPendentesEmMemoria[idx].emailDestinatario,
-      grauParentescoSugerido: novosDados.grauParentesco || convitesPendentesEmMemoria[idx].grauParentescoSugerido,
-      papelAcessoSugerido: novosDados.papelAcesso || convitesPendentesEmMemoria[idx].papelAcessoSugerido,
-      papelLabel: novosDados.papelAcesso === 'ADMIN' ? 'Administrador' : novosDados.papelAcesso === 'OBSERVADOR' ? 'Observador' : 'Cuidador(a)',
-      mensagemPersonalizada: novosDados.mensagemPersonalizada ?? convitesPendentesEmMemoria[idx].mensagemPersonalizada,
-    };
-    return convitesPendentesEmMemoria[idx];
-  }
-  return null;
+
+  const corpo: AtualizarConviteRequest = {};
+  if (novosDados.email !== undefined) corpo.email = novosDados.email;
+  if (novosDados.papelAcesso !== undefined) corpo.papelAcesso = novosDados.papelAcesso as AtualizarConviteRequest['papelAcesso'];
+  if (novosDados.grauParentesco !== undefined) corpo.grauParentesco = novosDados.grauParentesco;
+  if (novosDados.mensagemPersonalizada !== undefined) corpo.mensagemPersonalizada = novosDados.mensagemPersonalizada;
+
+  const data = await cliente.patch<ConviteRede>(`/api/v1/convites/${conviteId}`, corpo);
+  return formatarConvite(data);
 }
 
 /**
  * Obtém a contagem de médicos ativos/vinculados e convites pendentes conforme RN-012 (HU-016).
  * Regra RN-012: Limite máximo de até 2 médicos por idoso na rede de proteção.
  */
-export async function obterContagemMedicos(idosoId: string): Promise<ContagemMedicos> {
-  const membros = await listarMembrosRede(idosoId);
+export async function obterContagemMedicos(idosoId: string, opcoes: OpcoesRede = {}): Promise<ContagemMedicos> {
+  const membros = await listarMembrosRede(idosoId, opcoes);
   const medicosVinculados = membros.filter(
     (m) => (m.papelAcesso === 'MEDICO' || m.tipoMembro === 'MEDICO') && (m.crm || m.grauParentesco === 'Médico' || m.grauParentesco === 'Médico(a)')
   );
 
-  const pendentes = await listarConvitesPendentes(idosoId);
+  const pendentes = await listarConvitesPendentes(idosoId, opcoes);
   const medicosPendentes = pendentes.filter(
     (c) => c.status === 'PENDENTE' && (c.papelAcessoSugerido === 'MEDICO' || c.crm || c.tipoMembro === 'MEDICO')
   );
@@ -802,18 +478,22 @@ export async function obterContagemMedicos(idosoId: string): Promise<ContagemMed
 }
 
 /**
- * Gera convite de uso único para Médico de Referência do Idoso válido por 72h (HU-016 / RF-008).
+ * Gera convite de uso único para Médico de Referência do Idoso (HU-016 / RF-008).
  * Apenas o Familiar Administrador pode convidar médicos.
  * Se o limite de 2 médicos da RN-012 for atingido, bloqueia e retorna erro.
+ *
+ * O contrato (ConviteRedeRequest) não tem nome nem CRM: o POST leva só email, papelAcesso "MEDICO",
+ * grauParentesco e mensagemPersonalizada. Nome e CRM ficam só na resposta exibida na tela.
  */
 export async function gerarConviteMedico(
   idosoId: string,
   dadosMedico: DadosConviteMedicoInput,
-  options: GerarConviteMedicoOptions = {}
+  options: GerarConviteMedicoOptions = {},
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConvitePendente> {
-  const { papelUsuario = 'ADMIN', token = null, ignorarLimite = false } = options;
+  const { papelUsuario = 'ADMINISTRADOR', ignorarLimite = false } = options;
 
-  if (papelUsuario !== 'ADMIN' && !options.isAdmin) {
+  if (!ehPapelAdmin(papelUsuario) && !options.isAdmin) {
     throw new Error('Apenas o Familiar Administrador tem permissão para convidar médicos.');
   }
 
@@ -832,118 +512,70 @@ export async function gerarConviteMedico(
   }
 
   if (!ignorarLimite) {
-    const contagem = await obterContagemMedicos(idosoId);
+    const contagem = await obterContagemMedicos(idosoId, { cliente });
     if (contagem.totalMedicos >= LIMITE_MEDICOS_RN012) {
       throw new Error('Limite de 2 médicos atingido');
     }
   }
 
-  const tokenSimulado = `med-${Math.random().toString(36).substring(2, 12)}`;
-  const dataExpiracao = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
-
-  const novoConvite: ConvitePendente = {
-    id: `convite-med-${Date.now()}`,
-    idosoId,
-    nomeIdoso: 'Dona Maria Silva',
-    nomeMedico: dadosMedico.nome.trim(),
-    crm: dadosMedico.crm.trim().toUpperCase(),
-    emailDestinatario,
-    token: tokenSimulado,
-    linkConvite: `seniorinsight://convite/${tokenSimulado}`,
-    linkWeb: `https://seniorinsight.app/convite/${tokenSimulado}`,
-    papelAcessoSugerido: 'MEDICO',
-    papelLabel: 'Médico(a) de Referência',
-    grauParentescoSugerido: 'Médico(a)',
-    tipoMembro: 'MEDICO',
-    mensagemPersonalizada: dadosMedico.mensagemPersonalizada || 'Convite para acompanhar os relatórios semanais e dados clínicos de Dona Maria no SeniorInsight.',
-    status: 'PENDENTE',
-    dataExpiracao,
-    criadoEm: new Date().toISOString(),
-    validadeHorasRestantes: 72,
-    mensagemSimulacao: `Convite de 72h enviado para o Dr(a). ${dadosMedico.nome.trim()} (CRM ${dadosMedico.crm.trim().toUpperCase()}).`,
-  };
-
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}/convites`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        email: emailDestinatario,
-        papelAcesso: 'MEDICO',
-        grauParentesco: 'Médico(a)',
-        nomeMedico: dadosMedico.nome.trim(),
-        crm: dadosMedico.crm.trim().toUpperCase(),
-        mensagemPersonalizada: novoConvite.mensagemPersonalizada,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const formatado: ConvitePendente = {
-        ...novoConvite,
-        ...data,
-        nomeMedico: dadosMedico.nome.trim(),
-        crm: dadosMedico.crm.trim().toUpperCase(),
-        validadeHorasRestantes: 72,
-      };
-      convitesPendentesEmMemoria = [formatado, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
-      return formatado;
-    }
-  } catch (err: any) {
-    console.warn('[redeProtecaoService] Erro ao comunicar com backend ao gerar convite médico, ativando fallback local:', err?.message);
+  if (mockPermitido()) {
+    const { mockGerarConviteMedico } = await import('../mocks/redeProtecao');
+    return mockGerarConviteMedico(idosoId, dadosMedico) as unknown as ConvitePendente;
   }
 
-  convitesPendentesEmMemoria = [novoConvite, ...convitesPendentesEmMemoria.filter((c) => c.emailDestinatario !== emailDestinatario)];
-  return novoConvite;
+  const corpo = {
+    email: emailDestinatario,
+    papelAcesso: 'MEDICO',
+    grauParentesco: 'Médico(a)',
+    mensagemPersonalizada:
+      dadosMedico.mensagemPersonalizada || 'Convite para acompanhar os relatórios semanais e dados clínicos no SeniorInsight.',
+  } satisfies ConviteRedeRequest;
+
+  const data = await cliente.post<ConviteRede>(`/api/v1/idosos/${idosoId}/convites`, corpo);
+  const expiraEm = Date.parse(data.dataExpiracao);
+  return formatarConvite(data, {
+    nomeMedico: dadosMedico.nome.trim(),
+    crm: dadosMedico.crm.trim().toUpperCase(),
+    ...(Number.isFinite(expiraEm)
+      ? { validadeHorasRestantes: Math.max(0, Math.round((expiraEm - Date.now()) / 3_600_000)) }
+      : {}),
+  });
 }
 
 /**
  * Marca um convite de médico como recusado (HU-017 Cenário 2).
- * Exibe a mensagem: "O médico recusou o convite"
+ * Atenção: esta rota NÃO existe no care-v1 (e StatusConvite não tem RECUSADO); o path foi mantido a pedido
+ * até o back definir o fluxo, então fora do mock a chamada responde 404 e o erro aparece na tela.
  */
 export async function recusarConvite(
   idosoId: string,
   conviteId: string,
-  motivo = 'O médico recusou o convite'
+  motivo = 'O médico recusou o convite',
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<ConvitePendente> {
-  const idx = convitesPendentesEmMemoria.findIndex((c) => c.id === conviteId || c.token === conviteId);
-  if (idx !== -1) {
-    convitesPendentesEmMemoria[idx] = {
-      ...convitesPendentesEmMemoria[idx],
-      status: 'RECUSADO',
-      mensagemRecusa: motivo,
-      recusadoEm: new Date().toISOString(),
-    };
-    return convitesPendentesEmMemoria[idx];
+  if (mockPermitido()) {
+    const { mockRecusarConvite } = await import('../mocks/redeProtecao');
+    return mockRecusarConvite(idosoId, conviteId, motivo) as unknown as ConvitePendente;
   }
 
-  const mockRecusa: ConvitePendente = {
-    id: conviteId || `conv-rec-${Date.now()}`,
-    idosoId,
-    status: 'RECUSADO',
-    mensagemRecusa: motivo,
-    nomeMedico: 'Dr. Convidado',
-    crm: '000000/SP',
-    emailDestinatario: 'medico@recusou.com',
-    papelAcessoSugerido: 'MEDICO',
-    tipoMembro: 'MEDICO',
-    recusadoEm: new Date().toISOString(),
-  };
-  convitesPendentesEmMemoria = [mockRecusa, ...convitesPendentesEmMemoria];
-  return mockRecusa;
+  return cliente.post<ConvitePendente>(`/api/v1/idosos/${idosoId}/convites/${conviteId}/recusar`, { motivo });
 }
 
 /**
- * Descarta ou remove a notificação de convite recusado da visualização da família.
+ * Descarta a notificação de convite recusado da visualização da família.
+ * Atenção: DELETE /api/v1/idosos/{idosoId}/convites/{conviteId} também não existe no care-v1 (mesmo motivo
+ * de recusarConvite).
  */
-export async function descartarConviteRecusado(idosoId: string, conviteId: string): Promise<boolean> {
-  convitesPendentesEmMemoria = convitesPendentesEmMemoria.filter((c) => c.id !== conviteId);
+export async function descartarConviteRecusado(
+  idosoId: string,
+  conviteId: string,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<boolean> {
+  if (mockPermitido()) {
+    const { mockDescartarConviteRecusado } = await import('../mocks/redeProtecao');
+    return mockDescartarConviteRecusado(idosoId, conviteId);
+  }
+
+  await cliente.delete(`/api/v1/idosos/${idosoId}/convites/${conviteId}`);
   return true;
 }
-
-
-

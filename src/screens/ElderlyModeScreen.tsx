@@ -14,16 +14,22 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
+import WatchStatusCard from '../components/WatchStatusCard';
 import { usePapel } from '../context/PapelContext';
+import {
+  carregarStatusRelogioIdoso,
+  StatusRelogioIdoso,
+} from '../services/relogioStatusService';
+import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
 import {
   listarRotinas,
   confirmarIngestao,
-  INITIAL_MEDICINES,
   RotinaMedicamento,
 } from '../services/medicamentoService';
 import { obterRotinasDoCache } from '../services/medicamentoDatabase';
+import { obterContatosDoCache } from '../services/contatoEmergenciaDatabase';
 import {
   atualizarStatusAlarme,
   AlarmeEmergencia,
@@ -40,22 +46,49 @@ import {
   listarContatos,
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
-
-const DEFAULT_IDOSO_ID = 'e3b0c442-98fc-1c14-9afc-432100000001';
+import { useIdoso } from '../context/IdosoContext';
 
 export interface ElderlyModeScreenProps {
   onNavigate?: (screen: string) => void;
-  idosoId?: string;
+  idosoId?: string | null;
   onLogout?: () => void;
 }
 
 export default function ElderlyModeScreen({
   onNavigate,
-  idosoId = DEFAULT_IDOSO_ID,
+  idosoId: idosoIdProp,
   onLogout,
 }: ElderlyModeScreenProps) {
+  // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
+  const { idosoId: idosoIdContexto, nomeIdoso: nomeIdosoContexto } = useIdoso();
+  const idosoId = idosoIdProp ?? idosoIdContexto;
+  const [idAtivo, setIdAtivo] = useState<string | null>(idosoId || null);
+  // Nome do aparelho pareado (se houver); senão o do contexto. Sem nome, a saudação fica neutra.
+  const [nomePareado, setNomePareado] = useState<string | null>(null);
+  const nomeIdoso = nomePareado || nomeIdosoContexto || null;
+  const saudacao = nomeIdoso ? `Olá, ${nomeIdoso}!` : 'Olá!';
+
+  useEffect(() => {
+    let mounted = true;
+    async function resolverIdentidade() {
+      try {
+        const pareado = await obterAparelhoPareado();
+        if (mounted) {
+          if (pareado?.nome) {
+            setNomePareado(pareado.nome);
+          }
+          const idFinal = idosoId || pareado?.idosoId || null;
+          setIdAtivo(idFinal);
+        }
+      } catch (err) {
+        console.warn('[ElderlyModeScreen] Erro ao resolver aparelho pareado:', err);
+      }
+    }
+    resolverIdentidade();
+    return () => { mounted = false; };
+  }, [idosoId]);
   const isIdoso = usePapel() === 'IDOSO';
-  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>(INITIAL_MEDICINES);
+  const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
@@ -64,24 +97,56 @@ export default function ElderlyModeScreen({
   const [alarmeAtivo, setAlarmeAtivo] = useState<AlarmeEmergencia | null>(null);
   const [filaStatus, setFilaStatus] = useState<SosQueueStatusInfo | null>(null);
   const [primeiroContato, setPrimeiroContato] = useState<ContatoEmergencia | null>(null);
+  const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
+  const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
 
 
   useEffect(() => {
+    if (!idAtivo) {
+      setRotinas([]);
+      return;
+    }
+
     // 1. Carrega previamente do SQLite local para exibição instantânea 100% offline (RF-038)
-    obterRotinasDoCache(idosoId)
+    // Carrega previamente contatos e rotinas do SQLite para exibição instantânea 100% offline
+    obterContatosDoCache(idAtivo)
+      .then((cachedContatos) => {
+        if (cachedContatos && cachedContatos.length > 0) {
+          setContatosEmergencia(cachedContatos);
+          setPrimeiroContato(cachedContatos[0]);
+        }
+      })
+      .catch((err) => {
+        console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
+      });
+
+    // 0. Carrega status de sincronização do relógio (HU-025)
+    carregarStatusRelogioIdoso(idAtivo)
+      .then(setWatchStatus)
+      .catch((err) => {
+        // Sem API e sem cache: o card fica oculto em vez de mostrar um status inventado.
+        setWatchStatus(null);
+        console.warn('[ElderlyModeScreen] Status do relógio indisponível:', err?.message);
+      });
+
+    obterRotinasDoCache(idAtivo)
       .then((cached) => {
         if (cached && Array.isArray(cached) && cached.length > 0) {
           setRotinas(cached as RotinaMedicamento[]);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
+      });
+
+    const idosoIdResolvido = idAtivo;
 
     // 2. Consulta o gateway em background e sincroniza a agenda
     async function carregar() {
       try {
         setLoading(true);
-        const data = await listarRotinas(idosoId);
+        const data = await listarRotinas(idosoIdResolvido);
         if (data && Array.isArray(data) && data.length > 0) {
           setRotinas(data);
         }
@@ -94,8 +159,9 @@ export default function ElderlyModeScreen({
 
     async function carregarContatos() {
       try {
-        const lista = await listarContatos(idosoId);
+        const lista = await listarContatos(idosoIdResolvido);
         if (lista && lista.length > 0) {
+          setContatosEmergencia(lista);
           setPrimeiroContato(lista[0]);
         }
       } catch (err: any) {
@@ -117,7 +183,7 @@ export default function ElderlyModeScreen({
         Linking.openURL(`tel:${telSanitizado}`).catch(() => {});
       },
     });
-  }, [idosoId]);
+  }, [idAtivo]);
 
 
   const remedioAtual = useMemo(() => {
@@ -149,7 +215,7 @@ export default function ElderlyModeScreen({
     try {
       setActionLoading(true);
       const res = await confirmarIngestao(
-        idosoId,
+        idAtivo || idosoId || '',
         remedioAtual.id,
         'Idoso confirmou com 1 toque no Modo Idoso.'
       );
@@ -180,7 +246,7 @@ export default function ElderlyModeScreen({
           'o medicamento';
 
         Alert.alert(
-          'Muito Bem, Dona Maria! 🎉',
+          nomeIdoso ? `Muito Bem, ${nomeIdoso}! 🎉` : 'Muito Bem! 🎉',
           `Registramos que você tomou ${nomeMedicamento}. Sua família já foi avisada!`
         );
       }
@@ -195,29 +261,34 @@ export default function ElderlyModeScreen({
     if (remedioAtual) {
       Alert.alert(
         'Voz Ativa 🗣️',
-        `"Olá, Dona Maria! São ${remedioAtual.horario}. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome || remedioAtual.nomeMedicamento || 'seu remédio'}, ${remedioAtual.dosagem}. ${remedioAtual.instrucoes || 'Tome com um copo d\'água.'}"`
+        `"${saudacao} São ${remedioAtual.horario}. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome || remedioAtual.nomeMedicamento || 'seu remédio'}, ${remedioAtual.dosagem}. ${remedioAtual.instrucoes || 'Tome com um copo d\'água.'}"`
       );
     } else if (todosTomados) {
       Alert.alert(
         'Voz Ativa 🗣️',
-        '"Olá, Dona Maria! Todos os seus remédios de hoje já foram tomados. Continue se cuidando e tenha um ótimo dia!"'
+        `"${saudacao} Todos os seus remédios de hoje já foram tomados. Continue se cuidando e tenha um ótimo dia!"`
       );
     } else {
       Alert.alert(
         'Voz Ativa 🗣️',
-        '"Olá, Dona Maria! Não há medicamentos pendentes para este horário."'
+        `"${saudacao} Não há medicamentos pendentes para este horário."`
       );
     }
   };
 
   const handleTriggerSos = async () => {
+    const idSos = idAtivo || idosoId;
+    if (!idSos) {
+      Alert.alert('Atenção', 'Aparelho sem idoso vinculado. Não foi possível enviar o SOS.');
+      return;
+    }
     setDisparandoSos(true);
     try {
       // 1. Obtém localização rápida (cache ou 1.5s timeout, sem bloqueio de geocoding reverso)
       const loc = await obterLocalizacaoRapida();
 
       // 2. Enfileira imediatamente no SQLite e memória com chave de idempotência UUID única
-      const registro = await enfileirarSos(idosoId, {
+      const registro = await enfileirarSos(idSos, {
         latitude: loc?.latitude ?? null,
         longitude: loc?.longitude ?? null,
         nivelBateria: null,
@@ -328,7 +399,7 @@ export default function ElderlyModeScreen({
             </View>
             <View style={styles.greetingTexts}>
               <Text style={styles.greetingSub}>Quinta-feira, 10:02</Text>
-              <Text style={styles.greetingTitle}>Olá, Dona Maria!</Text>
+              <Text style={styles.greetingTitle}>{saudacao}</Text>
             </View>
           </View>
 
@@ -340,6 +411,12 @@ export default function ElderlyModeScreen({
             <Icon name="volume_up" size={22} color="#003B26" />
           </TouchableOpacity>
         </View>
+
+{/* STATUS DO RELÓGIO (HU-025 / RNF-006) */}
+        <WatchStatusCard
+          status={watchStatus}
+          onPress={() => onNavigate && onNavigate('ElderlyWatch')}
+        />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
         {loading ? (
@@ -414,7 +491,7 @@ export default function ElderlyModeScreen({
             <View style={styles.allTakenBadge}>
               <Text style={styles.allTakenBadgeText}>TUDO CERTO POR HOJE!</Text>
             </View>
-            <Text style={styles.allTakenTitle}>Parabéns, Dona Maria!</Text>
+            <Text style={styles.allTakenTitle}>{nomeIdoso ? `Parabéns, ${nomeIdoso}!` : 'Parabéns!'}</Text>
             <Text style={styles.allTakenSubtitle}>
               Todos os seus medicamentos de hoje já foram tomados com sucesso.
             </Text>
@@ -497,40 +574,43 @@ export default function ElderlyModeScreen({
             disabled={disparandoSos}
           />
 
-          {/* PÍLULA DE CUIDADORES AVISADOS */}
+          {/* PÍLULA DE CUIDADORES AVISADOS (HU-011) */}
           <TouchableOpacity
             style={styles.caregiversRow}
             onPress={() => !isIdoso && onNavigate && onNavigate('EmergencyContacts')}
             disabled={isIdoso}
             activeOpacity={0.85}
+            accessibilityLabel="Contatos de emergência notificados em caso de SOS"
           >
             <View style={styles.caregiversAvatars}>
-              <View style={[styles.miniAvatar, { backgroundColor: '#031753' }]}>
-                <Text style={styles.avatarTxt}>
-                  {primeiroContato?.iniciais || 'CA'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.miniAvatar,
-                  { backgroundColor: '#10B981', marginLeft: -6 },
-                ]}
-              >
-                <Text style={styles.avatarTxt}>RO</Text>
-              </View>
-              <View
-                style={[
-                  styles.miniAvatar,
-                  { backgroundColor: '#2D418A', marginLeft: -6 },
-                ]}
-              >
-                <Text style={styles.avatarTxt}>DR</Text>
-              </View>
+              {contatosEmergencia.length === 0 ? (
+                <View style={[styles.miniAvatar, { backgroundColor: colors.navy }]}>
+                  <Text style={styles.avatarTxt}>
+                    {primeiroContato?.iniciais || 'SOS'}
+                  </Text>
+                </View>
+              ) : (
+                contatosEmergencia.map((c, i) => (
+                  <View
+                    key={c.id || i}
+                    style={[
+                      styles.miniAvatar,
+                      { backgroundColor: c.corAvatar || colors.navy, marginLeft: i > 0 ? -6 : 0 },
+                    ]}
+                  >
+                    <Text style={[styles.avatarTxt, { color: c.corTexto || colors.white }]}>
+                      {c.iniciais || 'CO'}
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
-            <Text style={styles.caregiversText}>
-              {primeiroContato
-                ? `${primeiroContato.nome.split(' ')[0]}, Roberta e familiares avisados`
-                : 'Carlos, Roberta e familiares avisados'}
+            <Text style={styles.caregiversText} numberOfLines={1}>
+              {contatosEmergencia.length === 0
+                ? 'Nenhum contato cadastrado'
+                : contatosEmergencia.length === 1
+                ? `${contatosEmergencia[0].nome.split(' ')[0]} avisado(a) em caso de emergência`
+                : `${contatosEmergencia.map((c) => c.nome.split(' ')[0]).join(', ')} avisados`}
             </Text>
           </TouchableOpacity>
         </View>

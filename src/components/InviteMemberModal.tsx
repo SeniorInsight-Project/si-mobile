@@ -19,6 +19,7 @@ import {
   ConvitePendente,
   ConviteResponse,
 } from '../services/redeProtecaoService';
+import { useIdoso } from '../context/IdosoContext';
 
 const GRAUS_SUGERIDOS = [
   'Filho(a)',
@@ -69,6 +70,7 @@ export default function InviteMemberModal({
   conviteParaEditar = null,
   loading = false,
 }: InviteMemberModalProps) {
+  const { nomeIdoso: nomeIdosoContexto } = useIdoso();
   const [email, setEmail] = useState<string>('');
   const [grauParentesco, setGrauParentesco] = useState('Filho(a)');
   const [papelAcesso, setPapelAcesso] = useState('CUIDADOR');
@@ -141,7 +143,7 @@ export default function InviteMemberModal({
     if (!conviteGerado) return;
     try {
       const link = conviteGerado.linkConvite || `seniorinsight://convite/${conviteGerado.token}`;
-      const nomeIdoso = conviteGerado.nomeIdoso || 'Dona Maria Silva';
+      const nomeIdoso = conviteGerado.nomeIdoso || nomeIdosoContexto || null;
       await Share.share({
         title: 'Convite para Rede de Cuidados SeniorInsight',
         message: `Olá! Você foi convidado para a Rede de Cuidados de ${nomeIdoso} no aplicativo SeniorInsight.\n\nToque no link seguro para aceitar o convite: ${link}\n\n(Válido por 48 horas)`,

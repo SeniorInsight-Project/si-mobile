@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,18 +15,34 @@ import BottomNavBar from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
-import { atualizarStatusAlarme } from '../services/alarmeSosService';
+import SemIdosoCard from '../components/SemIdosoCard';
+import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
+import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
+import { useIdoso } from '../context/IdosoContext';
 import {
   buscarStatusDispositivo,
+  LIMITE_BATERIA_BAIXA,
   verificarPerdaDados,
   StatusDispositivo,
   ResultadoPerdaDados,
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
 import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
+import {
+  obterConsentimentos,
+  statusMonitoramento,
+  mensagemParaFamilia,
+  type Consentimentos,
+} from '../services/consentimentoService';
+import {
+  avisoFimTrial,
+  DireitoPremium,
+  formatarFaixaTrial,
+  obterDireitoPremium,
+} from '../services/premiumService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
-import { typography } from '../theme';
+import { colors, typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
@@ -45,8 +61,8 @@ function calcularIdade(dataNascimento?: string): number | null {
 
 export interface HomeScreenProps {
   onNavigate?: (screen: string) => void;
-  onSelectElderly?: (idosoId: string) => void;
-  familiarId?: string;
+  onSelectElderly?: (idosoId: string | null) => void;
+  familiarId?: string | null;
   plano?: string;
   onLogout?: () => void;
 }
@@ -55,21 +71,59 @@ export default function HomeScreen({
   onNavigate,
   onSelectElderly,
   onLogout,
-  familiarId = 'familiar-dev',
-  plano = 'PREMIUM',
+  familiarId,
+  plano: planoProp,
 }: HomeScreenProps) {
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
   const [loadingIdosos, setLoadingIdosos] = useState<boolean>(false);
-  const [deviceStatus, setDeviceStatus] = useState<(StatusDispositivo & { nomeIdoso: string }) | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<StatusDispositivo | null>(null);
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
   const [telemetria, setTelemetria] = useState<EstadoAtual | null>(null);
   const [scoreData, setScoreData] = useState<ScoreBemEstar | null>(null);
+  const [consentimentosIdoso, setConsentimentosIdoso] = useState<Consentimentos | null>(null);
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
+  const [direitoPremium, setDireitoPremium] = useState<DireitoPremium | null>(null);
+  const [erroPlano, setErroPlano] = useState<string | null>(null);
 
-  // Lista dos idosos do familiar (HU-008)
+  const carregarPlano = useCallback(async () => {
+    setErroPlano(null);
+    try {
+      const res = await obterDireitoPremium();
+      setDireitoPremium(res);
+    } catch (err: any) {
+      setDireitoPremium(null);
+      setErroPlano(err?.message || 'Não foi possível verificar seu plano.');
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarPlano();
+  }, [carregarPlano]);
+
+  const plano = planoProp ?? (direitoPremium?.premiumLiberado ? 'PREMIUM' : 'FREE');
+  const faixaTrial = formatarFaixaTrial(direitoPremium);
+  const avisoTrial = avisoFimTrial(direitoPremium);
+
+  const { idosoId: idosoSelecionadoId, setIdosoId, setNomeIdoso } = useIdoso();
+  const idosoSelecionadoRef = useRef<string | null>(idosoSelecionadoId);
+  idosoSelecionadoRef.current = idosoSelecionadoId;
+  const idosoSelecionado = idosos.find((idoso) => idoso.idosoId === idosoSelecionadoId) ?? null;
+  const bateriaBaixa = typeof deviceStatus?.nivelBateria === 'number' && deviceStatus.nivelBateria <= LIMITE_BATERIA_BAIXA;
+
+  // Seleciona o idoso (card ou fallback): atualiza id e nome no contexto.
+  const selecionarIdoso = useCallback(
+    (idoso: ElderlyProfile | null) => {
+      setIdosoId(idoso?.idosoId ?? null);
+      setNomeIdoso(idoso?.nome || null);
+      if (onSelectElderly) onSelectElderly(idoso?.idosoId ?? null);
+    },
+    [setIdosoId, setNomeIdoso, onSelectElderly]
+  );
+
+  // Lista dos idosos do familiar (HU-008): mantém a seleção atual se ainda existir, senão cai no primeiro.
   useEffect(() => {
     async function carregarIdosos() {
       try {
@@ -78,21 +132,13 @@ export default function HomeScreen({
         const lista = Array.isArray(data) ? data : [];
         setIdosos(lista);
 
-        // Carrega status do celular do idoso ativo (HU-027 e HU-028)
-        const idosoAlvo = lista[0]?.idosoId || 'e3b0c442-98fc-1c14-9afc-432100000001';
-        const nomeAlvo = lista[0]?.nome || 'Dona Maria';
-        const status = await buscarStatusDispositivo(idosoAlvo);
-        setDeviceStatus({ ...status, nomeIdoso: nomeAlvo });
-        const checagemPerda = verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3);
-        setPerdaDados(checagemPerda);
-
-        // Carrega estado atual da telemetria (HU-031)
-        const estadoTelemetria = await buscarEstadoAtual(idosoAlvo);
-        setTelemetria(estadoTelemetria);
-
-        // Carrega semáforo do bem-estar e score de risco (HU-032 e HU-033)
-        const scoreResult = await buscarScoreBemEstar(idosoAlvo, plano);
-        setScoreData(scoreResult);
+        const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
+        if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
+          selecionarIdoso(escolhido);
+        } else if (escolhido) {
+          // Mesmo idoso: só garante o nome no contexto.
+          setNomeIdoso(escolhido.nome || null);
+        }
       } catch (error: any) {
         console.warn('Erro ao carregar idosos na Home:', error?.message);
       } finally {
@@ -101,7 +147,53 @@ export default function HomeScreen({
     }
 
     carregarIdosos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familiarId]);
+
+  // Status do celular, telemetria e score do idoso SELECIONADO (HU-027, HU-028, HU-031, HU-032 e HU-033).
+  useEffect(() => {
+    if (!idosoSelecionadoId || !idosoSelecionado) {
+      setDeviceStatus(null);
+      setPerdaDados(null);
+      setTelemetria(null);
+      setScoreData(null);
+      setConsentimentosIdoso(null);
+      return;
+    }
+
+    let ativo = true;
+    const nomeAlvo = idosoSelecionado.nome || 'o idoso';
+    async function carregarDadosDoIdoso(id: string) {
+      try {
+        const status = await buscarStatusDispositivo(id);
+        if (!ativo) return;
+        setDeviceStatus(status);
+        setPerdaDados(verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3));
+
+        const estadoTelemetria = await buscarEstadoAtual(id);
+        if (!ativo) return;
+        setTelemetria(estadoTelemetria);
+
+        const scoreResult = await buscarScoreBemEstar(id, plano);
+        if (!ativo) return;
+        setScoreData(scoreResult);
+
+        try {
+          const consent = await obterConsentimentos(id);
+          if (ativo) setConsentimentosIdoso(consent);
+        } catch (consentErr: any) {
+          console.warn('[HomeScreen] Erro ao carregar consentimentos do idoso:', consentErr?.message);
+        }
+      } catch (error: any) {
+        console.warn('Erro ao carregar dados do idoso na Home:', error?.message);
+      }
+    }
+
+    carregarDadosDoIdoso(idosoSelecionadoId);
+    return () => {
+      ativo = false;
+    };
+  }, [idosoSelecionadoId, idosoSelecionado?.nome, plano]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -114,23 +206,44 @@ export default function HomeScreen({
             text: 'Assumir Resgate',
             style: 'default',
             onPress: async () => {
-              setResgateAtivo(true);
-              const mockId = alarmeIdAtivo || `sos-${Date.now()}`;
-              setAlarmeIdAtivo(mockId);
-              await atualizarStatusAlarme(
-                mockId,
-                'EM_ATENDIMENTO',
-                'Familiar assumiu o resgate pelo Painel Familiar.'
-              );
+              const idosoId = idosoSelecionado?.idosoId;
+              const nomeIdoso = idosoSelecionado?.nome || 'o idoso';
+              if (!idosoId) {
+                Alert.alert('Resgate', 'Nenhum idoso vinculado para assumir o chamado.');
+                return;
+              }
+              try {
+                // Só vale o chamado real do servidor: sem SOS em aberto, não há o que assumir.
+                const alarme = await obterAlarmeAtivo(idosoId);
+                if (!alarme) {
+                  Alert.alert('Resgate', `Não há chamado de SOS em aberto para ${nomeIdoso}.`);
+                  return;
+                }
+                if (alarme.status === 'EM_ATENDIMENTO') {
+                  setAlarmeIdAtivo(alarme.id);
+                  Alert.alert('Resgate', 'Outro familiar já assumiu este chamado.');
+                  return;
+                }
+                await atualizarStatusAlarme(
+                  alarme.id,
+                  'EM_ATENDIMENTO',
+                  'Familiar assumiu o resgate pelo Painel Familiar.'
+                );
+                setAlarmeIdAtivo(alarme.id);
+                setResgateAtivo(true);
+              } catch (erro: any) {
+                Alert.alert('Resgate', erro?.message || 'Não foi possível assumir o chamado agora. Tente de novo ou ligue.');
+                return;
+              }
 
               Alert.alert(
                 'Comando Assumido! 🚨',
-                'Você assumiu o socorro de Dona Maria. Escolha a ação imediata:',
+                `Você assumiu o socorro de ${nomeIdoso}. Escolha a ação imediata:`,
                 [
                   {
                     text: 'Ligar para o Idoso',
                     onPress: () => {
-                      Alert.alert('Discador', 'Chamando Dona Maria...');
+                      Alert.alert('Discador', `Chamando ${nomeIdoso}...`);
                     },
                   },
                   {
@@ -156,18 +269,23 @@ export default function HomeScreen({
             text: 'Encerrar Resgate',
             style: 'destructive',
             onPress: async () => {
-              if (alarmeIdAtivo) {
-                await atualizarStatusAlarme(
-                  alarmeIdAtivo,
-                  'ENCERRADO',
-                  'Resgate concluído com sucesso pelo cuidador.'
-                );
+              try {
+                if (alarmeIdAtivo) {
+                  await atualizarStatusAlarme(
+                    alarmeIdAtivo,
+                    'RESOLVIDO',
+                    'Resgate concluído com sucesso pelo cuidador.'
+                  );
+                }
+              } catch (erro: any) {
+                Alert.alert('Resgate', erro?.message || 'Não foi possível encerrar o chamado agora. Tente de novo.');
+                return;
               }
               setResgateAtivo(false);
               setAlarmeIdAtivo(null);
               Alert.alert(
                 'Resgate Encerrado',
-                'O status de Dona Maria voltou ao normal.'
+                'O chamado foi encerrado no servidor.'
               );
             },
           },
@@ -196,7 +314,13 @@ export default function HomeScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* AVISO DE PERDA DE DADOS (HU-028) */}
+        {loadingIdosos ? (
+          <ActivityIndicator color="#031753" size="small" style={{ marginVertical: 24 }} />
+        ) : idosos.length === 0 ? (
+          <SemIdosoCard onNavigate={onNavigate} />
+        ) : (
+          <>
+            {/* AVISO DE PERDA DE DADOS (HU-028) */}
         {perdaDados && perdaDados.semDados && (
           <TouchableOpacity
             style={styles.dataLossAlertBanner}
@@ -217,15 +341,12 @@ export default function HomeScreen({
         )}
 
         {/* CARD 1: IDOSOS DA FAMÍLIA (HU-008), um resumo por idoso (rx=32, #FFFFFF) */}
-        {loadingIdosos ? (
-          <ActivityIndicator color="#031753" size="small" style={{ marginBottom: 18 }} />
-        ) : (
-          idosos.map((idoso) => (
+        {idosos.map((idoso) => (
             <TouchableOpacity
               key={idoso.idosoId}
               style={styles.elderlySummaryCard}
               onPress={() => {
-                if (onSelectElderly) onSelectElderly(idoso.idosoId);
+                selecionarIdoso(idoso);
                 if (onNavigate) onNavigate('ElderlyProfile');
               }}
               activeOpacity={0.9}
@@ -278,47 +399,56 @@ export default function HomeScreen({
                   <Icon
                     name="battery_full"
                     size={13}
-                    color={(deviceStatus?.nivelBateria ?? 62) <= 20 ? '#B51C13' : '#10B981'}
+                    color={bateriaBaixa ? '#B51C13' : '#10B981'}
                   />
                   <Text
                     style={[
                       styles.telemetryText,
-                      (deviceStatus?.nivelBateria ?? 62) <= 20 && { color: '#B51C13' },
+                      bateriaBaixa && { color: '#B51C13' },
                     ]}
                   >
-                    {deviceStatus?.nivelBateria ?? 62}%
+                    {deviceStatus?.nivelBateria ?? '--'}%
                   </Text>
                 </View>
               </TouchableOpacity>
             </TouchableOpacity>
-          ))
-        )}
+          ))}
 
-        {!loadingIdosos && idosos.length === 0 && (
-          <TouchableOpacity
-            style={styles.elderlySummaryCard}
-            onPress={() => onNavigate && onNavigate('RegisterElderly')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.elderlyTexts}>
-              <Text style={styles.elderlyName}>Nenhum idoso cadastrado</Text>
-              <Text style={styles.monitoredBy}>Toque aqui para cadastrar o primeiro idoso.</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.addElderlyButton}
+          onPress={() => onNavigate && onNavigate('RegisterElderly')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          testID="home-cadastrar-idoso"
+        >
+          <Icon name="person_add" size={20} color="#031753" />
+          <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
+        </TouchableOpacity>
 
-        {!loadingIdosos && (
+        {/* FAIXA DE PLANO / TRIAL / ERRO DE PLANO (HU-040 a 042) */}
+        {erroPlano ? (
+          <View style={{ backgroundColor: colors.peachBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.peachBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, fontWeight: '600' }}>{erroPlano}</Text>
+            <TouchableOpacity
+              onPress={carregarPlano}
+              style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (faixaTrial || avisoTrial) ? (
           <TouchableOpacity
-            style={styles.addElderlyButton}
-            onPress={() => onNavigate && onNavigate('RegisterElderly')}
+            onPress={() => onNavigate && onNavigate('Premium')}
+            style={{ backgroundColor: colors.amberBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.amberBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
             activeOpacity={0.85}
-            accessibilityRole="button"
-            testID="home-cadastrar-idoso"
           >
-            <Icon name="person_add" size={20} color="#031753" />
-            <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, fontWeight: '700' }}>
+              {avisoTrial || faixaTrial}
+            </Text>
+            <Text style={{ fontSize: 14, color: colors.primaryNavy, fontWeight: '700' }}>Conhecer o Premium</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
 
         {/* CARD 2: SEMÁFORO DO BEM-ESTAR (HU-032, HU-033, RN-008, RN-016, RN-017) */}
         {scoreData?.requerPremium ? (
@@ -336,12 +466,12 @@ export default function HomeScreen({
             <Text style={styles.paywallMessage}>{scoreData.beneficioPaywall}</Text>
             <TouchableOpacity
               style={styles.paywallButton}
-              onPress={() => onNavigate && onNavigate('Subscription')}
+              onPress={() => onNavigate && onNavigate('Premium')}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Experimentar plano Premium por 14 dias grátis"
+              accessibilityLabel="Conhecer o Premium"
             >
-              <Text style={styles.paywallButtonText}>Experimentar 14 Dias Grátis</Text>
+              <Text style={styles.paywallButtonText}>Conhecer o Premium</Text>
               <Icon name="chevron_right" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -482,6 +612,10 @@ export default function HomeScreen({
                 <Text style={styles.statusSubLabel}>
                   {resgateAtivo
                     ? 'Protocolo familiar em andamento'
+                    : consentimentosIdoso && statusMonitoramento(consentimentosIdoso) === 'PAUSADO'
+                    ? 'Monitoramento pausado pelo idoso'
+                    : consentimentosIdoso && statusMonitoramento(consentimentosIdoso) === 'PARCIAL'
+                    ? mensagemParaFamilia(consentimentosIdoso)
                     : scoreData?.explicacao?.fatores?.[0] ||
                       'Nenhuma anomalia detectada nas últimas 6h'}
                 </Text>
@@ -502,7 +636,7 @@ export default function HomeScreen({
                 </View>
                 <View style={styles.subCardValueRow}>
                   <Text style={styles.subCardValue}>
-                    {telemetria?.frequenciaCardiaca ?? 74}
+                    {telemetria?.frequenciaCardiaca ?? '--'}
                   </Text>
                   <Text style={styles.subCardUnit}>bpm</Text>
                 </View>
@@ -590,16 +724,18 @@ export default function HomeScreen({
               accessibilityLabel={
                 telemetria?.semDadosRecentes
                   ? 'Passos hoje: Sem dados recentes'
-                  : `Passos hoje: ${telemetria?.passosHoje ?? 0} passos. Meta de 4 mil passos.`
+                  : `Passos hoje: ${telemetria?.passosHoje ?? 'sem autorização'}${telemetria?.metaPassos ? `. Meta de ${telemetria.metaPassos} passos` : ''}.`
               }
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
                   <Icon name="walk" size={18} color="#B51C13" />
                 </View>
-                <View style={styles.metaBadge}>
-                  <Text style={styles.metaBadgeText}>Meta 4k</Text>
-                </View>
+                {telemetria?.metaPassos ? (
+                  <View style={styles.metaBadge}>
+                    <Text style={styles.metaBadgeText}>Meta {telemetria.metaPassos.toLocaleString('pt-BR')}</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={styles.metricLabelPeach}>Passos Hoje</Text>
 
@@ -612,7 +748,7 @@ export default function HomeScreen({
                 <>
                   <View style={styles.metricValueRow}>
                     <Text style={styles.metricValueLarge}>
-                      {(telemetria?.passosHoje ?? 0).toLocaleString('pt-BR')}
+                      {telemetria?.passosHoje?.toLocaleString('pt-BR') ?? '--'}
                     </Text>
                     <Text style={styles.metricUnitPeach}>passos</Text>
                   </View>
@@ -637,17 +773,12 @@ export default function HomeScreen({
               accessibilityLabel={
                 telemetria?.semDadosRecentes
                   ? 'Frequência cardíaca: Sem dados recentes'
-                  : `Frequência cardíaca: ${telemetria?.frequenciaCardiaca ?? 0} batimentos por minuto.`
+                  : `Frequência cardíaca: ${telemetria?.frequenciaCardiaca ?? 'sem autorização'} batimentos por minuto.`
               }
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
                   <Icon name="favorite" size={18} color="#031753" />
-                </View>
-                <View style={styles.otimaBadge}>
-                  <Text style={styles.otimaBadgeText}>
-                    {telemetria?.statusCardiovascular || 'Normal'}
-                  </Text>
                 </View>
               </View>
               <Text style={styles.metricLabelSky}>Último Batimento</Text>
@@ -665,12 +796,14 @@ export default function HomeScreen({
                     </Text>
                     <Text style={styles.metricUnitSky}>bpm</Text>
                   </View>
-                  <View style={styles.repousoRow}>
-                    <Icon name="vital_signs" size={12} color="#475569" />
-                    <Text style={styles.repousoText}>
-                      Repouso: {telemetria?.frequenciaCardiacaRepouso ?? 64} bpm
-                    </Text>
-                  </View>
+                  {telemetria?.frequenciaCardiacaRepouso !== undefined && (
+                    <View style={styles.repousoRow}>
+                      <Icon name="vital_signs" size={12} color="#475569" />
+                      <Text style={styles.repousoText}>
+                        Repouso: {telemetria.frequenciaCardiacaRepouso} bpm
+                      </Text>
+                    </View>
+                  )}
                 </>
               )}
             </View>
@@ -684,12 +817,15 @@ export default function HomeScreen({
           resgateAtivo={resgateAtivo}
           responsavelNome="Carlos Silva"
         />
+          </>
+        )}
       </ScrollView>
 
       {/* MODAL DE STATUS DO CELULAR DO IDOSO (HU-027) */}
       <DeviceStatusModal
         visible={modalDeviceVisible}
         status={deviceStatus}
+        nomeIdoso={idosoSelecionado?.nome}
         perdaDados={perdaDados}
         onClose={() => setModalDeviceVisible(false)}
       />
@@ -1464,18 +1600,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
-  },
-  otimaBadge: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  otimaBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2D418A',
     fontFamily: typography.fontFamily.heading,
   },
   metricLabelPeach: {

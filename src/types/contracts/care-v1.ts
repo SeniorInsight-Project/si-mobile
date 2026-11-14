@@ -45,6 +45,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/familiares/{familiarId}/idosos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id do familiar (perfil no identity-service) */
+                familiarId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Lista os idosos aos quais um familiar está vinculado
+         * @description Proposta, ainda não implementada no care-service. Usada pelo app da família para montar a lista de
+         *     idosos de um familiar específico. Só o próprio familiar (ou um Familiar Administrador do idoso) pode consultar.
+         */
+        get: operations["listarIdososDoFamiliar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/idosos/{idosoId}/comorbidades": {
         parameters: {
             query?: never;
@@ -146,6 +170,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/idosos/{idosoId}/convites/pendentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Lista os convites pendentes do idoso
+         * @description Proposta, ainda não implementada no care-service. Devolve só os convites com status PENDENTE e ainda
+         *     dentro da validade, do mais recente para o mais antigo.
+         */
+        get: operations["listarConvitesPendentes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/convites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consulta o convite pelo token, antes de aceitar
+         * @description Proposta, ainda não implementada no care-service. Mostra quem convidou, o primeiro nome do idoso e o papel
+         *     oferecido, para a tela de aceite exibir antes de chamar `POST /api/v1/convites/aceitar`. A consulta não
+         *     altera o convite.
+         *
+         *     O token vai em query (`?token=`), como em `/api/v1/convites/aceitar`, porque `/api/v1/convites/{conviteId}`
+         *     já usa o segmento seguinte como id do convite.
+         *
+         *     A resposta não traz e-mail, telefone nem dado de saúde: quem consulta ainda não faz parte da rede.
+         */
+        get: operations["consultarConvite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/convites/aceitar": {
         parameters: {
             query?: never;
@@ -161,6 +235,34 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/convites/{conviteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conviteId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cancela um convite pendente
+         * @description Proposta, ainda não implementada no care-service. Só o Familiar Administrador do idoso cancela. O convite
+         *     passa para CANCELADO e o token deixa de ser aceito em /api/v1/convites/aceitar.
+         */
+        delete: operations["cancelarConvite"];
+        options?: never;
+        head?: never;
+        /**
+         * Edita um convite pendente (só os campos enviados)
+         * @description Proposta, ainda não implementada no care-service. Só o Familiar Administrador do idoso edita, e só
+         *     convites com status PENDENTE. Trocar o e-mail não renova a validade do convite.
+         */
+        patch: operations["editarConvite"];
         trace?: never;
     };
     "/api/v1/idosos/{idosoId}/rede": {
@@ -323,6 +425,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/idosos/{idosoId}/consentimentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Autorizações atuais do idoso, por tipo de dado
+         * @description Proposta, ainda não implementada no care-service. Todo tipo começa desligado.
+         */
+        get: operations["obterConsentimentos"];
+        /**
+         * Grava as autorizações do idoso
+         * @description Proposta, ainda não implementada no care-service. Só o idoso pareado altera; o familiar, só com curatela
+         *     registrada (RN-001). Cada mudança fica no histórico e publica `consent.changed`.
+         */
+        put: operations["salvarConsentimentos"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -355,6 +484,18 @@ export interface components {
         StatusAlarme: "DISPARADO" | "EM_ATENDIMENTO" | "RESOLVIDO" | "CANCELADO";
         /** @enum {string} */
         StatusConvite: "PENDENTE" | "ACEITO" | "EXPIRADO" | "CANCELADO";
+        /**
+         * @description Papel do membro na rede de proteção do idoso. Valores em maiúsculas, sem outras variações.
+         *     - `ADMINISTRADOR`: único por idoso, criado no cadastro (RN-012). Edita o cadastro, os contatos de
+         *       emergência e a rede. Não pode ser concedido por convite: `ConviteRedeRequest` e
+         *       `AtualizarConviteRequest` com `ADMINISTRADOR` respondem 400.
+         *     - `CUIDADOR`: vê o idoso, a rotina de medicamentos e as comorbidades, e recebe os alertas de SOS.
+         *     - `OBSERVADOR`: só leitura; recebe os alertas de SOS.
+         *     - `MEDICO`: leitura clínica do idoso que acompanha.
+         *     Valor fora da lista em convite responde 400.
+         * @enum {string}
+         */
+        PapelAcesso: "ADMINISTRADOR" | "CUIDADOR" | "OBSERVADOR" | "MEDICO";
         /** @enum {string} */
         StatusIngestao: "TOMADO" | "ATRASADO" | "IGNORADO" | "PENDENTE";
         IdosoRequest: {
@@ -437,8 +578,7 @@ export interface components {
              * @example maria.silva@email.com
              */
             email: string;
-            /** @example FAMILIAR */
-            papelAcesso: string;
+            papelAcesso: components["schemas"]["PapelAcesso"];
             /** @example Filha */
             grauParentesco?: string | null;
             mensagemPersonalizada?: string | null;
@@ -453,7 +593,7 @@ export interface components {
             emailDestinatario: string;
             /** @description Token do convite (usado em /api/v1/convites/aceitar) */
             token?: string;
-            papelAcessoSugerido?: string;
+            papelAcessoSugerido?: components["schemas"]["PapelAcesso"];
             grauParentescoSugerido?: string | null;
             status: components["schemas"]["StatusConvite"];
             /** Format: date-time */
@@ -462,6 +602,36 @@ export interface components {
             criadoEm: string;
             /** @description Mensagem informativa sobre a simulação do envio do e-mail */
             mensagemSimulacao?: string | null;
+        };
+        /**
+         * @description Dados do convite mostrados a quem ainda não é da rede. Só traz o necessário para decidir o aceite: não tem
+         *     e-mail, telefone nem dado de saúde, e do idoso só o primeiro nome.
+         */
+        ConvitePublico: {
+            /**
+             * @description Nome de quem convidou
+             * @example Carlos Eduardo Souza
+             */
+            nomeConvidante: string;
+            /**
+             * @description Primeiro nome do idoso
+             * @example Maria
+             */
+            primeiroNomeIdoso: string;
+            papelAcesso: components["schemas"]["PapelAcesso"];
+            /** @example Filho */
+            grauParentesco?: string | null;
+            /** Format: date-time */
+            expiraEm: string;
+            status: components["schemas"]["StatusConvite"];
+        };
+        /** @description Só os campos enviados são alterados. */
+        AtualizarConviteRequest: {
+            /** Format: email */
+            email?: string;
+            papelAcesso?: components["schemas"]["PapelAcesso"];
+            grauParentesco?: string | null;
+            mensagemPersonalizada?: string | null;
         };
         AceiteConvite: {
             /** Format: uuid */
@@ -473,7 +643,7 @@ export interface components {
             familiarId: string;
             nomeFamiliar?: string;
             grauParentesco?: string | null;
-            papelAcesso?: string;
+            papelAcesso?: components["schemas"]["PapelAcesso"];
             /** Format: date-time */
             criadoEm: string;
             mensagem?: string;
@@ -490,7 +660,7 @@ export interface components {
             email?: string | null;
             telefone?: string | null;
             grauParentesco?: string | null;
-            papelAcesso: string;
+            papelAcesso: components["schemas"]["PapelAcesso"];
             restricoesAcesso?: {
                 [key: string]: unknown;
             };
@@ -613,6 +783,15 @@ export interface components {
         AtualizarStatusAlarmeRequest: {
             status: components["schemas"]["StatusAlarme"];
             observacao?: string;
+        };
+        /** @description Uma chave por tipo de dado; true = autorizado. */
+        Consentimentos: {
+            BATIMENTOS: boolean;
+            PASSOS: boolean;
+            SONO: boolean;
+            OXIGENACAO: boolean;
+            /** @description Desligada, a localização só é enviada durante um SOS (RN-009) */
+            LOCALIZACAO: boolean;
         };
         AlarmeEmergencia: {
             /** Format: uuid */
@@ -794,6 +973,32 @@ export interface operations {
             403: components["responses"]["AcessoNegado"];
             404: components["responses"]["NaoEncontrado"];
             409: components["responses"]["Conflito"];
+        };
+    };
+    listarIdososDoFamiliar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id do familiar (perfil no identity-service) */
+                familiarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Idosos vinculados ao familiar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Idoso"][];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
         };
     };
     listarComorbidades: {
@@ -1019,6 +1224,86 @@ export interface operations {
             409: components["responses"]["Conflito"];
         };
     };
+    listarConvitesPendentes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convites pendentes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRede"][];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    consultarConvite: {
+        parameters: {
+            query: {
+                /**
+                 * @description Token recebido no e-mail do convite
+                 * @example 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                 */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite pendente e dentro da validade */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvitePublico"];
+                };
+            };
+            400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            /** @description Token inexistente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite já aceito */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite expirado */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
     aceitarConvite: {
         parameters: {
             query: {
@@ -1053,6 +1338,61 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
+        };
+    };
+    cancelarConvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conviteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite cancelado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+            409: components["responses"]["Conflito"];
+        };
+    };
+    editarConvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conviteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtualizarConviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Convite atualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteRede"];
+                };
+            };
+            400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+            409: components["responses"]["Conflito"];
         };
     };
     listarMembrosRede: {
@@ -1375,6 +1715,61 @@ export interface operations {
             };
             400: components["responses"]["RequisicaoInvalida"];
             401: components["responses"]["NaoAutenticado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    obterConsentimentos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Autorizações atuais */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Consentimentos"];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    salvarConsentimentos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Consentimentos"];
+            };
+        };
+        responses: {
+            /** @description Autorizações gravadas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Consentimentos"];
+                };
+            };
+            400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
             404: components["responses"]["NaoEncontrado"];
         };
     };

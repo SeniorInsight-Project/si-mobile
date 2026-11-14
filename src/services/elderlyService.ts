@@ -1,7 +1,23 @@
-import { runtimeConfig } from '../config/runtime';
+import { mockPermitido } from '../config/ambiente';
 import type { IdosoRequest } from '../types/api';
+import { apiClient, type ApiClient } from './apiClient';
 import { dataBrParaIso } from './cadastroIdosoValidacao';
-import { resolverTokenAutorizacao } from './tokenStorageService';
+import { decodificarJwt, obterAccessTokenValido } from './authSession';
+
+export interface OpcoesRede {
+  cliente?: Pick<ApiClient, 'get' | 'post' | 'put'>;
+}
+
+const PREFIXO_ID_LOCAL = 'idoso-local-';
+
+/**
+ * Id do idoso só quando ele veio do servidor: o id gerado no aparelho (cadastro local, só em dev com mock)
+ * não existe no care-service e não deve ir em requisições como o código de pareamento.
+ */
+export function idosoIdDoServidor(idosoId?: string | null): string | null {
+  const id = idosoId?.trim();
+  return id && !id.startsWith(PREFIXO_ID_LOCAL) ? id : null;
+}
 
 export interface Idoso {
   idosoId: string;
@@ -21,21 +37,18 @@ export interface CadastroIdosoInput {
   celular: string;
 }
 
-export const INITIAL_ELDERLIES: Idoso[] = [
-  {
-    idosoId: 'e3b0c442-98fc-1c14-9afc-432100000001',
-    nome: 'Dona Maria Aparecida',
-    dataNascimento: '14/05/1948',
-    sexo: 'Feminino',
-    celular: '(11) 98765-4321',
-  },
-];
+let localElderliesStore: Idoso[] = [];
 
-let localElderliesStore: Idoso[] = [...INITIAL_ELDERLIES];
+async function garantirIdososIniciais(): Promise<void> {
+  if (localElderliesStore.length === 0 && mockPermitido()) {
+    const { INITIAL_ELDERLIES } = await import('../mocks/idosos');
+    localElderliesStore = [...(INITIAL_ELDERLIES as unknown as Idoso[])];
+  }
+}
 
 function normalizarIdoso(idoso: any): Idoso {
   return {
-    idosoId: idoso.idosoId || idoso.id || `idoso-local-${Date.now()}`,
+    idosoId: idoso.idosoId || idoso.id || `${PREFIXO_ID_LOCAL}${Date.now()}`,
     nome: idoso.nome || idoso.nomeCompleto || '',
     dataNascimento: idoso.dataNascimento || '',
     sexo: idoso.sexo || idoso.genero || '',
@@ -55,72 +68,64 @@ function paraIdosoRequest(dados: CadastroIdosoInput): IdosoRequest {
   };
 }
 
+/**
+ * Idosos do familiar: GET /api/v1/familiares/{familiarId}/idosos. Sem `familiarId`, usa o `sub` do JWT da
+ * sessão e, sem token, o alias `me`. Lista vazia fica vazia; em erro lança (a tela mostra a falha). Com mock
+ * permitido (dev), erro ou lista vazia caem nos idosos de demonstração.
+ */
 export async function listarIdososDoFamiliar(
-  familiarId = 'familiar-dev',
-  token: string | null = null
+  familiarId?: string | null,
+  {
+    cliente = apiClient,
+    obterToken = obterAccessTokenValido,
+  }: OpcoesRede & { obterToken?: () => Promise<string | null> } = {}
 ): Promise<Idoso[]> {
+  const idFamiliar = familiarId || decodificarJwt(await obterToken().catch(() => null))?.sub || 'me';
+
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers.Authorization = 'Bearer ' + authToken;
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/familiares/${familiarId}/idosos`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      console.warn(`[elderlyService] Falha ao listar idosos (${response.status}). Usando fallback local.`);
-      return [...localElderliesStore];
-    }
-
-    const data = await response.json();
+    const data = await cliente.get<any[]>(`/api/v1/familiares/${idFamiliar}/idosos`);
     if (Array.isArray(data) && data.length > 0) {
       localElderliesStore = data.map(normalizarIdoso);
       return [...localElderliesStore];
     }
-
-    return [...localElderliesStore];
+    if (mockPermitido()) {
+      await garantirIdososIniciais();
+      return [...localElderliesStore];
+    }
+    localElderliesStore = [];
+    return [];
   } catch (error: any) {
-    console.warn('[elderlyService] Backend inacessível. Ativando fallback resiliente:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[elderlyService] Backend inacessível. Usando idosos de demonstração (mock):', error?.message);
+    await garantirIdososIniciais();
     return [...localElderliesStore];
   }
 }
 
+/**
+ * Cadastra o idoso: POST /api/v1/idosos (IdosoRequest). Em erro lança; só com mock permitido (dev) salva no
+ * aparelho com id local.
+ */
 export async function salvarCadastroIdoso(
   dadosIdoso: CadastroIdosoInput,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<Idoso> {
   const payload = paraIdosoRequest(dadosIdoso);
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers.Authorization = 'Bearer ' + authToken;
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (response.ok) {
-      const criado = normalizarIdoso(await response.json());
-      localElderliesStore = [
-        criado,
-        ...localElderliesStore.filter((idoso) => idoso.idosoId !== criado.idosoId),
-      ];
-      return criado;
-    }
+    const criado = normalizarIdoso(await cliente.post<any>('/api/v1/idosos', payload));
+    localElderliesStore = [
+      criado,
+      ...localElderliesStore.filter((idoso) => idoso.idosoId !== criado.idosoId),
+    ];
+    return criado;
   } catch (error: any) {
-    console.warn('[elderlyService] Falha ao salvar idoso no backend. Salvando localmente:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[elderlyService] Backend inacessível. Salvando idoso só no aparelho (mock):', error?.message);
   }
 
   const novoIdoso: Idoso = {
-    idosoId: dadosIdoso.idosoId || `idoso-local-${Date.now()}`,
+    idosoId: dadosIdoso.idosoId || `${PREFIXO_ID_LOCAL}${Date.now()}`,
     nome: dadosIdoso.nome,
     dataNascimento: dadosIdoso.dataNascimento,
     sexo: dadosIdoso.sexo,
@@ -135,36 +140,26 @@ export async function salvarCadastroIdoso(
   return novoIdoso;
 }
 
+/**
+ * Atualiza o idoso: PUT /api/v1/idosos/{idosoId} (IdosoRequest). Em erro lança; só com mock permitido (dev)
+ * atualiza no aparelho.
+ */
 export async function atualizarDadosIdoso(
   idosoId: string,
   dadosIdoso: CadastroIdosoInput,
-  token: string | null = null
+  { cliente = apiClient }: OpcoesRede = {}
 ): Promise<Idoso> {
   const payload = paraIdosoRequest(dadosIdoso);
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    const authToken = await resolverTokenAutorizacao(token);
-    if (authToken) headers.Authorization = 'Bearer ' + authToken;
-
-    const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/v1/idosos/${idosoId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (response.ok) {
-      const atualizado = normalizarIdoso(await response.json());
-      localElderliesStore = localElderliesStore.map((idoso) =>
-        idoso.idosoId === idosoId ? atualizado : idoso
-      );
-      return atualizado;
-    }
+    const atualizado = normalizarIdoso(await cliente.put<any>(`/api/v1/idosos/${idosoId}`, payload));
+    localElderliesStore = localElderliesStore.map((idoso) =>
+      idoso.idosoId === idosoId ? atualizado : idoso
+    );
+    return atualizado;
   } catch (error: any) {
-    console.warn('[elderlyService] Falha ao atualizar idoso no backend. Atualizando localmente:', error?.message);
+    if (!mockPermitido()) throw error;
+    console.warn('[elderlyService] Backend inacessível. Atualizando idoso só no aparelho (mock):', error?.message);
   }
 
   const atualizadoLocal: Idoso = {

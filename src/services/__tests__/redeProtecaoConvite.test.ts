@@ -1,4 +1,4 @@
-import { test, describe } from 'node:test';
+﻿import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   listarMembrosRede,
@@ -8,7 +8,6 @@ import {
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
-  INITIAL_MEMBERS,
 } from '../redeProtecaoService';
 
 describe('Rede de Proteção - Gestão de Convites e Aceite (HU-012 & HU-013 / RF-008)', () => {
@@ -91,7 +90,7 @@ describe('Rede de Proteção - Gestão de Convites e Aceite (HU-012 & HU-013 / R
 
     assert.ok(resultado.vinculoId, 'Deve gerar vinculoId');
     assert.ok(resultado.nomeIdoso, 'Deve conter nome do idoso');
-    assert.ok(resultado.mensagem.includes('sucesso'));
+    assert.ok(resultado.mensagem?.includes('sucesso'));
   });
 
   test('listarConvitesPendentes deve listar convites gerados e permitir edição e cancelamento', async () => {

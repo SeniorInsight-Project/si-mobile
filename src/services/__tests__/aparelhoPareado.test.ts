@@ -39,9 +39,12 @@ function jwt(roles: string[]): string {
   return `${b64({ alg: 'none' })}.${b64({ sub: 'u1', realm_access: { roles } })}.x`;
 }
 
+const IDOSO_ID = '3f2b8c1e-5d4a-4b7e-9c10-6a1d2e3f4a5b';
+
 const RESGATE_OK = {
   perfil: { id: 'perfil-1', nome: 'Maria Aparecida Silva' },
   sessaoAparelhoId: 'sessao-9',
+  idosoId: IDOSO_ID,
   tokens: { accessToken: jwt(['idoso']), refreshToken: 'r1', expiresIn: 300, tokenType: 'Bearer' },
 };
 
@@ -96,10 +99,63 @@ describe('Aparelho pareado (HU-007: depois do pareamento, abre sempre no Modo Id
         ordem.push('tokens');
       },
       marcarPareado: async (d) => {
-        ordem.push(`pareado:${d.perfilId}:${d.nome}`);
+        ordem.push(`pareado:${d.perfilId}:${d.nome}:${d.idosoId}`);
       },
     });
-    assert.deepEqual(ordem, ['tokens', 'pareado:perfil-1:Maria Aparecida Silva']);
+    assert.deepEqual(ordem, ['tokens', `pareado:perfil-1:Maria Aparecida Silva:${IDOSO_ID}`]);
+  });
+
+  test('guarda o idosoId do care junto do perfilId e devolve na leitura', async () => {
+    assert.equal(await marcarAparelhoPareado({ perfilId: 'perfil-1', nome: 'Maria', idosoId: IDOSO_ID }), true);
+    const r = await obterAparelhoPareado();
+    assert.equal(r?.idosoId, IDOSO_ID);
+    assert.equal(r?.perfilId, 'perfil-1');
+  });
+
+  test('pareamento sem idosoId fica sem idosoId: o perfilId nunca ocupa o lugar dele', async () => {
+    await marcarAparelhoPareado({ perfilId: 'perfil-1', nome: 'Maria' });
+    const r = await obterAparelhoPareado();
+    assert.equal(r?.idosoId, undefined);
+    store.dados.set(CHAVE_APARELHO_PAREADO, JSON.stringify({ perfilId: 'perfil-1', nome: 'Maria', pareadoEm: 1 }));
+    assert.equal((await obterAparelhoPareado())?.idosoId, undefined);
+  });
+
+  test('registro com idosoId que não é texto é ignorado', async () => {
+    store.dados.set(CHAVE_APARELHO_PAREADO, JSON.stringify({ perfilId: 'p', nome: 'M', idosoId: 7 }));
+    assert.equal((await obterAparelhoPareado())?.idosoId, undefined);
+  });
+
+  test('resgate devolve o idosoId do contrato e o repassa para guardar', async () => {
+    let guardado: unknown;
+    const r = await parearComCodigo('k7p2qx', APARELHO, {
+      cliente: cliente(RESGATE_OK),
+      salvar: async () => {},
+      marcarPareado: async (d) => {
+        guardado = d;
+      },
+    });
+    assert.equal(r.idosoId, IDOSO_ID);
+    assert.deepEqual(guardado, { perfilId: 'perfil-1', nome: 'Maria Aparecida Silva', idosoId: IDOSO_ID });
+  });
+
+  test('resgate com idosoId null (código gerado sem idoso) não inventa idosoId', async () => {
+    const r = await parearComCodigo('k7p2qx', APARELHO, {
+      cliente: cliente({ ...RESGATE_OK, idosoId: null }),
+      salvar: async () => {},
+      marcarPareado: async () => {},
+    });
+    assert.equal(r.idosoId, undefined);
+    assert.notEqual(r.idosoId, r.perfilId);
+  });
+
+  test('resgate sem o campo idosoId também fica sem idosoId', async () => {
+    const { idosoId: _omitido, ...semIdoso } = RESGATE_OK;
+    const r = await parearComCodigo('k7p2qx', APARELHO, {
+      cliente: cliente(semIdoso),
+      salvar: async () => {},
+      marcarPareado: async () => {},
+    });
+    assert.equal(r.idosoId, undefined);
   });
 
   test('resgate recusado não marca o aparelho', async () => {

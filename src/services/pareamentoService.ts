@@ -68,7 +68,10 @@ export interface Aparelho {
 }
 
 export interface ResultadoPareamento {
+  /** Id do perfil no identity-service. */
   perfilId: string;
+  /** Id do idoso no care-service; ausente quando o código foi gerado sem idoso. */
+  idosoId?: string;
   nomeIdoso: string;
   sessaoAparelhoId: string;
   /** Roles de realm lidas do access token recebido. */
@@ -189,7 +192,7 @@ export interface DependenciasPareamento {
   cliente?: Pick<ApiClient, 'post'>;
   salvar?: (tokens: RespostaTokens) => Promise<void>;
   /** Guarda que este aparelho foi pareado (abre sempre no Modo Idoso). */
-  marcarPareado?: (dados: { perfilId: string; nome: string }) => Promise<unknown>;
+  marcarPareado?: (dados: { perfilId: string; nome: string; idosoId?: string }) => Promise<unknown>;
   timeoutMs?: number;
 }
 
@@ -231,10 +234,12 @@ export async function parearComCodigo(
   const { accessToken, refreshToken, expiresIn } = resposta.tokens;
   // salvarSessao grava access/refresh com salvarTokens (secure store) e a expiração.
   await salvar({ accessToken, refreshToken, expiresIn });
-  await marcarPareado({ perfilId: resposta.perfil.id, nome: resposta.perfil.nome });
+  const idosoId = resposta.idosoId ?? undefined;
+  await marcarPareado({ perfilId: resposta.perfil.id, nome: resposta.perfil.nome, idosoId });
 
   return {
     perfilId: resposta.perfil.id,
+    idosoId,
     nomeIdoso: resposta.perfil.nome,
     sessaoAparelhoId: resposta.sessaoAparelhoId,
     papeis: papeisDoToken(accessToken),

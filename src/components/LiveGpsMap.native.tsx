@@ -191,7 +191,9 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
             }
           );
         }
-      } catch (e) {}
+      } catch (e: any) {
+        console.warn('[LiveGpsMap] Falha ao obter localização inicial:', e?.message || 'erro desconhecido');
+      }
     })();
 
     return () => {

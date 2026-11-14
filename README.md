@@ -64,3 +64,49 @@ Na VM da Azure o client aceita só `seniorinsight://auth`: lá, teste com um dev
 **Development build:** `npx expo run:android` (ou `run:ios`) gera um app com o scheme `seniorinsight`; o redirect é `seniorinsight://auth`, igual ao de produção.
 
 **Expo web:** `npx expo start --web` (porta 8081). O redirect volta para `http://localhost:8081/auth`.
+
+## Development Build e EAS Build (EAS CLI)
+
+O SDK do Open Wearables (Health Connect) e as notificações push do Expo com FCM não funcionam dentro do client genérico do Expo Go. Para desenvolvimento nativo, suporte a push em segundo plano (SOS - HU-065) e integração de saúde (HU-023), utilize o **Development Build**.
+
+### Perfis configurados no `eas.json`
+
+O arquivo `eas.json` possui três perfis pré-configurados:
+
+1. **`development`**: Gera um APK de desenvolvimento (`developmentClient: true`) com suporte a depuração via Metro (`npx expo start --dev-client`).
+2. **`preview`**: Gera um APK interno instalável para testes em aparelhos físicos de homologação.
+3. **`production`**: Gera o pacote App Bundle (`.aab`) para publicação na Google Play Store.
+
+### Gestão de Segredos e Credenciais
+
+> [!IMPORTANT]
+> Chaves de API, senhas, certificados ou tokens sensíveis **nunca** devem ser commitados no repositório nem inseridos em `eas.json` ou `app.json`. Utilize sempre os segredos de ambiente do EAS provisionados pela CLI (`eas secret:create`) ou configure credenciais sensíveis via painel do Expo (`eas credentials`).
+
+### Como gerar um Development Build com EAS:
+
+1. Instale a EAS CLI globalmente (caso ainda não possua):
+   ```bash
+   npm install -g eas-cli
+   ```
+2. Faça login na sua conta Expo / EAS:
+   ```bash
+   eas login
+   ```
+3. Vincule o projeto (se ainda não configurado):
+   ```bash
+   eas project:init
+   ```
+4. Gere o build de desenvolvimento para Android:
+   ```bash
+   eas build --profile development --platform android
+   ```
+5. Após o download e instalação do APK no aparelho ou emulador, inicie o servidor Metro em modo de desenvolvimento:
+   ```bash
+   npx expo start --dev-client
+   ```
+
+### Notificações Push e FCM (Android)
+
+Para suporte a notificações push de emergência em produção:
+- Configure as credenciais do Firebase Cloud Messaging (FCM V1) no painel do Expo EAS (`eas credentials`).
+- O arquivo `google-services.json` pode ser inserido na raiz do `mobile-app/` e referenciado no `app.json` caso opte pelo build local via `npx expo run:android`.

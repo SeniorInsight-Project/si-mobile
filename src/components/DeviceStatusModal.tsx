@@ -12,14 +12,17 @@ import { colors, typography, shadows, rounded } from '../theme';
 import {
   formatarHora,
   formatarResumoStatus,
+  LIMITE_BATERIA_BAIXA,
   StatusDispositivo,
   ResultadoPerdaDados,
-  TipoDadoDispositivo,
+  SensorDispositivo,
 } from '../services/deviceStatusService';
 
 export interface DeviceStatusModalProps {
   visible: boolean;
   status: StatusDispositivo | null;
+  /** Nome do idoso mostrado no cabeçalho; o status do contrato não traz nome. */
+  nomeIdoso?: string;
   perdaDados?: ResultadoPerdaDados | null;
   onClose: () => void;
 }
@@ -34,14 +37,16 @@ export interface DeviceStatusModalProps {
 export default function DeviceStatusModal({
   visible,
   status,
+  nomeIdoso,
   perdaDados,
   onClose,
 }: DeviceStatusModalProps) {
   if (!status) return null;
 
   const horaSync = formatarHora(status.ultimaSincronizacao);
-  const nivelBateria = typeof status.nivelBateria === 'number' ? status.nivelBateria : 0;
-  const bateriaBaixa = nivelBateria <= 20;
+  const nivelBateria = typeof status.nivelBateria === 'number' ? status.nivelBateria : null;
+  const bateriaBaixa = nivelBateria !== null && nivelBateria <= LIMITE_BATERIA_BAIXA;
+  const infoAparelho = [status.modeloCelular, status.sistemaOperacional, status.versaoApp].filter(Boolean).join(' • ');
   const estaSemDados = perdaDados && perdaDados.semDados;
 
   return (
@@ -61,7 +66,7 @@ export default function DeviceStatusModal({
               </View>
               <View>
                 <Text style={styles.headerTitle}>Status do Celular</Text>
-                <Text style={styles.headerSubtitle}>{status.nomeIdoso || 'Idoso Monitorado'}</Text>
+                {nomeIdoso ? <Text style={styles.headerSubtitle}>{nomeIdoso}</Text> : null}
               </View>
             </View>
 
@@ -106,9 +111,7 @@ export default function DeviceStatusModal({
               <Text style={styles.canonicalSummary}>
                 {formatarResumoStatus(status)}
               </Text>
-              <Text style={styles.deviceInfo}>
-                {status.modeloCelular} • {status.versaoApp}
-              </Text>
+              {infoAparelho ? <Text style={styles.deviceInfo}>{infoAparelho}</Text> : null}
             </View>
 
             {/* CARD 2: NÍVEL DA BATERIA */}
@@ -128,7 +131,7 @@ export default function DeviceStatusModal({
                     { color: bateriaBaixa ? colors.secondaryCoral : colors.primary },
                   ]}
                 >
-                  {nivelBateria}%
+                  {nivelBateria ?? '--'}%
                 </Text>
               </View>
 
@@ -138,7 +141,7 @@ export default function DeviceStatusModal({
                   style={[
                     styles.progressBarFill,
                     {
-                      width: `${Math.min(100, Math.max(0, nivelBateria))}%`,
+                      width: `${Math.min(100, Math.max(0, nivelBateria ?? 0))}%`,
                       backgroundColor: bateriaBaixa ? colors.secondaryCoral : colors.success,
                     },
                   ]}
@@ -160,48 +163,38 @@ export default function DeviceStatusModal({
                   <Text style={styles.sectionTitle}>Sensores e Permissões</Text>
                 </View>
                 <Text style={styles.sensorCount}>
-                  {(status.tiposDados || []).filter((t: TipoDadoDispositivo) => t.ativo).length}/
-                  {(status.tiposDados || []).length} ativos
+                  {status.sensores.filter((s: SensorDispositivo) => s.ativo).length}/
+                  {status.sensores.length} ativos
                 </Text>
               </View>
 
               <View style={styles.sensorList}>
-                {(status.tiposDados || []).map((tipo: TipoDadoDispositivo) => {
-                  const isRevogado = tipo.revogadoPeloIdoso || !tipo.ativo;
+                                {status.sensores.map((sensor: SensorDispositivo) => {
+                  const desativado = !sensor.ativo;
                   return (
-                    <View key={tipo.id} style={styles.sensorItem}>
+                    <View key={sensor.tipo} style={styles.sensorItem}>
                       <View style={styles.sensorInfo}>
-                        <Text style={styles.sensorName}>{tipo.nome}</Text>
-                        <Text
-                          style={[
-                            styles.sensorDetail,
-                            isRevogado && { color: colors.peach.text },
-                          ]}
-                        >
-                          {tipo.detalhe}
-                        </Text>
+                        <Text style={styles.sensorName}>{sensor.nome}</Text>
                       </View>
 
                       <View
                         style={[
                           styles.sensorBadge,
-                          isRevogado ? styles.sensorBadgeRevoked : styles.sensorBadgeActive,
+                          desativado ? styles.sensorBadgeRevoked : styles.sensorBadgeActive,
                         ]}
                       >
                         <Icon
-                          name={isRevogado ? 'close' : 'check'}
+                          name={desativado ? 'close' : 'check'}
                           size={12}
-                          color={isRevogado ? colors.peach.text : colors.mint.text}
+                          color={desativado ? colors.peach.text : colors.mint.text}
                         />
                         <Text
                           style={[
                             styles.sensorBadgeText,
-                            isRevogado
-                              ? { color: colors.peach.text }
-                              : { color: colors.mint.text },
+                            { color: desativado ? colors.peach.text : colors.mint.text },
                           ]}
                         >
-                          {isRevogado ? 'Desativado' : 'Ativo'}
+                          {desativado ? 'Desativado' : 'Ativo'}
                         </Text>
                       </View>
                     </View>
@@ -439,12 +432,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
     fontFamily: typography.fontFamily.heading,
-  },
-  sensorDetail: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
-    marginTop: 2,
   },
   sensorBadge: {
     flexDirection: 'row',
