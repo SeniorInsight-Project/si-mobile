@@ -74,11 +74,11 @@ describe('Push e Notificações — contrato notification-v1 (Issues #29 / #58)'
     assert.equal(c.chamadas[0].caminho, '/api/v1/notification/push-tokens/device%2F1');
   });
 
-  test('confirmarLeituraNotificacao envia POST /api/v1/notification/notificacoes/{id}/leitura', async () => {
+  test('confirmarLeituraNotificacao envia PUT /api/v1/notification/notificacoes/{id}/leitura', async () => {
     const c = clienteMock();
     await confirmarLeituraNotificacao('notif-123', { cliente: c });
     assert.equal(c.chamadas.length, 1);
-    assert.equal(c.chamadas[0].metodo, 'POST');
+    assert.equal(c.chamadas[0].metodo, 'PUT');
     assert.equal(c.chamadas[0].caminho, rotaConfirmarLeitura('notif-123'));
   });
 
@@ -146,6 +146,7 @@ describe('Push e Notificações — contrato notification-v1 (Issues #29 / #58)'
     assert.equal(destinos.length, 1);
     assert.equal(destinos[0].tela, 'SosReceived');
     assert.equal(destinos[0].alarmeId, 'sos-99');
+    assert.equal(c.chamadas[0].metodo, 'PUT');
     assert.equal(c.chamadas[0].caminho, '/api/v1/notification/notificacoes/notif-99/leitura');
 
     desinscrever();

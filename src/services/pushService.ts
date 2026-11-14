@@ -29,7 +29,7 @@ export function rotaConfirmarLeitura(notificacaoId: string): string {
 }
 
 export interface OpcoesPush {
-  cliente?: Pick<ApiClient, 'put' | 'post' | 'delete'>;
+  cliente?: Pick<ApiClient, 'put' | 'delete'>;
 }
 
 export interface DestinoNotificacao {
@@ -139,7 +139,7 @@ export async function confirmarLeituraNotificacao(
   { cliente = apiClient }: OpcoesPush = {}
 ): Promise<void> {
   if (!notificacaoId) return;
-  await cliente.post(rotaConfirmarLeitura(notificacaoId));
+  await cliente.put(rotaConfirmarLeitura(notificacaoId));
 }
 
 /** Decide qual tela abrir a partir dos dados extras de uma notificação push. */
