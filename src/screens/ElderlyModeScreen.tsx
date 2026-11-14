@@ -15,11 +15,13 @@ import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import SosHoldButton from '../components/SosHoldButton';
 import WatchStatusCard from '../components/WatchStatusCard';
+import ElderlyMetricsCards from '../components/ElderlyMetricsCards';
 import { usePapel } from '../context/PapelContext';
 import {
   carregarStatusRelogioIdoso,
   StatusRelogioIdoso,
 } from '../services/relogioStatusService';
+import { carregarBiometriaIdoso, type BiometriaIdoso } from '../services/elderlyTelemetryService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
 import { colors, typography } from '../theme';
@@ -100,11 +102,13 @@ export default function ElderlyModeScreen({
   const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
   const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
+  const [biometria, setBiometria] = useState<BiometriaIdoso | null>(null);
 
 
   useEffect(() => {
     if (!idAtivo) {
       setRotinas([]);
+      setBiometria(null);
       return;
     }
 
@@ -119,6 +123,14 @@ export default function ElderlyModeScreen({
       })
       .catch((err) => {
         console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
+      });
+
+    // Passos e batimentos de hoje (HU-030): só os tipos autorizados; sem leitura, "Sem dados".
+    carregarBiometriaIdoso(idAtivo)
+      .then(setBiometria)
+      .catch((err) => {
+        setBiometria(null);
+        console.warn('[ElderlyModeScreen] Passos e batimentos indisponíveis:', err?.name);
       });
 
     // 0. Carrega status de sincronização do relógio (HU-025)
@@ -180,7 +192,9 @@ export default function ElderlyModeScreen({
       onTimeout: ({ primeiroContato: contato }) => {
         if (contato) setPrimeiroContato(contato);
         const telSanitizado = (contato?.telefone || '11987654321').replace(/\D/g, '');
-        Linking.openURL(`tel:${telSanitizado}`).catch(() => {});
+        Linking.openURL(`tel:${telSanitizado}`).catch((err) => {
+          console.warn('[ElderlyModeScreen] Não foi possível abrir a ligação de emergência:', err?.name);
+        });
       },
     });
   }, [idAtivo]);
@@ -417,6 +431,9 @@ export default function ElderlyModeScreen({
           status={watchStatus}
           onPress={() => onNavigate && onNavigate('ElderlyWatch')}
         />
+
+        {/* PASSOS E BATIMENTOS DE HOJE (HU-030 / RNF-006) */}
+        <ElderlyMetricsCards biometria={biometria} />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
         {loading ? (
