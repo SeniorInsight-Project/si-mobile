@@ -1,6 +1,14 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { listarComorbidades, adicionarComorbidades, removerComorbidade } from '../comorbidadeService';
+import {
+  listarComorbidades,
+  adicionarComorbidades,
+  removerComorbidade,
+  CONDICOES_CLINICAS_DRS,
+  AVISO_OUTRAS_COMORBIDADES,
+  ehCondicaoDoSemaforo,
+  podeEditarComorbidades,
+} from '../comorbidadeService';
 import { ApiError } from '../apiClient';
 
 const IDOSO = 'e3b0c442-98fc-1c14-9afc-432100000001';
@@ -64,5 +72,35 @@ describe('Comorbidades pelo apiClient, contrato care-v1 (HU15)', () => {
     const erro = new ApiError(404, null, '/x');
     const c = cliente({ [`DELETE /api/v1/idosos/${IDOSO}/comorbidades/Gripe`]: erro });
     await assert.rejects(removerComorbidade(IDOSO, 'Gripe', { cliente: c }), (e: any) => e === erro);
+  });
+
+  test('HU-010 Cenário 1: lista fechada das 6 condições do DRS entra no cálculo do semáforo', async () => {
+    assert.deepEqual([...CONDICOES_CLINICAS_DRS], [
+      'Hipertensão',
+      'Diabetes',
+      'Cardiopatia',
+      'DPOC',
+      'Osteoporose',
+      'Histórico de quedas',
+    ]);
+    assert.equal(ehCondicaoDoSemaforo('Cardiopatia'), true);
+    const c = cliente({ [`POST /api/v1/idosos/${IDOSO}/comorbidades`]: { idosoId: IDOSO, comorbidades: ['Cardiopatia'] } });
+    const r = await adicionarComorbidades(IDOSO, 'Cardiopatia', { cliente: c });
+    assert.deepEqual(r.comorbidades, ['Cardiopatia']);
+  });
+
+  test('HU-010 Cenário 2: condição em "Outras" é salva na API, mas não entra no semáforo e traz aviso', async () => {
+    assert.equal(ehCondicaoDoSemaforo('Arritmia'), false);
+    assert.equal(AVISO_OUTRAS_COMORBIDADES, 'Não entra no cálculo do semáforo');
+    const c = cliente({ [`POST /api/v1/idosos/${IDOSO}/comorbidades`]: { idosoId: IDOSO, comorbidades: ['Arritmia'] } });
+    const r = await adicionarComorbidades(IDOSO, 'Arritmia', { cliente: c });
+    assert.deepEqual(r.comorbidades, ['Arritmia']);
+  });
+
+  test('RN-011: Familiar de Apoio (OBSERVADOR) é somente leitura; Administrador pode editar', () => {
+    assert.equal(podeEditarComorbidades('OBSERVADOR'), false);
+    assert.equal(podeEditarComorbidades('FAMILIAR_APOIO'), false);
+    assert.equal(podeEditarComorbidades('ADMINISTRADOR'), true);
+    assert.equal(podeEditarComorbidades('ADMIN'), true);
   });
 });
