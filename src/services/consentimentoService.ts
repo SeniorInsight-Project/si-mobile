@@ -5,6 +5,7 @@ import {
   type Consentimentos,
 } from './mappers/consentimentos';
 import type { ConsentimentosApi } from '../types/api';
+import { sincronizarCacheComConsentimentos } from './telemetriaCacheService';
 
 export type { Consentimentos };
 
@@ -16,7 +17,8 @@ export type { Consentimentos };
  * - Localização é independente: desligada, só é enviada durante um SOS (RN-009).
  * - Rota do care-v1: GET/PUT /api/v1/idosos/{idosoId}/consentimentos. O `idosoId` é o do care-service
  *   (vem do resgate do pareamento), nunca o `perfilId` do identity. Sem ele não há chamada: a tela pede
- *   novo pareamento. Não há estado local nem dado de exemplo.
+ *   novo pareamento. Não há dado de exemplo. As autorizações confirmadas vão para o cache de telemetria
+ *   (HU-030), que apaga o valor de cada tipo revogado.
  */
 export type TipoDado = keyof Consentimentos;
 
@@ -128,10 +130,14 @@ export async function salvarConsentimentos(
 ): Promise<Consentimentos> {
   const id = exigirIdoso(idosoId);
   const corpo = consentimentosParaContrato(consentimentos);
+  let salvo: Consentimentos;
   try {
     const resposta = await cliente.put<ConsentimentosApi | undefined>(rotaConsentimentos(id), corpo);
-    return resposta ? consentimentosDoContrato(resposta) : { ...corpo };
+    salvo = resposta ? consentimentosDoContrato(resposta) : { ...corpo };
   } catch (erro) {
     throw traduzir(erro, 'salvar');
   }
+  // Tipo revogado sai do cache de telemetria na hora (HU-030); a função não lança.
+  await sincronizarCacheComConsentimentos(id, salvo);
+  return salvo;
 }
