@@ -1,8 +1,10 @@
 import { describe, test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { ApiError } from '../apiClient';
 import {
   avaliarStatusRelogioIdoso,
   carregarStatusRelogioIdoso,
+  RelogioStatusError,
 } from '../relogioStatusService';
 import {
   salvarSyncRelogioLocal,
@@ -76,13 +78,75 @@ describe('HU-025: Status do Relógio na Tela do Idoso (Issue #53)', () => {
       assert.equal(recuperado, dataIso);
     });
 
-    test('carregarStatusRelogioIdoso deve funcionar sem internet a partir do cache local', async () => {
-      const vinteMinAtras = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-      await salvarSyncRelogioLocal(IDOSO_ID, vinteMinAtras);
+  });
 
-      const status = await carregarStatusRelogioIdoso(IDOSO_ID);
+  describe('Origem do status: GET /status da telemetria, com SQLite só como cache offline', () => {
+    const dezMinAtras = new Date(agora.getTime() - 10 * 60 * 1000).toISOString();
+    const quarentaMinAtras = new Date(agora.getTime() - 40 * 60 * 1000).toISOString();
+    const tresHorasAtras = new Date(agora.getTime() - 180 * 60 * 1000).toISOString();
+
+    function clienteComStatus(ultimaSincronizacao: string | null) {
+      const chamadas: string[] = [];
+      const cliente = {
+        get: async <T>(caminho: string): Promise<T> => {
+          chamadas.push(caminho);
+          return { idosoId: IDOSO_ID, ultimaSincronizacao, tiposAtivos: [] } as unknown as T;
+        },
+      };
+      return { cliente, chamadas };
+    }
+
+    const clienteSemRede = {
+      get: async <T>(caminho: string): Promise<T> => {
+        throw new ApiError(0, null, caminho, 'Network request failed');
+      },
+    };
+
+    test('usa o status vindo da API (rota /status do idoso) e grava a sincronização no cache', async () => {
+      // O cache tem um valor antigo; o que manda é o da API.
+      await salvarSyncRelogioLocal(IDOSO_ID, tresHorasAtras);
+      const { cliente, chamadas } = clienteComStatus(dezMinAtras);
+
+      const status = await carregarStatusRelogioIdoso(IDOSO_ID, { cliente, dataReferencia: agora });
+
+      assert.deepEqual(chamadas, [`/api/v1/telemetry/idosos/${IDOSO_ID}/status`]);
       assert.equal(status.funcionando, true);
-      assert.equal(status.titulo, 'Relógio funcionando');
+      assert.equal(status.minutosDesdeSincronizacao, 10);
+      assert.equal(await obterSyncRelogioLocal(IDOSO_ID), dezMinAtras);
+    });
+
+    test('usa o cache do SQLite quando a API falha', async () => {
+      await salvarSyncRelogioLocal(IDOSO_ID, quarentaMinAtras);
+
+      const status = await carregarStatusRelogioIdoso(IDOSO_ID, { cliente: clienteSemRede, dataReferencia: agora });
+
+      assert.equal(status.funcionando, true);
+      assert.equal(status.minutosDesdeSincronizacao, 40);
+    });
+
+    test('com API fora e cache antigo, o cache é avaliado como relógio parado', async () => {
+      await salvarSyncRelogioLocal(IDOSO_ID, tresHorasAtras);
+
+      const status = await carregarStatusRelogioIdoso(IDOSO_ID, { cliente: clienteSemRede, dataReferencia: agora });
+
+      assert.equal(status.funcionando, false);
+      assert.equal(status.minutosDesdeSincronizacao, 180);
+    });
+
+    test('lança RelogioStatusError quando a API falha e não há cache', async () => {
+      await assert.rejects(
+        carregarStatusRelogioIdoso(IDOSO_ID, { cliente: clienteSemRede, dataReferencia: agora }),
+        (erro: unknown) => erro instanceof RelogioStatusError && erro.codigo === 'SEM_DADOS'
+      );
+    });
+
+    test('não cai nos dados de demonstração mesmo com mock permitido (.env.test)', async () => {
+      // EXPO_PUBLIC_USAR_MOCK=true em .env.test: sem cache, a falha da API continua sendo erro.
+      await assert.rejects(
+        carregarStatusRelogioIdoso(IDOSO_ID, { cliente: clienteSemRede, dataReferencia: agora }),
+        RelogioStatusError
+      );
+      assert.equal(await obterSyncRelogioLocal(IDOSO_ID), null);
     });
   });
 });

@@ -1,5 +1,5 @@
-import { mockPermitido } from '../config/ambiente';
 import { buscarStatusDispositivo } from './deviceStatusService';
+import type { ClienteTelemetria } from './telemetriaApi';
 import {
   salvarSyncRelogioLocal,
   obterSyncRelogioLocal,
@@ -84,51 +84,59 @@ export function avaliarStatusRelogioIdoso(
   };
 }
 
+export type CodigoErroRelogioStatus = 'SEM_DADOS';
+
+export class RelogioStatusError extends Error {
+  readonly codigo: CodigoErroRelogioStatus;
+
+  constructor(mensagem: string, codigo: CodigoErroRelogioStatus = 'SEM_DADOS') {
+    super(mensagem);
+    this.name = 'RelogioStatusError';
+    this.codigo = codigo;
+  }
+}
+
+export interface OpcoesStatusRelogio {
+  cliente?: ClienteTelemetria;
+  dataReferencia?: Date;
+}
+
 /**
- * Carrega o status do relógio para a tela do idoso com suporte 100% offline via SQLite.
+ * Status do relógio para a tela do idoso (HU-025).
  *
- * NOTA DE ARQUITETURA / TELEMETRIA:
- * Conforme revisão da HU-025, o status definitivo do dispositivo em produção deverá consumir
- * o endpoint 'GET /status' do serviço de telemetria (SeniorInsight-Project/si-telemetry-service#17).
- * Como o PR #17 da telemetria ainda está pendente de merge no backend, a integração direta via
- * apiClient está registrada para um card dedicado. No momento, o status utiliza o cache local
- * persistido via SQLite (relogioDatabase) e, quando há rede, tenta o serviço existente de status
- * com fallback offline.
+ * A fonte é o GET /api/v1/telemetry/idosos/{id}/status do telemetry-service, lido por
+ * buscarStatusDispositivo. A última sincronização devolvida é gravada no SQLite (relogioDatabase),
+ * que serve só de cache para o modo offline: é lido quando a API falha.
+ * Sem resposta da API e sem cache não há o que mostrar, e a função lança RelogioStatusError
+ * em vez de inventar um status.
  */
 export async function carregarStatusRelogioIdoso(
-  idosoId?: string | null
+  idosoId?: string | null,
+  { cliente, dataReferencia }: OpcoesStatusRelogio = {}
 ): Promise<StatusRelogioIdoso> {
   if (!idosoId) {
-    return avaliarStatusRelogioIdoso(null);
+    return avaliarStatusRelogioIdoso(null, dataReferencia);
   }
 
-  // 1. Tenta obter o último timestamp salvo localmente no SQLite
-  let syncTimestamp = await obterSyncRelogioLocal(idosoId);
-
-  // 2. Se tiver rede, tenta atualizar do backend em background (apenas se for mais recente que o local)
   try {
-    const statusApi = await buscarStatusDispositivo(idosoId);
-    if (statusApi?.ultimaSincronizacao) {
-      const apiTime = new Date(statusApi.ultimaSincronizacao).getTime();
-      const localTime = syncTimestamp ? new Date(syncTimestamp).getTime() : 0;
-      if (isNaN(localTime) || apiTime > localTime) {
-        syncTimestamp = statusApi.ultimaSincronizacao;
-        await salvarSyncRelogioLocal(idosoId, syncTimestamp);
-      }
+    // permitirMock: false, para uma falha da API cair no cache e não nos dados de demonstração.
+    const statusApi = await buscarStatusDispositivo(idosoId, { cliente, permitirMock: false });
+    if (statusApi.ultimaSincronizacao) {
+      await salvarSyncRelogioLocal(idosoId, statusApi.ultimaSincronizacao).catch((err) => {
+        console.warn('[relogioStatusService] Não foi possível gravar o cache local:', err instanceof Error ? err.message : err);
+      });
     }
+    return avaliarStatusRelogioIdoso(statusApi.ultimaSincronizacao, dataReferencia);
   } catch (err) {
     console.warn(
-      '[relogioStatusService] Backend indisponível, usando cache local:',
-      err instanceof Error ? err.message : 'offline'
+      '[relogioStatusService] API de telemetria indisponível, usando cache local:',
+      err instanceof Error ? err.message : 'falha'
     );
   }
 
-  // 3. Fallback mock apenas se permitido e sem dados
-  if (!syncTimestamp && mockPermitido()) {
-    // Mock padrão: 10 minutos atrás (Cenário 1 da HU-025)
-    syncTimestamp = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    await salvarSyncRelogioLocal(idosoId, syncTimestamp);
+  const emCache = await obterSyncRelogioLocal(idosoId);
+  if (!emCache) {
+    throw new RelogioStatusError('Não foi possível obter o status do relógio e não há dados salvos no aparelho.');
   }
-
-  return avaliarStatusRelogioIdoso(syncTimestamp);
+  return avaliarStatusRelogioIdoso(emCache, dataReferencia);
 }

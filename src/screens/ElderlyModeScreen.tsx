@@ -124,7 +124,11 @@ export default function ElderlyModeScreen({
     // 0. Carrega status de sincronização do relógio (HU-025)
     carregarStatusRelogioIdoso(idAtivo)
       .then(setWatchStatus)
-      .catch(() => {});
+      .catch((err) => {
+        // Sem API e sem cache: o card fica oculto em vez de mostrar um status inventado.
+        setWatchStatus(null);
+        console.warn('[ElderlyModeScreen] Status do relógio indisponível:', err?.message);
+      });
 
     obterRotinasDoCache(idAtivo)
       .then((cached) => {
