@@ -25,6 +25,8 @@ import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
 import { colors, typography, rounded, shadows } from '../theme';
 import {
+  validarTelefone,
+  LIMITE_CONTATOS_EMERGENCIA,
   listarContatos,
   salvarContato,
   removerContato,
@@ -314,6 +316,7 @@ export default function EmergencyContactsScreen({
   const idosoId = idosoIdProp ?? idosoIdContexto;
   const [contatos, setContatos] = useState<ContatoEmergencia[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [modalNovoContatoVisible, setModalNovoContatoVisible] = useState<boolean>(false);
   const [comoFuncionaAberto, setComoFuncionaAberto] = useState<boolean>(false);
@@ -322,6 +325,7 @@ export default function EmergencyContactsScreen({
   const [nome, setNome] = useState<string>('');
   const [telefone, setTelefone] = useState<string>('');
   const [parentesco, setParentesco] = useState<string>('Filho(a)');
+  const [erroTelefone, setErroTelefone] = useState<string | null>(null);
 
   const dispararHaptic = () => {
     try {
@@ -340,6 +344,7 @@ export default function EmergencyContactsScreen({
     const [removido] = novaLista.splice(deIndex, 1);
     novaLista.splice(paraIndex, 0, removido);
 
+    const listaAnterior = [...contatos];
     const comOrdem = novaLista.map((c, i) => ({ ...c, ordem: i + 1 }));
     setContatos(comOrdem);
 
@@ -347,6 +352,8 @@ export default function EmergencyContactsScreen({
       await reordenarContatos(idAtivo, comOrdem);
     } catch (err: any) {
       console.warn('[EmergencyContactsScreen] Erro ao persistir nova ordem:', err?.message);
+      setContatos(listaAnterior);
+      Alert.alert('Erro ao reordenar', err?.message || 'Não foi possível salvar a nova ordem dos contatos.');
     }
   };
 
@@ -357,16 +364,19 @@ export default function EmergencyContactsScreen({
   const carregarLista = async () => {
     if (!idosoId) {
       setContatos([]);
+      setErroCarregamento(null);
       setLoading(false);
       return;
     }
     const idAtivo = idosoId;
     try {
       setLoading(true);
+      setErroCarregamento(null);
       const data = await listarContatos(idAtivo);
       setContatos(data);
     } catch (err: any) {
       console.warn('[EmergencyContactsScreen] Erro ao carregar contatos:', err?.message);
+      setErroCarregamento(err?.message || 'Não foi possível carregar os contatos de emergência.');
     } finally {
       setLoading(false);
     }
@@ -385,16 +395,28 @@ export default function EmergencyContactsScreen({
   };
 
   const handleAdicionarContato = async () => {
-    if (!idosoId) return;
+    if (!idosoId) {
+      Alert.alert('Atenção', 'Selecione ou cadastre um idoso antes de adicionar contatos.');
+      return;
+    }
     const idAtivo = idosoId;
+
+    if (contatos.length >= LIMITE_CONTATOS_EMERGENCIA) {
+      Alert.alert(
+        'Limite Atingido',
+        `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência (RN-002).`
+      );
+      return;
+    }
     if (!nome.trim()) {
       Alert.alert('Campo Obrigatório', 'Por favor, informe o nome completo do contato.');
       return;
     }
 
-    const rawDigits = telefone.replace(/\D/g, '');
-    if (rawDigits.length < 10) {
-      Alert.alert('Telefone Inválido', 'Informe um telefone com DDD válido (pelo menos 10 dígitos).');
+    const validacao = validarTelefone(telefone);
+    if (!validacao.valido) {
+      setErroTelefone('Telefone inválido');
+      Alert.alert('Telefone inválido', 'Informe um telefone com DDD válido.');
       return;
     }
 
@@ -412,10 +434,12 @@ export default function EmergencyContactsScreen({
       setNome('');
       setTelefone('');
       setParentesco('Filho(a)');
+      setErroTelefone(null);
       setModalNovoContatoVisible(false);
       Alert.alert('Sucesso!', `${novo.nome} foi adicionado à rede de socorro prioritária.`);
     } catch (err: any) {
-      Alert.alert('Erro', 'Não foi possível cadastrar o contato. Tente novamente.');
+      const msg = err?.message || 'Não foi possível cadastrar o contato. Tente novamente.';
+      Alert.alert(msg === 'Telefone inválido' ? 'Telefone inválido' : 'Erro', msg);
     } finally {
       setSubmitting(false);
     }
@@ -433,8 +457,12 @@ export default function EmergencyContactsScreen({
           text: 'Remover',
           style: 'destructive',
           onPress: async () => {
-            await removerContato(idAtivo, contato.id);
-            setContatos((prev) => prev.filter((c) => c.id !== contato.id));
+            try {
+              await removerContato(idAtivo, contato.id);
+              setContatos((prev) => prev.filter((c) => c.id !== contato.id));
+            } catch (err: any) {
+              Alert.alert('Erro', err?.message || 'Não foi possível remover o contato.');
+            }
           },
         },
       ]
@@ -471,11 +499,25 @@ export default function EmergencyContactsScreen({
         <View style={styles.contactsListSection}>
           <View style={styles.listHeaderRow}>
             <Text style={styles.sectionTitle}>
-              Contatos Prioritários ({contatos.length})
+              Contatos Prioritários ({contatos.length}/{LIMITE_CONTATOS_EMERGENCIA})
             </Text>
             <TouchableOpacity
-              style={styles.btnHeaderNovoContato}
-              onPress={() => setModalNovoContatoVisible(true)}
+              style={[
+                styles.btnHeaderNovoContato,
+                contatos.length >= LIMITE_CONTATOS_EMERGENCIA && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                if (contatos.length >= LIMITE_CONTATOS_EMERGENCIA) {
+                  Alert.alert(
+                    'Limite Atingido',
+                    `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência (RN-002). Remova um contato para adicionar outro.`
+                  );
+                  return;
+                }
+                setErroTelefone(null);
+                setModalNovoContatoVisible(true);
+              }}
+              testID="btn-novo-contato-emergencia"
               activeOpacity={0.85}
             >
               <Icon name="person_add" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -485,10 +527,23 @@ export default function EmergencyContactsScreen({
 
           {loading ? (
             <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
+          ) : erroCarregamento ? (
+            <View style={{ padding: 16, backgroundColor: colors.peachBg, borderRadius: 16, borderWidth: 1, borderColor: colors.peachBorder, marginVertical: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: colors.peachText, textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
+                {erroCarregamento}
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+                onPress={carregarLista}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: colors.white, fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
           ) : contatos.length === 0 ? (
-            <View style={{ padding: 16, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginVertical: 8 }}>
+            <View style={{ padding: 16, backgroundColor: colors.canvasBase, borderRadius: 16, borderWidth: 1, borderColor: colors.border, marginVertical: 8 }}>
               <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
-                A sincronização de contatos de emergência com o servidor estará disponível em breve (care#100). Nenhum contato cadastrado ainda.
+                Nenhum contato de emergência cadastrado.
               </Text>
             </View>
           ) : (
@@ -634,9 +689,18 @@ export default function EmergencyContactsScreen({
                     placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                     value={telefone}
-                    onChangeText={handleTelefoneChange}
+                    onChangeText={(t) => {
+                      if (erroTelefone) setErroTelefone(null);
+                      handleTelefoneChange(t);
+                    }}
+                    testID="input-telefone-contato"
                   />
                 </View>
+                {erroTelefone ? (
+                  <Text style={{ color: colors.coral, fontSize: 12, marginTop: 4, fontWeight: '600' }} testID="msg-erro-telefone">
+                    {erroTelefone}
+                  </Text>
+                ) : null}
               </View>
 
               {/* Seletor de Parentesco */}
