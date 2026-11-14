@@ -5,9 +5,41 @@ import { extrairMensagemErro } from './erroHelper';
 /**
  * Direito ao Premium e período de teste de 14 dias (HU-040, HU-041, HU-042 / RF-031, RF-032 / RN-013, RN-014).
  *
- * TODO(billing#9): confirmar rota estável quando billing#9 entrar no si-contracts/gateway.
+ * Rota do gateway para GET /v1/direito do billing-service (si-contracts/openapi/billing-v1.yaml).
  */
 export const ROTA_DIREITO_PREMIUM = '/api/v1/billing/direito';
+
+/** Resposta de GET /v1/direito, conforme o schema Direito do contrato billing-v1. */
+export interface DireitoApi {
+  plano: 'FREE' | 'TRIAL' | 'PREMIUM';
+  acessoPremium: boolean;
+  assinaturaAtiva: boolean;
+  fimTrialEm: string | null;
+  acessoAte: string | null;
+  emCarencia: boolean;
+  precoPremiumCentavos: number | null;
+  moeda: 'BRL';
+}
+
+export function formatarPrecoMensal(centavos: number | null | undefined): string | null {
+  if (typeof centavos !== 'number' || !Number.isFinite(centavos) || centavos <= 0) return null;
+  return `R$ ${(centavos / 100).toFixed(2).replace('.', ',')}/mês`;
+}
+
+/**
+ * O contrato não traz trialDisponivel nem beneficiário B2B: o trial é registrado uma única vez
+ * no primeiro cadastro, então nunca é oferecido aqui, e mensagemB2B fica ausente.
+ */
+export function mapearDireito(api: DireitoApi): DireitoPremium {
+  return {
+    status: api.plano,
+    premiumLiberado: api.acessoPremium === true,
+    trialDisponivel: false,
+    trialExpiraEm: api.fimTrialEm ?? null,
+    precoMensalTexto: formatarPrecoMensal(api.precoPremiumCentavos),
+    mensagemB2B: null,
+  };
+}
 
 export type StatusPlano = 'FREE' | 'TRIAL' | 'PREMIUM' | 'BENEFICIARIO_B2B';
 
@@ -65,7 +97,7 @@ export async function obterDireitoPremium({ cliente = apiClient }: OpcoesPremium
   }
 
   try {
-    return await cliente.get<DireitoPremium>(ROTA_DIREITO_PREMIUM);
+    return mapearDireito(await cliente.get<DireitoApi>(ROTA_DIREITO_PREMIUM));
   } catch (erro) {
     const detalhe = extrairMensagemErro(erro, 'Não foi possível verificar seu plano.');
     console.warn('[premiumService] Falha ao consultar direito Premium:', detalhe);

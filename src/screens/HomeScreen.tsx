@@ -34,13 +34,13 @@ import {
   statusMonitoramento,
   mensagemParaFamilia,
   type Consentimentos,
-} from ../services/consentimentoService;
+} from '../services/consentimentoService';
 import {
   avisoFimTrial,
   DireitoPremium,
   formatarFaixaTrial,
   obterDireitoPremium,
-} from ../services/premiumService;
+} from '../services/premiumService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
 import { colors, typography } from '../theme';
 

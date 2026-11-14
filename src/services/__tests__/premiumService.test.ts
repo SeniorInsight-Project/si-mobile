@@ -32,6 +32,34 @@ describe('Teste grátis e Premium — HU-040 a HU-042 / RN-014 (Issue #59)', () 
     }
   });
 
+  test('mapeia a resposta de /v1/direito do contrato billing-v1 para o modelo da tela', async () => {
+    process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
+    try {
+      const cliente = {
+        get: async <T>(rota: string): Promise<T> => {
+          assert.equal(rota, '/api/v1/billing/direito');
+          return {
+            plano: 'FREE',
+            acessoPremium: false,
+            assinaturaAtiva: false,
+            fimTrialEm: null,
+            acessoAte: null,
+            emCarencia: false,
+            precoPremiumCentavos: 2990,
+            moeda: 'BRL',
+          } as T;
+        },
+      };
+      const direito = await obterDireitoPremium({ cliente });
+      assert.equal(direito.status, 'FREE');
+      assert.equal(direito.premiumLiberado, false);
+      assert.equal(direito.trialExpiraEm, null);
+      assert.equal(direito.precoMensalTexto, 'R$ 29,90/mês');
+    } finally {
+      process.env.EXPO_PUBLIC_USAR_MOCK = mockOriginal;
+    }
+  });
+
   test('HU-040 Cenário 1: formata faixa "Premium grátis até DD/MM"', () => {
     const direito: DireitoPremium = {
       status: 'TRIAL',
