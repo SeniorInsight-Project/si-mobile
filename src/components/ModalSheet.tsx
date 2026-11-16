@@ -90,13 +90,14 @@ export default function ModalSheet({
 }
 
 const styles = StyleSheet.create({
+  // O escurecimento fica no container: um Pressable absoluto só com cor não era desenhado no Android.
   root: {
     flex: 1,
     justifyContent: 'flex-end',
+    backgroundColor: colors.overlay,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
   },
   keyboardWrapper: {
     width: '100%',
