@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { usePapel } from '../context/PapelContext';
 import {
@@ -97,11 +98,11 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Meus Dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
+      <AppHeader title="Meus dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
       <ScrollView contentContainerStyle={styles.content}>
         {isFamiliar && (
           <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
-            <Icon name="gavel" size={20} color="#B51C13" />
+            <Icon name="gavel" size={20} color={colors.coralDark} />
             <Text style={styles.curatelaBannerText}>
               Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar essas escolhas.
             </Text>
@@ -122,9 +123,14 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
           ) : erroCarga ? (
             <View style={styles.erroCarga} testID="dados-erro">
               <Text style={styles.erroCargaTexto}>{erroCarga}</Text>
-              <TouchableOpacity style={styles.tentar} onPress={carregar} accessibilityRole="button" testID="dados-tentar-de-novo">
-                <Text style={styles.tentarTexto}>Tentar de novo</Text>
-              </TouchableOpacity>
+              <Button
+                title="Tentar de novo"
+                variant="secondary"
+                iconLeft="refresh"
+                fullWidth={false}
+                onPress={carregar}
+                testID="dados-tentar-de-novo"
+              />
             </View>
           ) : (
             LINHAS_SAUDE.map((linha) => (
@@ -204,40 +210,31 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
           </Text>
         )}
 
-        <TouchableOpacity
-          style={[styles.primary, salvando && styles.disabled]}
-          onPress={confirmar}
+        <Button
+          title={primeiroUso ? 'Confirmar e continuar' : 'Salvar escolhas'}
+          variant="success"
+          size="xl"
+          loading={salvando}
           disabled={salvando || carregando || Boolean(erroCarga)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={confirmar}
           testID="dados-confirmar"
-        >
-          {salvando ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.primaryText}>{primeiroUso ? 'Confirmar e continuar' : 'Salvar escolhas'}</Text>
-          )}
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={styles.logout}
+        <Button
+          title="Excluir minha conta e meus dados"
+          variant="ghost"
+          iconLeft="delete"
           onPress={() => onNavigate('DeleteAccount')}
-          accessibilityRole="button"
           testID="dados-excluir-conta"
-        >
-          <Icon name="delete" size={20} color={colors.textSecondary} />
-          <Text style={styles.logoutText}>Excluir minha conta e meus dados</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={styles.logout}
+        <Button
+          title="Sair deste celular"
+          variant="ghost"
+          iconLeft="logout"
           onPress={() => onNavigate('Logout')}
-          accessibilityRole="button"
           testID="dados-sair"
-        >
-          <Icon name="logout" size={20} color={colors.textSecondary} />
-          <Text style={styles.logoutText}>Sair deste celular</Text>
-        </TouchableOpacity>
+        />
       </ScrollView>
       <BottomNavBar currentScreen="ElderlyData" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -253,51 +250,50 @@ const styles = StyleSheet.create({
     backgroundColor: colors.peachBg,
     borderWidth: 1.5,
     borderColor: colors.peachBorder,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     padding: 16,
   },
   curatelaBannerText: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '700',
     color: colors.coralDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 4, ...shadows.tier1 },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  eyebrow: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, fontFamily: typography.fontFamily.body },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 4, ...shadows.tier1 },
+  title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
+  body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
+  eyebrow: { fontSize: 14,  color: colors.textSecondary, marginBottom: 8, ...font('body', 600) },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64 },
-  rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 48, height: 48, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   rowIconOn: { backgroundColor: colors.mintBg },
   rowIconOff: { backgroundColor: colors.surfaceSubtle },
   rowTexts: { flex: 1 },
-  rowTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  rowSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  sosNote: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, backgroundColor: colors.peachBg, marginTop: 8 },
-  sosTag: { fontSize: 14, fontWeight: '800', color: colors.coralDark, fontFamily: typography.fontFamily.heading },
-  sosNoteText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  rowTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
+  rowSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
+  sosNote: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.md, backgroundColor: colors.peachBg, marginTop: 8 },
+  sosTag: { fontSize: 14,  color: colors.coralDark, ...font('heading', 800) },
+  sosNoteText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.coralDark, ...font('body', 400) },
   pauseNote: {
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.amberBg,
     borderWidth: 1,
     borderColor: colors.amberBorder,
   },
-  pauseText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
-  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
-  saved: { fontSize: 16, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.body },
-  primary: { minHeight: 56, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  pauseText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, ...font('body', 400) },
+  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.skyBg },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
+  saved: { fontSize: 16,  color: colors.successDark, ...font('body', 700) },
+  primary: { minHeight: 56, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   disabled: { opacity: 0.7 },
   erroCarga: { gap: 12, alignItems: 'center', paddingVertical: 8 },
-  erroCargaTexto: { fontSize: 16, lineHeight: 24, fontWeight: '700', textAlign: 'center', color: colors.coralDark, fontFamily: typography.fontFamily.body },
-  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  tentarTexto: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  erroCargaTexto: { fontSize: 16, lineHeight: 24,  textAlign: 'center', color: colors.coralDark, ...font('body', 700) },
+  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  tentarTexto: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
   logout: { minHeight: 48, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
-  logoutText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  logoutText: { fontSize: 16,  color: colors.textSecondary, ...font('body', 600) },
 });

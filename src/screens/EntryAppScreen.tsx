@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface EntryAppScreenProps {
@@ -21,7 +22,7 @@ export default function EntryAppScreen({ onNavigate, onDesfecho }: EntryAppScree
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
 
         <View style={styles.badge}>
-          <Icon name="verified_user" size={14} color={colors.successDark} />
+          <Icon name="verified_user" size={16} color={colors.successDark} />
           <Text style={styles.badgeText}>ACESSO SEGURO</Text>
         </View>
 
@@ -33,30 +34,23 @@ export default function EntryAppScreen({ onNavigate, onDesfecho }: EntryAppScree
         <View style={styles.card} testID="entry-familiar-card">
           <Text style={styles.cardEyebrow}>SOU FAMILIAR</Text>
 
-          <TouchableOpacity
-            style={styles.primaryButton}
+          <Button
+            title="Entrar com minha conta"
             onPress={() => onNavigate('Login')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            variant="primary"
+            size="lg"
+            iconLeft="login"
             testID="entry-login"
-          >
-            <Icon name="login" size={22} color={colors.white} />
-            <Text style={styles.primaryButtonText}>Entrar com minha conta</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            style={styles.linkButton}
+          <Button
+            title="Criar conta de familiar"
             onPress={async () => onDesfecho(await criarConta())}
+            variant="ghost"
+            loading={carregando}
             disabled={!pronto || carregando}
-            accessibilityRole="button"
             testID="entry-criar-conta"
-          >
-            {carregando ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <Text style={styles.linkNavy}>Criar conta de familiar</Text>
-            )}
-          </TouchableOpacity>
+          />
           {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
         </View>
 
@@ -71,27 +65,23 @@ export default function EntryAppScreen({ onNavigate, onDesfecho }: EntryAppScree
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.greenButton}
+          <Button
+            title="Ler QR Code"
             onPress={() => onNavigate('ElderlyQrScan')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            variant="success"
+            size="xl"
+            iconLeft="qr_code_scanner"
             accessibilityLabel="Sou o idoso: ler QR Code"
             testID="entry-qr"
-          >
-            <Icon name="qr_code_scanner" size={22} color={colors.white} />
-            <Text style={styles.primaryButtonText}>Ler QR Code</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            style={styles.linkButton}
+          <Button
+            title="Digitar o código"
             onPress={() => onNavigate('ElderlyEnterCode')}
-            accessibilityRole="button"
+            variant="ghost"
             accessibilityLabel="Sou o idoso: digitar o código"
             testID="entry-digitar-codigo"
-          >
-            <Text style={styles.linkGreen}>Digitar o código</Text>
-          </TouchableOpacity>
+          />
         </View>
       </ScrollView>
     </ScreenWrapper>
@@ -109,18 +99,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
-    backgroundColor: colors.mintBg,
+    borderRadius: rounded.full,
+    backgroundColor: colors.mint.background,
   },
-  badgeText: { fontSize: 14, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.body },
+  badgeText: { fontSize: 14, color: colors.successDark, ...font('body', 700) },
   title: {
     marginTop: 16,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
+    ...typography.headlineLg,
     textAlign: 'center',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     marginTop: 12,
@@ -129,56 +116,33 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   card: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.xl,
     padding: 20,
     marginBottom: 16,
     gap: 12,
     ...shadows.tier1,
   },
-  cardEyebrow: { fontSize: 14, color: colors.textSecondary, fontWeight: '600', fontFamily: typography.fontFamily.body },
-  primaryButton: {
-    minHeight: 56,
-    borderRadius: 9999,
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  greenButton: {
-    minHeight: 64,
-    borderRadius: 9999,
-    backgroundColor: colors.successDark,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  primaryButtonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  linkButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  linkNavy: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  cardEyebrow: { fontSize: 14, color: colors.textSecondary, ...font('body', 600) },
   errorText: {
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
-    color: colors.secondary,
-    fontFamily: typography.fontFamily.body,
+    color: colors.error,
+    ...font('body', 600),
   },
-  linkGreen: { fontSize: 18, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.heading },
   idosoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   idosoIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.mintBg,
+    borderRadius: rounded.full,
+    backgroundColor: colors.mint.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   idosoTexts: { flex: 1 },
-  idosoTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  idosoSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  idosoTitle: { fontSize: 18, color: colors.primary, ...font('heading', 700) },
+  idosoSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
 });

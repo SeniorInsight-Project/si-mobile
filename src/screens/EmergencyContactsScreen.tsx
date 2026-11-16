@@ -5,12 +5,9 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Alert,
   ActivityIndicator,
   Linking,
-  Modal,
-  KeyboardAvoidingView,
   Platform,
   PanResponder,
   LayoutAnimation,
@@ -23,7 +20,11 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { colors, typography, rounded, shadows } from '../theme';
+import ModalSheet from '../components/ModalSheet';
+import TextField from '../components/TextField';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
+import { colors, typography, rounded, shadows, font } from '../theme';
 import {
   validarTelefone,
   LIMITE_CONTATOS_EMERGENCIA,
@@ -205,7 +206,7 @@ function DraggableContactCard({
               style={styles.microArrowBtn}
               activeOpacity={0.7}
             >
-              <Icon name="keyboard_arrow_up" size={15} color="#64748B" />
+              <Icon name="keyboard_arrow_up" size={15} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -217,7 +218,7 @@ function DraggableContactCard({
             <Icon
               name="drag_indicator"
               size={20}
-              color={isDragging ? colors.navy : '#94A3B8'}
+              color={isDragging ? colors.primary : colors.textMuted}
             />
           </View>
 
@@ -229,7 +230,7 @@ function DraggableContactCard({
               style={styles.microArrowBtn}
               activeOpacity={0.7}
             >
-              <Icon name="keyboard_arrow_down" size={15} color="#64748B" />
+              <Icon name="keyboard_arrow_down" size={15} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -237,7 +238,7 @@ function DraggableContactCard({
         <View
           style={[
             styles.contactAvatar,
-            { backgroundColor: contato.corAvatar || colors.skyBg },
+            { backgroundColor: contato.corAvatar || colors.sky.background },
           ]}
         >
           <Text
@@ -262,7 +263,7 @@ function DraggableContactCard({
               <Icon
                 name="phone"
                 size={9}
-                color={index === 0 ? '#B32A1E' : colors.skyText}
+                color={index === 0 ? colors.coralDark : colors.skyText}
                 style={{ marginRight: 3 }}
               />
               <Text
@@ -282,21 +283,19 @@ function DraggableContactCard({
 
       {/* Ações: Ligar e Excluir */}
       <View style={styles.contactActions}>
-        <TouchableOpacity
-          style={styles.actionCallButton}
+        <IconButton
+          icon="phone"
+          variant="primary"
+          accessibilityLabel={`Ligar para ${contato.nome}`}
           onPress={() => onCall(contato.telefone)}
-          activeOpacity={0.8}
-        >
-          <Icon name="phone" size={16} color={colors.white} />
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={styles.actionDeleteButton}
+        <IconButton
+          icon="delete"
+          variant="danger"
+          accessibilityLabel={`Remover ${contato.nome}`}
           onPress={() => onRemove(contato)}
-          activeOpacity={0.8}
-        >
-          <Icon name="delete" size={16} color={colors.textMuted} />
-        </TouchableOpacity>
+        />
       </View>
     </Animated.View>
   );
@@ -486,8 +485,7 @@ export default function EmergencyContactsScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Contatos de Emergência"
-        subtitle="ESCALONAMENTO SOS"
+        title="Contatos de emergência"
         onNavigate={onNavigate}
       />
 
@@ -501,48 +499,39 @@ export default function EmergencyContactsScreen({
             <Text style={styles.sectionTitle}>
               Contatos Prioritários ({contatos.length}/{LIMITE_CONTATOS_EMERGENCIA})
             </Text>
-            <TouchableOpacity
-              style={[
-                styles.btnHeaderNovoContato,
-                contatos.length >= LIMITE_CONTATOS_EMERGENCIA && { opacity: 0.6 },
-              ]}
+            <Button
+              title="Novo Contato"
+              iconLeft="person_add"
+              variant="primary"
+              size="md"
+              fullWidth={false}
+              disabled={contatos.length >= LIMITE_CONTATOS_EMERGENCIA}
               onPress={() => {
-                if (contatos.length >= LIMITE_CONTATOS_EMERGENCIA) {
-                  Alert.alert(
-                    'Limite Atingido',
-                    `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência (RN-002). Remova um contato para adicionar outro.`
-                  );
-                  return;
-                }
                 setErroTelefone(null);
                 setModalNovoContatoVisible(true);
               }}
               testID="btn-novo-contato-emergencia"
-              activeOpacity={0.85}
-            >
-              <Icon name="person_add" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.btnHeaderNovoContatoText}>Novo Contato</Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {loading ? (
-            <ActivityIndicator size="small" color={colors.navy} style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
           ) : erroCarregamento ? (
-            <View style={{ padding: 16, backgroundColor: colors.peachBg, borderRadius: 16, borderWidth: 1, borderColor: colors.peachBorder, marginVertical: 8, alignItems: 'center' }}>
+            <View style={{ padding: 16, backgroundColor: colors.peach.background, borderRadius: rounded.lg, borderWidth: 1, borderColor: colors.peach.border, marginVertical: 8, alignItems: 'center' }}>
               <Text style={{ fontSize: 14, color: colors.peachText, textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
                 {erroCarregamento}
               </Text>
               <TouchableOpacity
-                style={{ backgroundColor: colors.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+                style={{ backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: rounded.full, minHeight: 48, justifyContent: 'center' }}
                 onPress={carregarLista}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: colors.white, fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
+                <Text style={{ color: colors.white, fontSize: 14, ...font('body', 600) }}>Tentar novamente</Text>
               </TouchableOpacity>
             </View>
           ) : contatos.length === 0 ? (
-            <View style={{ padding: 16, backgroundColor: colors.canvasBase, borderRadius: 16, borderWidth: 1, borderColor: colors.border, marginVertical: 8 }}>
-              <Text style={{ fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 }}>
+            <View style={{ padding: 16, backgroundColor: colors.canvasBase, borderRadius: rounded.lg, borderWidth: 1, borderColor: colors.border, marginVertical: 8 }}>
+              <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 }}>
                 Nenhum contato de emergência cadastrado.
               </Text>
             </View>
@@ -572,14 +561,14 @@ export default function EmergencyContactsScreen({
               Canal de emergência médica de saúde pública acionado em caso de gravidade.
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.samuCallBtn}
+          <Button
+            title="192"
+            iconLeft="phone"
+            variant="sos"
+            size="md"
+            fullWidth={false}
             onPress={() => Linking.openURL('tel:192')}
-            activeOpacity={0.85}
-          >
-            <Icon name="phone" size={16} color={colors.white} />
-            <Text style={styles.samuCallText}>192</Text>
-          </TouchableOpacity>
+          />
         </View>
 
         {/* ACCORDION COLAPSÁVEL: COMO FUNCIONA? */}
@@ -591,21 +580,21 @@ export default function EmergencyContactsScreen({
           >
             <View style={styles.accordionHeaderLeft}>
               <View style={styles.accordionIconCircle}>
-                <Icon name="help_outline" size={18} color="#031753" />
+                <Icon name="help_outline" size={18} color={colors.primary} />
               </View>
               <Text style={styles.accordionTitle}>Como funciona?</Text>
             </View>
             <Icon
               name={comoFuncionaAberto ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
               size={20}
-              color="#64748B"
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
 
           {comoFuncionaAberto && (
             <View style={styles.accordionBody}>
               <Text style={styles.accordionBodyText}>
-                Ao pressionar o <Text style={{ fontWeight: '700', color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
+                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
               </Text>
               <View style={styles.accordionStepRow}>
                 <View style={styles.accordionStepNumber}>
@@ -624,8 +613,8 @@ export default function EmergencyContactsScreen({
                 </Text>
               </View>
               <View style={styles.accordionStepRow}>
-                <View style={[styles.accordionStepNumber, { backgroundColor: '#FEE2E2' }]}>
-                  <Text style={[styles.accordionStepNumberText, { color: '#DC2626' }]}>3</Text>
+                <View style={[styles.accordionStepNumber, { backgroundColor: colors.peach.background }]}>
+                  <Text style={[styles.accordionStepNumberText, { color: colors.error }]}>3</Text>
                 </View>
                 <Text style={styles.accordionStepDesc}>
                   Em caso de ausência de resposta da rede familiar, o SAMU 192 é acionado diretamente.
@@ -637,138 +626,82 @@ export default function EmergencyContactsScreen({
       </ScrollView>
 
       {/* MODAL DE NOVO CONTATO DE EMERGÊNCIA */}
-      <Modal
+      <ModalSheet
         visible={modalNovoContatoVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalNovoContatoVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeaderRow}>
-              <View style={styles.modalHeaderTitles}>
-                <Text style={styles.modalHeaderTitle}>Novo Contato de Emergência</Text>
-                <Text style={styles.modalHeaderSubtitle}>Adicione um familiar ou cuidador à cadeia SOS</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
+        onClose={() => setModalNovoContatoVisible(false)}
+        title="Novo Contato de Emergência"
+        subtitle="Adicione um familiar ou cuidador à cadeia SOS"
+        footer={
+          <View style={styles.modalButtonsRow}>
+            <View style={styles.modalButtonCol}>
+              <Button
+                title="Cancelar"
                 onPress={() => setModalNovoContatoVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Icon name="close" size={18} color="#64748B" />
-              </TouchableOpacity>
+                variant="secondary"
+                disabled={submitting}
+              />
             </View>
+            <View style={styles.modalButtonColPrimary}>
+              <Button
+                title="Salvar Contato"
+                onPress={handleAdicionarContato}
+                variant="primary"
+                iconLeft="add"
+                loading={submitting}
+                disabled={submitting}
+              />
+            </View>
+          </View>
+        }
+      >
+        <TextField
+          label="Nome Completo *"
+          icon="person"
+          placeholder="Ex: Mariana Silva"
+          value={nome}
+          onChangeText={setNome}
+        />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Campo Nome */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nome Completo *</Text>
-                <View style={styles.inputBox}>
-                  <Icon name="person" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ex: Mariana Silva"
-                    placeholderTextColor={colors.textMuted}
-                    value={nome}
-                    onChangeText={setNome}
-                  />
-                </View>
-              </View>
+        <TextField
+          label="Telefone Celular / WhatsApp *"
+          icon="phone"
+          placeholder="(11) 98765-4321"
+          keyboardType="phone-pad"
+          value={telefone}
+          onChangeText={(t) => {
+            if (erroTelefone) setErroTelefone(null);
+            handleTelefoneChange(t);
+          }}
+          error={erroTelefone || undefined}
+          testID="input-telefone-contato"
+        />
 
-              {/* Campo Telefone */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Telefone Celular / WhatsApp *</Text>
-                <View style={styles.inputBox}>
-                  <Icon name="phone" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="(11) 98765-4321"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                    value={telefone}
-                    onChangeText={(t) => {
-                      if (erroTelefone) setErroTelefone(null);
-                      handleTelefoneChange(t);
-                    }}
-                    testID="input-telefone-contato"
-                  />
-                </View>
-                {erroTelefone ? (
-                  <Text style={{ color: colors.coral, fontSize: 12, marginTop: 4, fontWeight: '600' }} testID="msg-erro-telefone">
-                    {erroTelefone}
-                  </Text>
-                ) : null}
-              </View>
-
-              {/* Seletor de Parentesco */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Grau de Parentesco / Vínculo</Text>
-                <View style={styles.chipsContainer}>
-                  {PARENTESCO_OPCOES.map((opcao) => {
-                    const isSelected = parentesco === opcao;
-                    return (
-                      <TouchableOpacity
-                        key={opcao}
-                        style={[
-                          styles.chip,
-                          isSelected && styles.chipSelected,
-                        ]}
-                        onPress={() => setParentesco(opcao)}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            isSelected && styles.chipTextSelected,
-                          ]}
-                        >
-                          {opcao}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Botões do Modal */}
-              <View style={styles.modalButtonsRow}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Grau de Parentesco / Vínculo</Text>
+          <View style={styles.chipsContainer}>
+            {PARENTESCO_OPCOES.map((opcao) => {
+              const isSelected = parentesco === opcao;
+              return (
                 <TouchableOpacity
-                  style={styles.modalCancelBtn}
-                  onPress={() => setModalNovoContatoVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalCancelBtnText}>Cancelar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.submitButton,
-                    { flex: 1, marginTop: 0 },
-                    submitting && { opacity: 0.7 },
-                  ]}
-                  onPress={handleAdicionarContato}
-                  disabled={submitting}
+                  key={opcao}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => setParentesco(opcao)}
                   activeOpacity={0.85}
                 >
-                  {submitting ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <>
-                      <Icon name="add" size={18} color={colors.white} style={{ marginRight: 6 }} />
-                      <Text style={styles.submitButtonText}>
-                        Salvar Contato
-                      </Text>
-                    </>
-                  )}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextSelected,
+                    ]}
+                  >
+                    {opcao}
+                  </Text>
                 </TouchableOpacity>
-              </View>
-            </ScrollView>
+              );
+            })}
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </View>
+      </ModalSheet>
 
       <BottomNavBar currentScreen="ElderlyMode" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -782,11 +715,11 @@ const styles = StyleSheet.create({
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: colors.peachBg,
+    backgroundColor: colors.peach.background,
     borderRadius: rounded.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.peachBorder,
+    borderColor: colors.peach.border,
     marginBottom: 20,
     alignItems: 'flex-start',
   },
@@ -795,14 +728,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   infoTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    ...font('heading', 700),
     color: colors.peachText,
     marginBottom: 4,
   },
   infoDescription: {
-    fontSize: 11,
+    fontSize: 14,
     color: colors.peachText,
     lineHeight: 16,
   },
@@ -812,14 +744,13 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
-    color: colors.navy,
+    ...font('heading', 700),
+    color: colors.primary,
     marginBottom: 12,
   },
   escalonamentoFlow: {
@@ -835,19 +766,19 @@ const styles = StyleSheet.create({
   stepCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: rounded.xl,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
   stepText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    ...font('body', 700),
   },
   stepLabel: {
-    fontSize: 10,
+    fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: '600',
+    ...font('body', 600),
     textAlign: 'center',
   },
   contactsListSection: {
@@ -862,7 +793,7 @@ const styles = StyleSheet.create({
   badgeAtivos: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.mintBg,
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: rounded.full,
@@ -870,8 +801,8 @@ const styles = StyleSheet.create({
     borderColor: colors.mintBorder,
   },
   badgeAtivosText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 14,
+    ...font('body', 700),
     color: colors.mintText,
     marginLeft: 4,
   },
@@ -884,7 +815,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   contactLeft: {
@@ -895,14 +826,14 @@ const styles = StyleSheet.create({
   contactAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: rounded.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   contactAvatarText: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   contactInfo: {
     flex: 1,
@@ -910,93 +841,80 @@ const styles = StyleSheet.create({
   contactNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Quebra o badge "Nº a ligar" para a linha de baixo em vez de invadir os botões de ação.
+    flexWrap: 'wrap',
+    columnGap: 6,
+    rowGap: 4,
   },
   contactName: {
     fontSize: 14,
-    fontWeight: '700',
-    color: colors.navy,
-    marginRight: 6,
+    ...font('body', 700),
+    color: colors.primary,
   },
   ordemBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.skyBg,
+    backgroundColor: colors.sky.background,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: rounded.sm,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   ordemBadgePrimeiro: {
-    backgroundColor: '#FFEBE5',
-    borderColor: '#FFCDC2',
+    backgroundColor: colors.peach.background,
+    borderColor: colors.peach.border,
   },
   ordemBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 14,
+    ...font('body', 700),
     color: colors.skyText,
   },
   ordemBadgeTextPrimeiro: {
-    color: '#B32A1E',
+    color: colors.coralDark,
   },
   contactRole: {
-    fontSize: 11,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
   },
   contactPhone: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 14,
+    ...font('body', 600),
     color: colors.textPrimary,
     marginTop: 2,
   },
   contactActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginLeft: 8,
-  },
-  actionCallButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  actionDeleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.canvasBase,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   samuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.peachBg,
+    backgroundColor: colors.peach.background,
     borderRadius: rounded.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.peachBorder,
+    borderColor: colors.peach.border,
     marginBottom: 24,
   },
   samuIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: rounded.card,
     backgroundColor: colors.coral,
     justifyContent: 'center',
     alignItems: 'center',
   },
   samuTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    ...font('body', 700),
     color: colors.peachText,
   },
   samuDescription: {
-    fontSize: 11,
+    fontSize: 14,
     color: colors.peachText,
     marginTop: 2,
   },
@@ -1010,8 +928,8 @@ const styles = StyleSheet.create({
   },
   samuCallText: {
     color: colors.white,
-    fontWeight: '700',
-    fontSize: 13,
+    ...font('body', 700),
+    fontSize: 14,
     marginLeft: 6,
   },
   formCard: {
@@ -1019,7 +937,7 @@ const styles = StyleSheet.create({
     borderRadius: rounded.card,
     padding: 18,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   formHeaderRow: {
@@ -1030,24 +948,23 @@ const styles = StyleSheet.create({
   formIconWrapper: {
     width: 30,
     height: 30,
-    borderRadius: 10,
-    backgroundColor: colors.skyBg,
+    borderRadius: rounded.input,
+    backgroundColor: colors.sky.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
   formTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
-    color: colors.navy,
+    ...font('heading', 700),
+    color: colors.primary,
   },
   inputGroup: {
     marginBottom: 14,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    ...font('body', 600),
     color: colors.textPrimary,
     marginBottom: 6,
   },
@@ -1058,12 +975,12 @@ const styles = StyleSheet.create({
     borderRadius: rounded.input,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     height: 52,
   },
   textInput: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textPrimary,
   },
   chipsContainer: {
@@ -1077,26 +994,26 @@ const styles = StyleSheet.create({
     borderRadius: rounded.full,
     backgroundColor: colors.canvasBase,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
   },
   chipSelected: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 14,
+    ...font('body', 600),
     color: colors.textSecondary,
   },
   chipTextSelected: {
     color: colors.white,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.navy,
+    backgroundColor: colors.primary,
     height: 52,
     borderRadius: rounded.button,
     marginTop: 8,
@@ -1105,12 +1022,12 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   btnHeaderNovoContato: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.navy,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: rounded.full,
@@ -1118,19 +1035,15 @@ const styles = StyleSheet.create({
   },
   btnHeaderNovoContatoText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    ...font('body', 700),
   },
   contactCardDragging: {
-    borderColor: colors.navy,
+    borderColor: colors.primary,
     borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     zIndex: 9999,
-    shadowColor: '#253B80',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    elevation: 12,
+    ...shadows.tier2,
   },
   dragHandleCol: {
     alignItems: 'center',
@@ -1142,13 +1055,13 @@ const styles = StyleSheet.create({
   dragGripBox: {
     width: 30,
     height: 26,
-    borderRadius: 6,
+    borderRadius: rounded.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 1,
   },
   dragGripBoxActive: {
-    backgroundColor: '#E9EDFF',
+    backgroundColor: colors.surfaceContainer,
   },
   microArrowBtn: {
     paddingHorizontal: 4,
@@ -1160,7 +1073,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: rounded.card,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     overflow: 'hidden',
     marginTop: 16,
     ...shadows.tier1,
@@ -1170,7 +1083,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.canvasBase,
   },
   accordionHeaderLeft: {
     flexDirection: 'row',
@@ -1180,26 +1093,25 @@ const styles = StyleSheet.create({
   accordionIconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.lg,
+    backgroundColor: colors.infoSurface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   accordionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.navy,
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.primary,
+    ...font('heading', 700),
   },
   accordionBody: {
     padding: 16,
     backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopColor: colors.border,
   },
   accordionBodyText: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
@@ -1212,83 +1124,33 @@ const styles = StyleSheet.create({
   accordionStepNumber: {
     width: 22,
     height: 22,
-    borderRadius: 11,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.input,
+    backgroundColor: colors.infoSurface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
     marginTop: 1,
   },
   accordionStepNumberText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#031753',
+    fontSize: 14,
+    ...font('body', 700),
+    color: colors.primary,
   },
   accordionStepDesc: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textPrimary,
     lineHeight: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalHeaderTitles: {
-    flex: 1,
-  },
-  modalHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.navy,
-    fontFamily: typography.fontFamily.heading,
-  },
-  modalHeaderSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
   },
   modalButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginTop: 16,
   },
-  modalCancelBtn: {
-    height: 52,
-    paddingHorizontal: 20,
-    borderRadius: rounded.button,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
+  modalButtonCol: {
+    flex: 1,
   },
-  modalCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
+  modalButtonColPrimary: {
+    flex: 1.4,
   },
 });

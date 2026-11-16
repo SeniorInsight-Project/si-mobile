@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Animated,
   Linking,
@@ -12,7 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows, rounded } from '../theme';
+import Button from './Button';
+import { colors, shadows, rounded, font } from '../theme';
 import { AlarmeEmergencia } from '../services/alarmeSosService';
 import { SosQueueStatusInfo } from '../services/sosQueueService';
 import { ContatoEmergencia } from '../services/contatoEmergenciaService';
@@ -30,10 +30,7 @@ export interface SosActiveModalProps {
 
 /**
  * Tela cheia "Pedido de Socorro" / "Chamando sua família" (Figma "Idoso - SOS Acionado"; HU-063, HU-064, RN-009).
- * - Exibe feedback imediato do SOS disparado.
- * - Suporta cancelamento em até 10 segundos ("Foi engano", HU-064).
- * - Após 10 segundos, exibe "Ajuda a caminho".
- * - Exibe status de reenvio offline (60s) e discagem rápida para o 1º contato.
+ * Exceção §2.10: mantém layout de tela cheia de emergência sem alteração de temporizadores ou ordem de chamada.
  */
 export default function SosActiveModal({
   visible,
@@ -163,16 +160,14 @@ export default function SosActiveModal({
 
           {/* Foi engano: 10 s (RN-009 / HU-064) */}
           {segundosCancelamento > 0 ? (
-            <TouchableOpacity
-              style={styles.cancelButton}
+            <Button
+              title={`Foi engano (${segundosCancelamento} s)`}
               onPress={handleFoiEngano}
-              activeOpacity={0.8}
-              accessibilityRole="button"
+              variant="outline"
+              size="xl"
+              iconLeft="close"
               testID="sos-foi-engano"
-            >
-              <Icon name="close" size={20} color={colors.coralDark} />
-              <Text style={styles.cancelText}>Foi engano ({segundosCancelamento} s)</Text>
-            </TouchableOpacity>
+            />
           ) : isOffline || isTimeout ? null : (
             // Só garante "ajuda a caminho" quando o pedido realmente saiu: offline a família ainda não sabe.
             <View style={styles.helpBanner} testID="sos-ajuda-caminho">
@@ -223,20 +218,21 @@ export default function SosActiveModal({
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.callButton, isTimeout && styles.callButtonUrgent]}
+          <Button
+            title={`Ligar para ${contatoPadrao.nome}`}
             onPress={handleLigarContato}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            variant={isTimeout ? 'sos' : 'primary'}
+            size="xl"
+            iconLeft="call"
             testID="sos-ligar"
-          >
-            <Icon name="call" size={22} color={colors.white} />
-            <Text style={styles.callText}>Ligar para {contatoPadrao.nome}</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity style={styles.minimize} onPress={onClose} activeOpacity={0.7} accessibilityRole="button" testID="sos-minimizar">
-            <Text style={styles.minimizeText}>Fechar e manter o chamado ativo</Text>
-          </TouchableOpacity>
+          <Button
+            title="Fechar e manter o chamado ativo"
+            onPress={onClose}
+            variant="ghost"
+            testID="sos-minimizar"
+          />
         </ScrollView>
       </View>
     </Modal>
@@ -250,75 +246,84 @@ const styles = StyleSheet.create({
     paddingTop: 44,
     paddingBottom: 12,
     paddingHorizontal: 20,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  topEyebrow: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, letterSpacing: 0.6, fontFamily: typography.fontFamily.heading },
-  topTitle: { fontSize: 20, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  topEyebrow: { fontSize: 14, color: colors.textSecondary, letterSpacing: 0.6, ...font('heading', 600) },
+  topTitle: { fontSize: 20, color: colors.primary, ...font('heading', 800) },
   content: { padding: 16, paddingBottom: 32, gap: 16 },
   heroCard: {
     alignItems: 'center',
-    backgroundColor: colors.peachBg,
+    backgroundColor: colors.peach.background,
     borderWidth: 1,
-    borderColor: colors.peachBorder,
-    borderRadius: 28,
+    borderColor: colors.peach.border,
+    borderRadius: rounded.pill,
     paddingVertical: 28,
     paddingHorizontal: 20,
     gap: 8,
   },
-  sosHalo: { width: 168, height: 168, borderRadius: 84, backgroundColor: colors.peachBorder, alignItems: 'center', justifyContent: 'center' },
+  sosHalo: {
+    width: 168,
+    height: 168,
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sosButton: {
     width: 132,
     height: 132,
-    borderRadius: 66,
+    borderRadius: rounded.full,
     backgroundColor: colors.coralDark,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.tier3,
+    ...shadows.sos,
   },
-  sosButtonTimeout: { backgroundColor: colors.errorBright },
-  sosButtonText: { fontSize: 32, fontWeight: '800', color: colors.white, fontFamily: typography.fontFamily.heading },
-  sosButtonSub: { fontSize: 14, fontWeight: '600', color: colors.white, fontFamily: typography.fontFamily.body },
-  heroTitle: { marginTop: 8, fontSize: 28, fontWeight: '800', color: colors.coralDark, textAlign: 'center', fontFamily: typography.fontFamily.heading },
-  heroSub: { fontSize: 18, lineHeight: 26, fontWeight: '600', color: colors.onSurface, textAlign: 'center', fontFamily: typography.fontFamily.body },
-  cancelButton: {
-    minHeight: 64,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: colors.peachBorder,
-    backgroundColor: colors.white,
+  sosButtonTimeout: { backgroundColor: colors.error },
+  sosButtonText: { fontSize: 32, color: colors.white, ...font('heading', 800) },
+  sosButtonSub: { fontSize: 14, color: colors.white, ...font('body', 600) },
+  heroTitle: { marginTop: 8, fontSize: 28, color: colors.coralDark, textAlign: 'center', ...font('heading', 800) },
+  heroSub: { fontSize: 18, lineHeight: 26, color: colors.textPrimary, textAlign: 'center', ...font('body', 600) },
+  helpBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
+    padding: 18,
+    borderRadius: rounded.xl,
+    backgroundColor: colors.sky.background,
   },
-  cancelText: { fontSize: 20, fontWeight: '800', color: colors.coralDark, fontFamily: typography.fontFamily.heading },
-  helpBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 20, backgroundColor: colors.skyBg },
-  helpTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  helpSub: { fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
-  rescueCard: { padding: 20, borderRadius: 24, backgroundColor: colors.mintBg, gap: 12 },
+  helpTitle: { fontSize: 18, color: colors.primary, ...font('heading', 800) },
+  helpSub: { fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
+  rescueCard: { padding: 20, borderRadius: rounded.card, backgroundColor: colors.mint.background, gap: 12 },
   rescueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rescueTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  rescueSub: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  rescueBody: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  offlineBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
-  offlineText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.coralDark, fontFamily: typography.fontFamily.body },
-  retryBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg },
-  retryText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
-  infoBox: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
-  callButton: {
-    minHeight: 64,
-    borderRadius: 9999,
-    backgroundColor: colors.primary,
+  rescueTitle: { fontSize: 18, color: colors.primary, ...font('heading', 800) },
+  rescueSub: { fontSize: 14, color: colors.textSecondary, ...font('body', 400) },
+  rescueBody: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
+  offlineBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 10,
+    padding: 14,
+    borderRadius: rounded.lg,
+    backgroundColor: colors.peach.background,
   },
-  callButtonUrgent: { backgroundColor: colors.coralDark },
-  callText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  minimize: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  minimizeText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  offlineText: { flex: 1, fontSize: 16, color: colors.coralDark, ...font('body', 700) },
+  retryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: rounded.lg,
+    backgroundColor: colors.amber.background,
+  },
+  retryText: { flex: 1, fontSize: 16, color: colors.amber.textDark, ...font('body', 700) },
+  infoBox: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+    borderRadius: rounded.lg,
+    backgroundColor: colors.sky.background,
+  },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
 });

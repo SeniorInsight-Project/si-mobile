@@ -5,7 +5,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
-import { colors, typography } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 import { saudacaoIdoso } from '../services/pareamentoService';
 
 export interface PairingCodeScreenProps {
@@ -23,7 +23,7 @@ export default function PairingCodeScreen({ onNavigate, idosoId, nomeIdoso }: Pa
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Código de Pareamento" onNavigate={onNavigate} />
+      <AppHeader title="Código de pareamento" onNavigate={onNavigate} />
       <ScrollView contentContainerStyle={styles.content}>
         <CodigoPareamentoPainel
           idosoId={idosoId}
@@ -59,10 +59,10 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.skyBg,
   },
-  stepText: { fontSize: 14, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
-  title: { fontSize: 24, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  stepText: { fontSize: 14,  color: colors.primary, ...font('body', 700) },
+  title: { fontSize: 24,  color: colors.primary, ...font('heading', 800) },
+  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
 });

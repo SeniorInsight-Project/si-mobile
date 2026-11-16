@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 
 export interface OnboardingScreenProps {
   onNavigate: (screen: string) => void;
@@ -63,15 +64,15 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
           {/* Linha 1: 2 pílulas */}
           <View style={styles.pillsRow}>
             <View style={[styles.featurePill, styles.pillMint]}>
-              <Icon name="medication" size={15} color="#003B26" />
-              <Text style={[styles.featurePillText, { color: '#003B26' }]}>
+              <Icon name="medication" size={16} color={colors.mint.textDark} />
+              <Text style={[styles.featurePillText, { color: colors.mint.textDark }]}>
                 Remédios no horário
               </Text>
             </View>
 
             <View style={[styles.featurePill, styles.pillCoral]}>
-              <Icon name="crisis_alert" size={15} color="#B51C13" />
-              <Text style={[styles.featurePillText, { color: '#B51C13' }]}>
+              <Icon name="crisis_alert" size={16} color={colors.peach.text} />
+              <Text style={[styles.featurePillText, { color: colors.peach.text }]}>
                 SOS em 1 toque
               </Text>
             </View>
@@ -80,8 +81,8 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
           {/* Linha 2: 1 pílula centralizada */}
           <View style={styles.pillsRowCenter}>
             <View style={[styles.featurePill, styles.pillSky]}>
-              <Icon name="groups" size={15} color="#2D418A" />
-              <Text style={[styles.featurePillText, { color: '#2D418A' }]}>
+              <Icon name="groups" size={16} color={colors.primaryNavy} />
+              <Text style={[styles.featurePillText, { color: colors.primaryNavy }]}>
                 Família conectada
               </Text>
             </View>
@@ -90,29 +91,26 @@ export default function OnboardingScreen({ onNavigate }: OnboardingScreenProps) 
 
         {/* BLOCO 4: BOTÃO COMEÇAR E LINK DE ENTRAR */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.ctaButton}
+          <Button
+            title="Começar Agora"
             onPress={() => onNavigate('EntryApp')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            variant="primary"
+            size="lg"
+            iconRight="arrow_forward"
             accessibilityLabel="Começar agora: escolher se sou familiar ou idoso"
             testID="onboarding-comecar"
-          >
-            <Text style={styles.ctaButtonText}>Começar Agora</Text>
-            <Icon name="arrow_forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          />
 
           <View style={styles.loginRow}>
             <Text style={styles.loginPrompt}>Já tem uma conta? </Text>
-            <TouchableOpacity
+            <Button
+              title="Entrar"
               onPress={() => onNavigate('Login')}
-              style={styles.loginLinkButton}
-              accessibilityRole="button"
+              variant="ghost"
+              fullWidth={false}
               accessibilityLabel="Já tenho conta: entrar"
               testID="onboarding-entrar"
-            >
-              <Text style={styles.loginLink}>Entrar</Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </ScrollView>
@@ -132,29 +130,24 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingVertical: 7,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginBottom: 8,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.tier1,
     gap: 8,
   },
   badgeDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.full,
+    backgroundColor: colors.success,
   },
   badgeText: {
-    color: '#031753',
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    color: colors.primary,
+    fontSize: 14,
+    ...font('heading', 700),
   },
   logoImage: {
     width: 220,
@@ -166,17 +159,13 @@ const styles = StyleSheet.create({
   },
   imageCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     padding: 16,
-    borderRadius: 24,
+    borderRadius: rounded.card,
     overflow: 'hidden',
     position: 'relative',
     alignItems: 'center',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 4,
+    ...shadows.tier2,
   },
   glowTopRight: {
     position: 'absolute',
@@ -184,8 +173,8 @@ const styles = StyleSheet.create({
     right: -16,
     width: 96,
     height: 96,
-    borderRadius: 48,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.infoSurface,
     opacity: 0.7,
   },
   glowBottomLeft: {
@@ -194,14 +183,14 @@ const styles = StyleSheet.create({
     left: -24,
     width: 112,
     height: 112,
-    borderRadius: 56,
-    backgroundColor: '#FFEBE7',
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.background,
     opacity: 0.6,
   },
   illustration: {
     width: '100%',
     height: 220,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
   },
   pagination: {
     flexDirection: 'row',
@@ -212,32 +201,29 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#CBD5E1',
+    borderRadius: rounded.full,
+    backgroundColor: colors.outlineVariant,
   },
   activeDot: {
     width: 32,
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
   },
   contentContainer: {
     alignItems: 'center',
     marginTop: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#131E3D',
+    ...typography.headlineLg,
+    color: colors.textPrimary,
     textAlign: 'center',
-    lineHeight: 34,
-    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 23,
     marginTop: 10,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   pillsRow: {
     flexDirection: 'row',
@@ -255,64 +241,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 7,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   pillMint: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
   },
   pillCoral: {
-    backgroundColor: '#FFEBE7',
+    backgroundColor: colors.peach.background,
   },
   pillSky: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: colors.infoSurface,
   },
   featurePillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    ...font('heading', 600),
   },
   footer: {
     marginTop: 22,
     alignItems: 'center',
   },
-  ctaButton: {
-    width: '100%',
-    height: 60,
-    borderRadius: 9999,
-    backgroundColor: '#D83729',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  ctaButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
-  },
   loginRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
   loginPrompt: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#64748B',
-    fontFamily: typography.fontFamily.body,
-  },
-  loginLinkButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
-  loginLink: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 16,
+    color: colors.textSecondary,
+    ...font('body', 500),
   },
 });

@@ -3,7 +3,6 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -11,7 +10,8 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import {
   obterDetalhesConvite,
   aceitarConvite,
@@ -133,7 +133,7 @@ export default function AcceptInviteScreen({
           />
 
           <View style={styles.badgeTop}>
-            <Icon name="favorite" size={13} color="#003B26" />
+            <Icon name="favorite" size={14} color={colors.mint.textDark} />
             <Text style={styles.badgeTopText}>CONVITE DE CUIDADO FAMILIAR</Text>
           </View>
 
@@ -146,7 +146,7 @@ export default function AcceptInviteScreen({
         {/* ESTADO 1: CARREGANDO */}
         {loading && (
           <View style={styles.stateCard}>
-            <ActivityIndicator size="large" color="#031753" style={{ marginBottom: 12 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 12 }} />
             <Text style={styles.loadingText}>Verificando dados do convite...</Text>
           </View>
         )}
@@ -155,66 +155,60 @@ export default function AcceptInviteScreen({
         {!loading && erroStatus === 'EXPIRADO' && (
           <View style={styles.expiredCard}>
             <View style={styles.expiredIconCircle}>
-              <Icon name="schedule" size={28} color="#B51C13" />
+              <Icon name="schedule" size={28} color={colors.coralDark} />
             </View>
 
             <Text style={styles.expiredTitle}>Convite Expirado</Text>
             <Text style={styles.expiredDescription}>{erroMensagem}</Text>
 
             <View style={styles.expiredInfoBox}>
-              <Icon name="shield_alert" size={16} color="#B51C13" style={{ marginRight: 6 }} />
+              <Icon name="shield_alert" size={16} color={colors.coralDark} style={{ marginRight: 6 }} />
               <Text style={styles.expiredInfoText}>
                 Por segurança LGPD e integridade da rede, links temporais expiram automaticamente.
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.backButton}
+            <Button
+              title="Voltar para o Início"
               onPress={() => onNavigate && onNavigate('Onboarding')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.backButtonText}>Voltar para o Início</Text>
-            </TouchableOpacity>
+              variant="secondary"
+            />
           </View>
         )}
 
         {/* ESTADO 3: LIMITE DE 5 FAMILIARES OU CONFLITO */}
         {!loading && erroStatus === 'LIMITE' && (
           <View style={styles.expiredCard}>
-            <View style={[styles.expiredIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <Icon name="groups" size={28} color="#D97706" />
+            <View style={[styles.expiredIconCircle, { backgroundColor: colors.amber.background }]}>
+              <Icon name="groups" size={28} color={colors.amber.text} />
             </View>
 
-            <Text style={[styles.expiredTitle, { color: '#92400E' }]}>Limite da Rede</Text>
+            <Text style={[styles.expiredTitle, { color: colors.amber.textDark }]}>Limite da Rede</Text>
             <Text style={styles.expiredDescription}>{erroMensagem}</Text>
 
-            <TouchableOpacity
-              style={[styles.backButton, { backgroundColor: '#031753' }]}
+            <Button
+              title="Acessar Meu Painel"
               onPress={() => onNavigate && onNavigate('Home')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.backButtonText, { color: '#FFFFFF' }]}>Acessar Meu Painel</Text>
-            </TouchableOpacity>
+              variant="primary"
+            />
           </View>
         )}
 
         {/* ESTADO 4: CONVITE INVÁLIDO OU ERRO GENÉRICO */}
         {!loading && erroStatus === 'INVALIDO' && (
           <View style={styles.expiredCard}>
-            <View style={[styles.expiredIconCircle, { backgroundColor: '#FEE2E2' }]}>
-              <Icon name="close" size={28} color="#DC2626" />
+            <View style={[styles.expiredIconCircle, { backgroundColor: colors.peach.background }]}>
+              <Icon name="close" size={28} color={colors.error} />
             </View>
 
             <Text style={styles.expiredTitle}>Convite Inválido</Text>
             <Text style={styles.expiredDescription}>{erroMensagem}</Text>
 
-            <TouchableOpacity
-              style={styles.backButton}
+            <Button
+              title="Voltar"
               onPress={() => onNavigate && onNavigate('Onboarding')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.backButtonText}>Voltar</Text>
-            </TouchableOpacity>
+              variant="secondary"
+            />
           </View>
         )}
 
@@ -245,10 +239,10 @@ export default function AcceptInviteScreen({
 
             {/* QUEM CONVIDOU */}
             <View style={styles.inviterBox}>
-              <Icon name="person" size={16} color="#031753" style={{ marginRight: 8 }} />
+              <Icon name="person" size={16} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.inviterText}>
                 Convite enviado por{' '}
-                <Text style={{ fontWeight: '700', color: '#0F172A' }}>
+                <Text style={{ ...font('body', 700), color: colors.textPrimary }}>
                   {convite.solicitanteNome || 'Carlos Silva'}
                 </Text>{' '}
                 ({convite.solicitanteGrau || 'Administrador'})
@@ -259,22 +253,22 @@ export default function AcceptInviteScreen({
             <View style={styles.accessList}>
               <Text style={styles.accessListTitle}>Permissões concedidas:</Text>
               <View style={styles.accessItem}>
-                <Icon name="crisis_alert" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+                <Icon name="crisis_alert" size={16} color={colors.error} style={{ marginRight: 8 }} />
                 <Text style={styles.accessItemText}>Recebimento de chamados de emergência SOS</Text>
               </View>
               <View style={styles.accessItem}>
-                <Icon name="medication" size={16} color="#059669" style={{ marginRight: 8 }} />
+                <Icon name="medication" size={16} color={colors.successDark} style={{ marginRight: 8 }} />
                 <Text style={styles.accessItemText}>Acompanhamento da rotina de medicamentos</Text>
               </View>
               <View style={styles.accessItem}>
-                <Icon name="schedule" size={16} color="#2563EB" style={{ marginRight: 8 }} />
+                <Icon name="schedule" size={16} color={colors.primaryNavy} style={{ marginRight: 8 }} />
                 <Text style={styles.accessItemText}>Escala e histórico de plantão familiar</Text>
               </View>
             </View>
 
             {/* AVISO TEMPORAL */}
             <View style={styles.temporalNotice}>
-              <Icon name="schedule" size={14} color="#64748B" style={{ marginRight: 6 }} />
+              <Icon name="schedule" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
               <Text style={styles.temporalNoticeText}>
                 Válido até {convite.dataExpiracao || '48 horas'} (Uso único)
               </Text>
@@ -287,57 +281,46 @@ export default function AcceptInviteScreen({
                   Para confirmar sua entrada na rede, entre ou crie sua conta:
                 </Text>
 
-                <TouchableOpacity
-                  style={styles.primaryAuthButton}
+                <Button
+                  title="Entrar com Minha Conta"
                   onPress={() => onNavigate && onNavigate('Login')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryAuthButtonText}>Entrar com Minha Conta</Text>
-                  <Icon name="arrow_forward" size={18} color="#FFFFFF" />
-                </TouchableOpacity>
+                  variant="primary"
+                  size="lg"
+                  iconRight="arrow_forward"
+                />
 
-                <TouchableOpacity
-                  style={styles.secondaryAuthButton}
+                <Button
+                  title="Criar Nova Conta"
                   onPress={async () => {
                     const desfecho = await cadastro.criarConta();
                     onDesfecho?.(desfecho);
                   }}
+                  variant="outline"
+                  loading={cadastro.carregando}
                   disabled={!cadastro.pronto || cadastro.carregando}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.secondaryAuthButtonText}>Criar Nova Conta</Text>
-                </TouchableOpacity>
+                />
               </View>
             )}
 
             {/* FLUXO: AUTENTICADO */}
             {isAuthenticated && (
               <View style={styles.acceptActionsContainer}>
-                <TouchableOpacity
-                  style={[styles.acceptCtaButton, submitting && styles.acceptCtaButtonDisabled]}
+                <Button
+                  title="Aceitar Convite e Acompanhar"
                   onPress={handleConfirmarAceite}
+                  variant="primary"
+                  size="lg"
+                  iconLeft="check"
+                  loading={submitting}
                   disabled={submitting}
-                  activeOpacity={0.85}
-                >
-                  {submitting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Icon name="check" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.acceptCtaButtonText}>Aceitar Convite e Acompanhar</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                />
 
-                <TouchableOpacity
-                  style={styles.declineButton}
+                <Button
+                  title="Agora Não"
                   onPress={() => onNavigate && onNavigate('Home')}
-                  activeOpacity={0.7}
+                  variant="ghost"
                   disabled={submitting}
-                >
-                  <Text style={styles.declineButtonText}>Agora Não</Text>
-                </TouchableOpacity>
+                />
               </View>
             )}
           </View>
@@ -365,127 +348,97 @@ const styles = StyleSheet.create({
   badgeTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginBottom: 10,
     gap: 6,
   },
   badgeTopText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     letterSpacing: 0.3,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   screenTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#131E3D',
+    ...typography.headlineLg,
+    color: colors.textPrimary,
     marginBottom: 4,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
   },
   screenSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 16,
-    lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    lineHeight: 20,
+    ...font('body', 400),
   },
   stateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
+    color: colors.textSecondary,
+    ...font('body', 600),
   },
   expiredCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#FED7AA',
-    shadowColor: '#B51C13',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    borderColor: colors.amber.border,
+    ...shadows.tier2,
   },
   expiredIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFEBE7',
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
   },
   expiredTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#B51C13',
+    color: colors.coralDark,
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   expiredDescription: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   expiredInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF1EC',
-    borderRadius: 14,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.input,
     padding: 12,
     marginBottom: 20,
   },
   expiredInfoText: {
-    fontSize: 12,
-    color: '#9A3412',
-    lineHeight: 16,
-    flex: 1,
-    fontFamily: typography.fontFamily.body,
-  },
-  backButton: {
-    height: 48,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#334155',
-    fontFamily: typography.fontFamily.heading,
+    color: colors.amber.textDark,
+    lineHeight: 19,
+    flex: 1,
+    ...font('body', 400),
   },
   mainWhiteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 20,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 4,
+    ...shadows.tier2,
   },
   elderlySummaryRow: {
     flexDirection: 'row',
@@ -495,72 +448,67 @@ const styles = StyleSheet.create({
   elderlyAvatarCircle: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.infoSurface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   elderlyAvatarInitials: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    color: colors.primary,
+    ...font('heading', 800),
   },
   elderlyTexts: {
     flex: 1,
   },
   elderlyName: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   elderlyAge: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    ...font('body', 600),
   },
   roleTag: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   roleTagText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.mint.textDark,
+    ...font('heading', 800),
   },
   inviterBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
+    backgroundColor: colors.canvasBase,
+    borderRadius: rounded.input,
     padding: 12,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   inviterText: {
-    fontSize: 12,
-    color: '#475569',
-    lineHeight: 17,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    lineHeight: 20,
     flex: 1,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   accessList: {
     marginBottom: 18,
   },
   accessListTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#131E3D',
+    fontSize: 14,
+    color: colors.textPrimary,
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   accessItem: {
     flexDirection: 'row',
@@ -568,9 +516,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   accessItemText: {
-    fontSize: 13,
-    color: '#334155',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    flex: 1,
+    ...font('body', 400),
   },
   temporalNotice: {
     flexDirection: 'row',
@@ -579,91 +528,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.surfaceSubtle,
   },
   temporalNoticeText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    ...font('body', 400),
   },
   authActionsContainer: {
     gap: 12,
   },
   authNoticeText: {
-    fontSize: 13,
-    color: '#475569',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.body,
-  },
-  primaryAuthButton: {
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#031753',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  primaryAuthButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
-  },
-  secondaryAuthButton: {
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryAuthButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E2E69',
-    fontFamily: typography.fontFamily.heading,
+    ...font('body', 400),
   },
   acceptActionsContainer: {
     gap: 10,
-  },
-  acceptCtaButton: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  acceptCtaButtonDisabled: {
-    opacity: 0.6,
-  },
-  acceptCtaButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
-  },
-  declineButton: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  declineButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    fontFamily: typography.fontFamily.body,
   },
 });

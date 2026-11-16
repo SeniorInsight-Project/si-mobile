@@ -12,7 +12,7 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import Icon from './Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 
 const HOLD_DURATION_MS = 2000; // 2 segundos conforme HU-063 / RN-009
 const BUTTON_SIZE = 196;
@@ -145,7 +145,7 @@ export default function SosHoldButton({ onTrigger, disabled = false }: SosHoldBu
             cx={SVG_SIZE / 2}
             cy={SVG_SIZE / 2}
             r={RADIUS}
-            stroke={isPressing ? 'rgba(181, 28, 19, 0.15)' : 'rgba(203, 213, 225, 0.4)'}
+            stroke={isPressing ? colors.peach.border : colors.border}
             strokeWidth={STROKE_WIDTH}
             fill="none"
           />
@@ -154,7 +154,7 @@ export default function SosHoldButton({ onTrigger, disabled = false }: SosHoldBu
             cx={SVG_SIZE / 2}
             cy={SVG_SIZE / 2}
             r={RADIUS}
-            stroke="#B51C13"
+            stroke={colors.coralDark}
             strokeWidth={STROKE_WIDTH}
             strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
             strokeDashoffset={dashOffset}
@@ -192,7 +192,7 @@ export default function SosHoldButton({ onTrigger, disabled = false }: SosHoldBu
 
       {/* Instruções do botão atualizadas para 2 segundos conforme HU-063 / RN-009 */}
       <View style={styles.instructionRow}>
-        <Icon name="touch_app" size={18} color="#B51C13" />
+        <Icon name="touch_app" size={18} color={colors.coralDark} />
         <Text style={styles.instructionText}>
           {isPressing
             ? `Segure por mais ${countdownSeconds}s para acionar!`
@@ -230,57 +230,56 @@ const styles = StyleSheet.create({
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
     borderRadius: BUTTON_SIZE / 2,
-    backgroundColor: '#B51C13',
+    backgroundColor: colors.coralDark,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.tier3,
+    ...shadows.sos,
     borderWidth: 4,
-    borderColor: '#FEE2E2',
-    elevation: 8,
+    borderColor: colors.peach.background,
     paddingHorizontal: 16,
   },
   innerButtonPressing: {
-    backgroundColor: '#8C120A',
+    backgroundColor: colors.coralPressed,
     transform: [{ scale: 0.97 }],
   },
   innerButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    borderColor: '#E2E8F0',
+    opacity: 0.5,
   },
   mainText: {
     ...typography.titleLarge,
-    color: '#FFFFFF',
-    fontWeight: '900',
+    color: colors.white,
+    ...font('body', 700),
     letterSpacing: 2,
     fontSize: 22,
     textAlign: 'center',
   },
   overlayEmergenciaText: {
     ...typography.labelMedium,
-    color: '#FEE2E2',
-    fontWeight: '800',
+    color: colors.peach.background,
+    ...font('body', 700),
     letterSpacing: 2,
-    fontSize: 13,
+    fontSize: 14,
     marginBottom: 2,
   },
   pressingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(140, 18, 10, 0.94)',
+    backgroundColor: colors.coralPressed,
+    opacity: 0.94,
     borderRadius: BUTTON_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countdownNumber: {
     ...typography.displayMedium,
-    color: '#FFFFFF',
-    fontWeight: '900',
+    color: colors.white,
+    ...font('body', 700),
     fontSize: 48,
     lineHeight: 52,
   },
   countdownLabel: {
     ...typography.labelMedium,
-    color: '#FECACA',
-    fontWeight: '700',
+    color: colors.peach.border,
+    ...font('body', 700),
     marginTop: 2,
   },
   instructionRow: {
@@ -292,13 +291,13 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     ...typography.bodyMedium,
-    color: '#B51C13',
-    fontWeight: '700',
+    color: colors.coralDark,
+    ...font('body', 700),
     fontSize: 15,
   },
   footerSubText: {
     ...typography.bodySmall,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: 20,

@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 
 export interface TwoFactorAuthScreenProps {
   onNavigate: (screen: string) => void;
@@ -72,18 +73,18 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
         <View style={styles.topHeader}>
           <View style={styles.topSpacer} />
           <View style={styles.safeAccessBadge}>
-            <Icon name="shield_check" size={14} color="#003B26" />
+            <Icon name="shield_check" size={16} color={colors.mint.textDark} />
             <Text style={styles.safeAccessText}>Acesso Seguro</Text>
           </View>
           <View style={styles.avatarContainer}>
-            <Icon name="person" size={20} color="#031753" />
+            <Icon name="person" size={20} color={colors.primary} />
           </View>
         </View>
 
         {/* TÍTULO & CONTEXTO */}
         <View style={styles.contextBlock}>
           <View style={styles.stepPill}>
-            <Icon name="lock" size={13} color="#031753" />
+            <Icon name="lock" size={14} color={colors.primary} />
             <Text style={styles.stepPillText}>
               Passo 2 de 2 • Proteção Familiar
             </Text>
@@ -97,7 +98,7 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
           </Text>
         </View>
 
-        {/* CARD PRINCIPAL DE 6 DÍGITOS (rx=32) */}
+        {/* CARD PRINCIPAL DE 6 DÍGITOS */}
         <View style={styles.codeCard}>
           <View style={styles.codeCardHeader}>
             <Text style={styles.codeCardLabel}>Digite os 6 dígitos</Text>
@@ -137,27 +138,26 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
           {/* Reenvio e Método Alternativo */}
           <View style={styles.resendSection}>
             <View style={styles.resendTimerPill}>
-              <Icon name="schedule" size={14} color="#525B70" />
+              <Icon name="schedule" size={16} color={colors.onSurfaceVariant} />
               <Text style={styles.resendTimerLabel}>Reenviar código em </Text>
               <Text style={styles.resendTimerValue}>{formattedTime}</Text>
             </View>
 
-            <TouchableOpacity
+            <Button
+              title="Tentar outro método (WhatsApp ou Ligação)"
               onPress={() =>
                 Alert.alert(
                   'Outro Método',
                   'Código enviado via WhatsApp para (11) 9****-8910.'
                 )
               }
-            >
-              <Text style={styles.altMethodLink}>
-                Tentar outro método (WhatsApp ou Ligação)
-              </Text>
-            </TouchableOpacity>
+              variant="ghost"
+              fullWidth={false}
+            />
           </View>
         </View>
 
-        {/* TECLADO NUMÉRICO TÁTIL (rx=32) */}
+        {/* TECLADO NUMÉRICO TÁTIL */}
         <View style={styles.keypadCard}>
           {keypadRows.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.keypadRow}>
@@ -166,7 +166,9 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
                   key={key.num}
                   style={styles.keyButton}
                   onPress={() => handleKeyPress(key.num)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Dígito ${key.num}`}
                 >
                   <Text style={styles.keyNumber}>{key.num}</Text>
                   {key.sub ? (
@@ -182,15 +184,19 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
             <TouchableOpacity
               style={[styles.keyButton, styles.keyButtonBio]}
               onPress={handleBiometrics}
-              activeOpacity={0.75}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Preencher com biometria"
             >
-              <Icon name="fingerprint" size={24} color="#031753" />
+              <Icon name="fingerprint" size={24} color={colors.primary} />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.keyButton}
               onPress={() => handleKeyPress('0')}
-              activeOpacity={0.7}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Dígito 0"
             >
               <Text style={styles.keyNumber}>0</Text>
               <Text style={styles.keySubText}>+</Text>
@@ -199,27 +205,30 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
             <TouchableOpacity
               style={[styles.keyButton, styles.keyButtonBackspace]}
               onPress={handleBackspace}
-              activeOpacity={0.75}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Apagar último dígito"
             >
-              <Icon name="backspace" size={20} color="#B51C13" />
+              <Icon name="backspace" size={22} color={colors.coralDark} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* BOTÃO PRIMÁRIO: VALIDAR E ACESSAR */}
-        <TouchableOpacity
-          style={styles.validateButton}
-          onPress={() => onNavigate('ElderlyMode')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.validateButtonText}>Validar e Acessar</Text>
-          <Icon name="arrow_forward" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.validateWrapper}>
+          <Button
+            title="Validar e Acessar"
+            onPress={() => onNavigate('ElderlyMode')}
+            variant="primary"
+            size="lg"
+            iconRight="arrow_forward"
+          />
+        </View>
 
-        {/* CARD DE CONFORMIDADE LGPD (#E8F8F0) */}
+        {/* CARD DE CONFORMIDADE LGPD */}
         <View style={styles.lgpdCard}>
           <View style={styles.lgpdIconCircle}>
-            <Icon name="shield_check" size={18} color="#003B26" />
+            <Icon name="shield_check" size={18} color={colors.mint.textDark} />
           </View>
           <View style={styles.lgpdTextCol}>
             <Text style={styles.lgpdTitle}>
@@ -253,34 +262,25 @@ const styles = StyleSheet.create({
   safeAccessBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   safeAccessText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.mint.textDark,
+    ...font('heading', 700),
   },
   avatarContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    padding: 2,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.tier1,
   },
   contextBlock: {
     marginBottom: 20,
@@ -289,47 +289,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: colors.infoSurface,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
     marginBottom: 12,
   },
   stepPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.primary,
+    ...font('heading', 700),
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#1A285A',
+    ...typography.headlineLg,
+    color: colors.primary,
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
   },
   subtitle: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#525B70',
+    color: colors.onSurfaceVariant,
     lineHeight: 22,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   phoneHighlight: {
-    fontWeight: '700',
-    color: '#131E3D',
+    ...font('body', 700),
+    color: colors.textPrimary,
   },
   codeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 4,
+    ...shadows.tier2,
   },
   codeCardHeader: {
     flexDirection: 'row',
@@ -338,10 +330,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   codeCardLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#525B70',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    ...font('heading', 700),
   },
   smsActiveRow: {
     flexDirection: 'row',
@@ -351,14 +342,13 @@ const styles = StyleSheet.create({
   smsDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.full,
+    backgroundColor: colors.success,
   },
   smsActiveText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#059669',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.successDark,
+    ...font('heading', 700),
   },
   digitBoxesRow: {
     flexDirection: 'row',
@@ -369,77 +359,64 @@ const styles = StyleSheet.create({
   digitBox: {
     flex: 1,
     height: 56,
-    borderRadius: 16,
-    backgroundColor: '#F5F7FA',
+    borderRadius: rounded.lg,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   digitBoxActive: {
-    backgroundColor: '#FFEBE7',
+    backgroundColor: colors.peach.background,
   },
   digitText: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    color: colors.primary,
+    ...font('heading', 800),
   },
   activeBoxDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#D83729',
+    borderRadius: rounded.full,
+    backgroundColor: colors.coralDark,
   },
   activeBoxUnderline: {
     position: 'absolute',
     bottom: 8,
     width: 20,
     height: 2.5,
-    borderRadius: 2,
-    backgroundColor: '#D83729',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.coralDark,
   },
   resendSection: {
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   resendTimerPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F4F7',
+    backgroundColor: colors.surfaceSubtle,
     height: 36,
     paddingHorizontal: 16,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   resendTimerLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#525B70',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    ...font('body', 600),
   },
   resendTimerValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#031753',
-    fontFamily: typography.fontFamily.heading,
-  },
-  altMethodLink: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#D83729',
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.primary,
+    ...font('heading', 800),
   },
   keypadCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 16,
     gap: 10,
     marginBottom: 20,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   keypadRow: {
     flexDirection: 'row',
@@ -448,66 +425,45 @@ const styles = StyleSheet.create({
   keyButton: {
     flex: 1,
     height: 56,
-    borderRadius: 16,
-    backgroundColor: '#F5F7FA',
+    borderRadius: rounded.lg,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   keyButtonBio: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: colors.infoSurface,
   },
   keyButtonBackspace: {
-    backgroundColor: '#FFF1EC',
+    backgroundColor: colors.peach.background,
   },
   keyNumber: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#131E3D',
-    lineHeight: 24,
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 20,
+    color: colors.textPrimary,
+    lineHeight: 22,
+    ...font('heading', 700),
   },
   keySubText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#525B70',
-    marginTop: 1,
-    fontFamily: typography.fontFamily.heading,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    lineHeight: 16,
+    ...font('heading', 600),
   },
-  validateButton: {
-    width: '100%',
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#D83729',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
+  validateWrapper: {
     marginBottom: 16,
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  validateButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
   },
   lgpdCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
-    borderRadius: 24,
+    backgroundColor: colors.mint.background,
+    borderRadius: rounded.card,
     padding: 14,
     gap: 12,
   },
   lgpdIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -515,16 +471,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lgpdTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   lgpdSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#003B26',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.mint.textDark,
+    ...font('body', 500),
   },
 });

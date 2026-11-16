@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 
 export interface AcessoRestritoScreenProps {
   onLogout: () => void;
@@ -14,14 +15,19 @@ export default function AcessoRestritoScreen({ onLogout }: AcessoRestritoScreenP
     <ScreenWrapper hasHeader={false}>
       <View style={styles.container}>
         <View style={styles.card}>
-          <Icon name="shield" size={40} color="#2D418A" />
+          <Icon name="shield" size={40} color={colors.primaryNavy} />
           <Text style={styles.title}>App exclusivo para família e idoso</Text>
           <Text style={styles.message}>
             Sua conta não tem acesso ao aplicativo. Médicos e gestores usam o portal web do SeniorInsight.
           </Text>
-          <TouchableOpacity style={styles.button} onPress={onLogout} activeOpacity={0.85} accessibilityRole="button">
-            <Text style={styles.buttonText}>Sair</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonWrapper}>
+            <Button
+              title="Sair"
+              onPress={onLogout}
+              variant="primary"
+              size="lg"
+            />
+          </View>
         </View>
       </View>
     </ScreenWrapper>
@@ -35,39 +41,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 28,
     alignItems: 'center',
     gap: 14,
+    ...shadows.tier2,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#131E3D',
+    ...typography.headlineLg,
+    color: colors.textPrimary,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
   },
   message: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
-  button: {
+  buttonWrapper: {
     marginTop: 8,
-    height: 52,
     alignSelf: 'stretch',
-    borderRadius: 9999,
-    backgroundColor: '#D83729',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
   },
 });

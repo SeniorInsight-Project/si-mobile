@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Share, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Icon from './Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from './Button';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import { idosoIdDoServidor } from '../services/elderlyService';
 import {
   MENSAGENS_PAREAMENTO,
@@ -155,52 +156,44 @@ export default function CodigoPareamentoPainel({
       {Boolean(erro) && (
         <View style={styles.errorBox} accessibilityRole="alert" testID="pareamento-erro">
           <Text style={styles.errorText}>{erro}</Text>
-          <TouchableOpacity
-            style={styles.retry}
-            onPress={gerar}
+          <Button
+            title="Tentar de novo"
+            iconLeft="refresh"
+            variant="secondary"
+            fullWidth={false}
             disabled={gerando}
-            accessibilityRole="button"
+            onPress={gerar}
             accessibilityLabel="Tentar de novo gerar o código"
             testID="pareamento-tentar-de-novo"
-          >
-            <Icon name="refresh" size={20} color={colors.white} />
-            <Text style={styles.retryText}>Tentar de novo</Text>
-          </TouchableOpacity>
+          />
         </View>
       )}
 
       {mostrarCompartilhar && (
-        <TouchableOpacity
-          style={[styles.primary, !valido && styles.disabled]}
-          onPress={compartilhar}
+        <Button
+          title="Compartilhar código"
+          iconLeft="share"
+          variant="primary"
+          size="lg"
           disabled={!valido}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={compartilhar}
           accessibilityLabel="Compartilhar código"
-          accessibilityState={{ disabled: !valido }}
           testID="pareamento-compartilhar"
-        >
-          <Icon name="share" size={22} color={colors.white} />
-          <Text style={styles.primaryText}>Compartilhar código</Text>
-        </TouchableOpacity>
+        />
       )}
 
       {!erro && (
-        <TouchableOpacity
-          style={[styles.secondary, gerando && styles.disabled]}
-          onPress={gerar}
+        <Button
+          title={gerando ? 'Gerando...' : gerado ? 'Gerar novo código' : 'Gerar código'}
+          iconLeft="refresh"
+          variant="secondary"
+          size="lg"
+          loading={gerando}
           disabled={gerando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={gerar}
           accessibilityLabel={gerado ? 'Gerar novo código' : 'Gerar código'}
-          accessibilityState={{ disabled: gerando, busy: gerando }}
           testID="pareamento-gerar-novo"
-        >
-          <Icon name="refresh" size={22} color={colors.primary} />
-          <Text style={styles.secondaryText}>
-            {gerando ? 'Gerando...' : gerado ? 'Gerar novo código' : 'Gerar código'}
-          </Text>
-        </TouchableOpacity>
+        />
       )}
     </View>
   );
@@ -208,10 +201,10 @@ export default function CodigoPareamentoPainel({
 
 const styles = StyleSheet.create({
   wrap: { gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 12, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 12, ...shadows.tier1 },
   qrBox: {
     minHeight: 232,
-    borderRadius: 20,
+    borderRadius: rounded.xl,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
@@ -223,57 +216,55 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   code: {
     textAlign: 'center',
     fontSize: 40,
-    fontWeight: '800',
     letterSpacing: 2,
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   chipsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: 28,
+    minHeight: 28, // estilo-ok: badge informativo, não é alvo de toque
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
-  chipText: { fontSize: 14, fontWeight: '700', fontFamily: typography.fontFamily.body },
-  errorBox: { gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
+  chipText: { fontSize: 14,  ...font('body', 700) },
+  errorBox: { gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.peachBg },
   errorText: {
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '700',
     color: colors.coralDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
   retry: {
     minHeight: 48,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.coralDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  retryText: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  retryText: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
   primary: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  primaryText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   secondary: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
@@ -282,6 +273,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  secondaryText: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  secondaryText: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
   disabled: { opacity: 0.6 },
 });
