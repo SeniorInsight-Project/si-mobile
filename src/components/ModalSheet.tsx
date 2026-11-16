@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,10 +16,10 @@ import IconButton from './IconButton';
 import { colors, font, rounded, shadows } from '../theme';
 
 /**
- * Folha inferior padrão para modais (§2.10 do plano de padronização visual):
- * - Usa animationType="slide", overlay único colors.overlay, raio superior rounded.sheet e shadows.tier3.
+ * Folha inferior padrão para modais:
+ * - O fundo (colors.overlay) esmaece e só a folha sobe, com raio superior rounded.sheet e shadows.tier3.
  * - Cabeçalho padronizado com título 20 px bold e IconButton 48×48 para fechar.
- * - Exceções documentadas no plano: SemaforoMotivoModal (card central) e SosActiveModal (tela cheia).
+ * - SemaforoMotivoModal (card central) e SosActiveModal (tela cheia) têm layout próprio.
  */
 export interface ModalSheetProps {
   visible: boolean;
@@ -38,11 +40,26 @@ export default function ModalSheet({
   footer,
   dismissOnOverlay = true,
 }: ModalSheetProps) {
+  // O Modal só esmaece (fundo); a folha entra com um deslize curto por cima.
+  const entrada = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!visible) return;
+    entrada.setValue(0);
+    Animated.timing(entrada, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [visible, entrada]);
+  const deslize = entrada.interpolate({ inputRange: [0, 1], outputRange: [48, 0] });
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.root}>
@@ -56,7 +73,7 @@ export default function ModalSheet({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardWrapper}
         >
-          <View style={styles.sheet}>
+          <Animated.View style={[styles.sheet, { opacity: entrada, transform: [{ translateY: deslize }] }]}>
             <SafeAreaView style={styles.safeArea}>
               <View style={styles.header}>
                 <View style={styles.headerText}>
@@ -82,7 +99,7 @@ export default function ModalSheet({
 
               {footer ? <View style={styles.footer}>{footer}</View> : null}
             </SafeAreaView>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
