@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { CONSENTIMENTO_PADRAO, Consentimentos, obterConsentimentos } from '../services/consentimentoService';
 import {
@@ -108,16 +109,14 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
           </Text>
         )}
 
-        <TouchableOpacity
-          style={styles.primary}
+        <Button
+          title="Abrir o Health Connect"
+          iconLeft="open_in_new"
+          variant="primary"
+          size="lg"
           onPress={abrir}
-          activeOpacity={0.85}
-          accessibilityRole="button"
           testID="relogio-abrir"
-        >
-          <Icon name="open_in_new" size={22} color={colors.white} />
-          <Text style={styles.primaryText}>Abrir o Health Connect</Text>
-        </TouchableOpacity>
+        />
 
         <View style={styles.info}>
           <Icon name="help" size={18} color={colors.primary} />
@@ -125,15 +124,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
         </View>
 
         {primeiroUso && (
-          <TouchableOpacity
-            style={styles.secondary}
+          <Button
+            title="Concluir e ir para o início"
+            variant="success"
+            size="xl"
             onPress={() => onNavigate('ElderlyMode')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
             testID="relogio-concluir"
-          >
-            <Text style={styles.secondaryText}>Concluir e ir para o início</Text>
-          </TouchableOpacity>
+          />
         )}
       </ScrollView>
       <BottomNavBar currentScreen="ElderlyWatch" onNavigate={onNavigate} />
@@ -143,46 +140,46 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120, gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 16, ...shadows.tier1 },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 16, ...shadows.tier1 },
+  title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
+  body: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  stepIcon: { width: 48, height: 48, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   stepIconDone: { backgroundColor: colors.mintBg },
   stepIconNow: { backgroundColor: colors.skyBg },
   stepTexts: { flex: 1 },
-  stepTitle: { fontSize: 16, lineHeight: 22, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  stepSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  chip: { minHeight: 28, paddingHorizontal: 10, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
+  stepTitle: { fontSize: 16, lineHeight: 22,  color: colors.primary, ...font('heading', 700) },
+  stepSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
+  chip: { minHeight: 28, paddingHorizontal: 10, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   chipDone: { backgroundColor: colors.mintBg },
   chipOther: { backgroundColor: colors.skyBg },
-  chipText: { fontSize: 14, fontWeight: '800', fontFamily: typography.fontFamily.body },
+  chipText: { fontSize: 14,  ...font('body', 700) },
   chipTextDone: { color: colors.successDark },
   chipTextOther: { color: colors.primary },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: 20 },
-  simulado: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
-  simuladoTexto: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
-  warning: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: rounded.xl },
+  simulado: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
+  simuladoTexto: { flex: 1, fontSize: 14, lineHeight: 20,  color: colors.amber.textDark, ...font('body', 600) },
+  warning: { fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 600) },
   primary: {
     minHeight: 64,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  primaryText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
+  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.skyBg },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
   secondary: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  secondaryText: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
 });

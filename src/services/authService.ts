@@ -41,8 +41,10 @@ export const KEYCLOAK_SCOPES = ['openid', 'profile', 'email', 'offline_access'];
 /**
  * seniorinsight://auth no development build / app instalado.
  * No Expo Go o Expo devolve exp://<host>:<porta>/--/auth (ver README).
+ * Não passe `scheme` aqui: no SDK 58 ele força seniorinsight:// também no Expo Go,
+ * que não trata esse scheme, e o login nunca volta para o app.
  */
-export const redirectUri = makeRedirectUri({ scheme: 'seniorinsight', path: 'auth' });
+export const redirectUri = makeRedirectUri({ native: 'seniorinsight://auth', path: 'auth' });
 
 const CONFIG_BASE: AuthRequestConfig = {
   clientId: KEYCLOAK_CLIENT_ID,

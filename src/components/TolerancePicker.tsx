@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import ChoiceChip from './ChoiceChip';
+import { colors, font, rounded, shadows } from '../theme';
 
 export interface TolerancePickerProps {
   selectedTolerance?: number;
@@ -19,7 +20,7 @@ export default function TolerancePicker({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Icon name="notifications" size={18} color="#B51C13" />
+            <Icon name="notifications" size={18} color={colors.amber.textDark} />
           </View>
           <View>
             <Text style={styles.title}>Janela de Tolerância</Text>
@@ -29,27 +30,14 @@ export default function TolerancePicker({
       </View>
 
       <View style={styles.pillTray}>
-        {options.map((mins) => {
-          const isSelected = selectedTolerance === mins;
-
-          return (
-            <TouchableOpacity
-              key={mins}
-              style={[styles.pillButton, isSelected && styles.pillButtonActive]}
-              onPress={() => onSelectTolerance && onSelectTolerance(mins)}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.pillButtonText,
-                  isSelected && styles.pillButtonTextActive,
-                ]}
-              >
-                {mins} min
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {options.map((mins) => (
+          <ChoiceChip
+            key={mins}
+            label={`${mins} min`}
+            selected={selectedTolerance === mins}
+            onPress={() => onSelectTolerance && onSelectTolerance(mins)}
+          />
+        ))}
       </View>
 
       <Text style={styles.footerHint}>
@@ -61,15 +49,11 @@ export default function TolerancePicker({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -85,56 +69,34 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF1EC',
+    borderRadius: rounded.full,
+    // Âmbar = tolerância / medicação pendente (AGENTS.md, pastéis funcionais).
+    backgroundColor: colors.amber.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    color: colors.textPrimary,
+    ...font('heading', 700),
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    ...font('body', 500),
   },
   pillTray: {
     flexDirection: 'row',
-    backgroundColor: '#F5F7FA',
-    borderRadius: 16,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.lg,
     padding: 6,
-    gap: 6,
+    gap: 8,
     marginBottom: 10,
   },
-  pillButton: {
-    flex: 1,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillButtonActive: {
-    backgroundColor: '#031753',
-  },
-  pillButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
-  },
-  pillButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
   footerHint: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
 });

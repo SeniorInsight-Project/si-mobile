@@ -3,23 +3,21 @@ import {
   StyleSheet,
   Text,
   View,
-  Modal,
-  TextInput,
   TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Share,
 } from 'react-native';
 import Icon from './Icon';
+import ModalSheet from './ModalSheet';
+import TextField from './TextField';
+import Button from './Button';
 import {
   DadosConviteInput,
   ConvitePendente,
   ConviteResponse,
 } from '../services/redeProtecaoService';
 import { useIdoso } from '../context/IdosoContext';
+import { colors, font, rounded } from '../theme';
 
 const GRAUS_SUGERIDOS = [
   'Filho(a)',
@@ -134,7 +132,7 @@ export default function InviteMemberModal({
       if (res && (res.token || res.id)) {
         setConviteGerado(res);
       }
-    } catch (e) {
+    } catch {
       // Erro gerenciado no handler pai
     }
   };
@@ -163,661 +161,428 @@ export default function InviteMemberModal({
     onClose();
   };
 
+  const footer = conviteGerado ? (
+    <View style={styles.successButtonsCol}>
+      <Button
+        title="Compartilhar Link"
+        onPress={handleShareLink}
+        variant="primary"
+        iconLeft="share"
+      />
+      <Button
+        title="Concluir"
+        onPress={handleReset}
+        variant="secondary"
+      />
+    </View>
+  ) : (
+    <View style={styles.modalFooter}>
+      <View style={styles.footerCol}>
+        <Button
+          title="Cancelar"
+          onPress={handleReset}
+          variant="secondary"
+          disabled={loading}
+        />
+      </View>
+      <View style={styles.footerColPrimary}>
+        <Button
+          title={isEditing ? 'Salvar Alterações' : 'Enviar Convite'}
+          onPress={handleSubmit}
+          variant="primary"
+          iconLeft={isEditing ? 'check' : 'send'}
+          loading={loading}
+          disabled={loading}
+        />
+      </View>
+    </View>
+  );
+
   return (
-    <Modal
+    <ModalSheet
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleReset}
+      onClose={handleReset}
+      title={isEditing ? 'Editar Convite Pendente' : 'Convidar Novo Membro'}
+      subtitle={
+        isEditing
+          ? 'Atualize os dados e nível de acesso do convite'
+          : 'Envie um convite temporário válido por 48 horas'
+      }
+      footer={footer}
     >
-      <KeyboardAvoidingView
-        style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.modalContainer}>
-          {/* HEADER DO MODAL */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerTitles}>
-              <Text style={styles.modalTitle}>
-                {isEditing ? 'Editar Convite Pendente' : 'Convidar Novo Membro'}
-              </Text>
-              <Text style={styles.modalSubtitle}>
-                {isEditing
-                  ? 'Atualize os dados e nível de acesso do convite'
-                  : 'Envie um convite temporário válido por 48 horas'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleReset}
-              disabled={loading}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={18} color="#64748B" />
-            </TouchableOpacity>
+      {conviteGerado ? (
+        <View style={styles.successContainer}>
+          <View style={styles.successBadgeCircle}>
+            <Icon name="check" size={32} color={colors.success} />
           </View>
 
-          {conviteGerado ? (
-            <View style={styles.successContainer}>
-              <View style={styles.successBadgeCircle}>
-                <Icon name="check" size={32} color="#10B981" />
-              </View>
+          <Text style={styles.successTitle}>Convite Gerado com Sucesso!</Text>
+          <Text style={styles.successSub}>
+            O convite para{' '}
+            <Text style={{ ...font('body', 700), color: colors.textPrimary }}>
+              {conviteGerado.emailDestinatario || email}
+            </Text>{' '}
+            foi registrado com papel de{' '}
+            <Text style={{ ...font('body', 700), color: colors.textPrimary }}>
+              {conviteGerado.papelAcessoSugerido || papelAcesso}
+            </Text>{' '}
+            e validade temporal de 48 horas.
+          </Text>
 
-              <Text style={styles.successTitle}>Convite Gerado com Sucesso!</Text>
-              <Text style={styles.successSub}>
-                O convite para{' '}
-                <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
-                  {conviteGerado.emailDestinatario || email}
-                </Text>{' '}
-                foi registrado com papel de{' '}
-                <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
-                  {conviteGerado.papelAcessoSugerido || papelAcesso}
-                </Text>{' '}
-                e validade temporal de 48 horas.
-              </Text>
+          <View style={styles.inviteLinkCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Icon name="link" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.inviteLinkLabel}>Link de Acesso Único (Deep Link):</Text>
+            </View>
+            <Text style={styles.inviteLinkText} numberOfLines={2}>
+              {conviteGerado.linkConvite || `seniorinsight://convite/${conviteGerado.token}`}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.formContent}>
+          <TextField
+            label="E-mail do Convidado *"
+            icon="mail"
+            placeholder="ex: familiar@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+            style={{ marginBottom: 14 }}
+          />
 
-              <View style={styles.inviteLinkCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Icon name="link" size={15} color="#031753" style={{ marginRight: 6 }} />
-                  <Text style={styles.inviteLinkLabel}>Link de Acesso Único (Deep Link):</Text>
-                </View>
-                <Text style={styles.inviteLinkText} numberOfLines={2}>
-                  {conviteGerado.linkConvite || `seniorinsight://convite/${conviteGerado.token}`}
+          <TextField
+            label="Grau de Parentesco / Relação *"
+            icon="family_restroom"
+            placeholder="ex: Filho(a), Neto(a), Cuidador..."
+            value={grauParentesco}
+            onChangeText={setGrauParentesco}
+            editable={!loading}
+            style={{ marginBottom: 10 }}
+          />
+
+          {/* CHIPS DE SUGESTÃO RÁPIDA */}
+          <View style={styles.chipsContainer}>
+            {GRAUS_SUGERIDOS.map((sugestao) => {
+              const isSelected = grauParentesco === sugestao;
+              return (
+                <TouchableOpacity
+                  key={sugestao}
+                  style={[styles.chipItem, isSelected && styles.chipItemSelected]}
+                  onPress={() => setGrauParentesco(sugestao)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {sugestao}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* ATALHO/AVISO QUANDO SELECIONADO MÉDICO(A) */}
+          {(grauParentesco === 'Médico(a)' || grauParentesco === 'Médico') && onOpenDoctorInvite && (
+            <View style={styles.doctorRedirectCard}>
+              <View style={styles.doctorRedirectHeader}>
+                <Icon name="stethoscope" size={18} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.doctorRedirectTitle}>
+                  Convidar Médico do Idoso (CRM)
                 </Text>
               </View>
-
-              <View style={styles.successButtonsCol}>
-                <TouchableOpacity
-                  style={styles.shareButton}
-                  onPress={handleShareLink}
-                  activeOpacity={0.85}
-                >
-                  <Icon name="share" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.shareButtonText}>Compartilhar Link</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={handleReset}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.doneButtonText}>Concluir</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.doctorRedirectSub}>
+                Para que o profissional acesse e visualize relatórios clínicos, utilize o formulário específico com registro CRM (HU-016).
+              </Text>
+              <Button
+                title="Abrir Formulário do Médico"
+                onPress={() => {
+                  onClose?.();
+                  onOpenDoctorInvite();
+                }}
+                variant="primary"
+                iconLeft="stethoscope"
+              />
             </View>
-          ) : (
-            <>
-              <ScrollView
-                style={styles.modalScroll}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {/* CAMPO: E-MAIL */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    E-mail do Convidado <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  <View style={styles.inputWrapper}>
-                    <Icon name="mail" size={18} color="#64748B" style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="ex: familiar@email.com"
-                      placeholderTextColor="#94A3B8"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!loading}
-                    />
-                  </View>
-                </View>
-
-                {/* CAMPO: GRAU DE PARENTESCO */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    Grau de Parentesco / Relação <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  <View style={styles.inputWrapper}>
-                    <Icon name="family_restroom" size={18} color="#64748B" style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="ex: Filho(a), Neto(a), Cuidador..."
-                      placeholderTextColor="#94A3B8"
-                      value={grauParentesco}
-                      onChangeText={setGrauParentesco}
-                      editable={!loading}
-                    />
-                  </View>
-
-                  {/* CHIPS DE SUGESTÃO RÁPIDA */}
-                  <View style={styles.chipsContainer}>
-                    {GRAUS_SUGERIDOS.map((sugestao) => {
-                      const isSelected = grauParentesco === sugestao;
-                      return (
-                        <TouchableOpacity
-                          key={sugestao}
-                          style={[styles.chipItem, isSelected && styles.chipItemSelected]}
-                          onPress={() => setGrauParentesco(sugestao)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[styles.chipText, isSelected && styles.chipTextSelected]}
-                          >
-                            {sugestao}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* ATALHO/AVISO QUANDO SELECIONADO MÉDICO(A) */}
-                  {(grauParentesco === 'Médico(a)' || grauParentesco === 'Médico') && onOpenDoctorInvite && (
-                    <View style={styles.doctorRedirectCard}>
-                      <View style={styles.doctorRedirectHeader}>
-                        <Icon name="stethoscope" size={18} color="#031753" style={{ marginRight: 6 }} />
-                        <Text style={styles.doctorRedirectTitle}>
-                          Convidar Médico do Idoso (CRM)
-                        </Text>
-                      </View>
-                      <Text style={styles.doctorRedirectSub}>
-                        Para que o profissional acerte e visualize relatórios clínicos, utilize o formulário específico com registro CRM (HU-016).
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.doctorRedirectBtn}
-                        onPress={() => {
-                          onClose && onClose();
-                          onOpenDoctorInvite();
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <Icon name="stethoscope" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                        <Text style={styles.doctorRedirectBtnText}>
-                          Abrir Formulário do Médico
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-
-                {/* SELETOR DE PAPEL / PERMISSÃO */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    Nível de Permissão (Papel de Acesso) <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  {PAPEIS_ACESSO.map((papel) => {
-                    const isSelected = papelAcesso === papel.id;
-                    return (
-                      <TouchableOpacity
-                        key={papel.id}
-                        style={[
-                          styles.roleOptionCard,
-                          isSelected && styles.roleOptionCardSelected,
-                        ]}
-                        onPress={() => setPapelAcesso(papel.id)}
-                        activeOpacity={0.8}
-                      >
-                        <View style={styles.roleRadioCircle}>
-                          {isSelected && <View style={styles.roleRadioInner} />}
-                        </View>
-                        <View style={styles.roleInfoCol}>
-                          <View style={styles.roleTitleRow}>
-                            <Text
-                              style={[
-                                styles.roleTitle,
-                                isSelected && styles.roleTitleSelected,
-                              ]}
-                            >
-                              {papel.titulo}
-                            </Text>
-                            <View style={styles.roleBadge}>
-                              <Text style={styles.roleBadgeText}>{papel.badge}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.roleSubtitle}>{papel.subtitulo}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* MENSAGEM PERSONALIZADA (OPCIONAL) */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Mensagem de Apresentação (Opcional)</Text>
-                  <TextInput
-                    style={styles.textAreaInput}
-                    placeholder="Olá, gostaria de convidá-lo(a) para acompanhar a rotina de cuidados..."
-                    placeholderTextColor="#94A3B8"
-                    value={mensagemPersonalizada}
-                    onChangeText={setMensagemPersonalizada}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                    editable={!loading}
-                  />
-                </View>
-
-                {/* AVISO DE SEGURANÇA E 48 HORAS */}
-                <View style={styles.securityBox}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <Icon name="schedule" size={15} color="#1D4ED8" style={{ marginRight: 6 }} />
-                    <Text style={[styles.securityTitle, { marginBottom: 0 }]}>
-                      Validade Temporal de 48 Horas
-                    </Text>
-                  </View>
-                  <Text style={styles.securityText}>
-                    Por segurança clínica e conformidade LGPD, um link seguro com token único será gerado e expirará após 48h.
-                  </Text>
-                </View>
-              </ScrollView>
-
-              {/* BOTÕES DE AÇÃO INFERIORES */}
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleReset}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                  onPress={handleSubmit}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Icon
-                        name={isEditing ? 'check' : 'send'}
-                        size={16}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.submitButtonText}>
-                        {isEditing ? 'Salvar Alterações' : 'Enviar Convite'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </>
           )}
+
+          {/* SELETOR DE PAPEL / PERMISSÃO */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Nível de Permissão (Papel de Acesso) *</Text>
+            {PAPEIS_ACESSO.map((papel) => {
+              const isSelected = papelAcesso === papel.id;
+              return (
+                <TouchableOpacity
+                  key={papel.id}
+                  style={[
+                    styles.roleOptionCard,
+                    isSelected && styles.roleOptionCardSelected,
+                  ]}
+                  onPress={() => setPapelAcesso(papel.id)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.roleRadioCircle}>
+                    {isSelected && <View style={styles.roleRadioInner} />}
+                  </View>
+                  <View style={styles.roleInfoCol}>
+                    <View style={styles.roleTitleRow}>
+                      <Text
+                        style={[
+                          styles.roleTitle,
+                          isSelected && styles.roleTitleSelected,
+                        ]}
+                      >
+                        {papel.titulo}
+                      </Text>
+                      <View style={styles.roleBadge}>
+                        <Text style={styles.roleBadgeText}>{papel.badge}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.roleSubtitle}>{papel.subtitulo}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TextField
+            label="Mensagem de Apresentação (Opcional)"
+            placeholder="Olá, gostaria de convidá-lo(a) para acompanhar a rotina de cuidados..."
+            value={mensagemPersonalizada}
+            onChangeText={setMensagemPersonalizada}
+            multiline
+            numberOfLines={3}
+            editable={!loading}
+            style={{ marginBottom: 14 }}
+          />
+
+          {/* AVISO DE SEGURANÇA E 48 HORAS */}
+          <View style={styles.securityBox}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Icon name="schedule" size={16} color={colors.primaryNavy} style={{ marginRight: 6 }} />
+              <Text style={styles.securityTitle}>Validade Temporal de 48 Horas</Text>
+            </View>
+            <Text style={styles.securityText}>
+              Por segurança clínica e conformidade LGPD, um link seguro com token único será gerado e expirará após 48h.
+            </Text>
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      )}
+    </ModalSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  headerTitles: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 12,
-  },
-  closeIcon: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: 'bold',
-  },
-  modalScroll: {
-    paddingHorizontal: 20,
-  },
-  scrollContent: {
-    paddingVertical: 16,
+  formContent: {
+    paddingBottom: 4,
   },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
-  },
-  requiredStar: {
-    color: '#DC2626',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  textInput: {
-    flex: 1,
     fontSize: 14,
-    color: '#0F172A',
+    color: colors.textPrimary,
+    marginBottom: 8,
+    ...font('body', 600),
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
-    gap: 6,
+    gap: 8,
+    marginBottom: 16,
   },
   chipItem: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    minHeight: 48,
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: rounded.full,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
+  // Mesmo visual do ChoiceChip: selecionado em navy sólido com texto branco.
   chipItemSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#3B82F6',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
-    fontSize: 12,
-    color: '#475569',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    ...font('body', 600),
   },
   chipTextSelected: {
-    color: '#1D4ED8',
-    fontWeight: 'bold',
+    color: colors.onPrimary,
+    ...font('body', 700),
+  },
+  doctorRedirectCard: {
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.sky.border,
+    marginBottom: 16,
+    gap: 10,
+  },
+  doctorRedirectHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  doctorRedirectTitle: {
+    fontSize: 14,
+    color: colors.primary,
+    ...font('heading', 700),
+  },
+  doctorRedirectSub: {
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    lineHeight: 20,
+    ...font('body', 400),
   },
   roleOptionCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: rounded.lg,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    marginBottom: 10,
   },
   roleOptionCardSelected: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#0284C7',
+    borderColor: colors.primary,
+    backgroundColor: colors.infoSurface,
   },
   roleRadioCircle: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: rounded.full,
     borderWidth: 2,
-    borderColor: '#94A3B8',
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
     marginRight: 12,
   },
   roleRadioInner: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#0284C7',
+    borderRadius: rounded.full,
+    backgroundColor: colors.primary,
   },
   roleInfoCol: {
     flex: 1,
   },
   roleTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 8,
   },
   roleTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 15,
+    color: colors.textPrimary,
+    ...font('heading', 700),
   },
   roleTitleSelected: {
-    color: '#0369A1',
+    color: colors.primary,
   },
   roleBadge: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: colors.surfaceSubtle,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: rounded.sm,
   },
   roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0369A1',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    ...font('body', 700),
   },
   roleSubtitle: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  textAreaInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 13,
-    color: '#0F172A',
-    height: 70,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    ...font('body', 400),
   },
   securityBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.lg,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    marginTop: 4,
-    marginBottom: 8,
+    borderColor: colors.sky.border,
   },
   securityTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-    marginBottom: 4,
+    fontSize: 14,
+    color: colors.primaryNavy,
+    ...font('heading', 700),
   },
   securityText: {
-    fontSize: 11,
-    color: '#3B82F6',
-    lineHeight: 16,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    lineHeight: 20,
+    ...font('body', 400),
   },
   modalFooter: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 12,
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
   },
-  cancelButton: {
+  footerCol: {
     flex: 1,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  submitButton: {
-    flex: 2,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  footerColPrimary: {
+    flex: 1.5,
   },
   successContainer: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 28,
+    paddingVertical: 10,
   },
   successBadgeCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#E8F8F0',
+    width: 68,
+    height: 68,
+    borderRadius: rounded.full,
+    backgroundColor: colors.mint.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    textAlign: 'center',
+    color: colors.textPrimary,
     marginBottom: 8,
+    ...font('heading', 700),
   },
   successSub: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
+    lineHeight: 20,
+    marginBottom: 18,
+    ...font('body', 400),
   },
   inviteLinkCard: {
     width: '100%',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.canvasBase,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
+    borderColor: colors.border,
+    borderRadius: rounded.lg,
     padding: 14,
-    marginBottom: 24,
   },
   inviteLinkLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#031753',
+    fontSize: 14,
+    ...font('body', 700),
+    color: colors.primary,
   },
   inviteLinkText: {
-    fontSize: 12,
-    color: '#2563EB',
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 14,
+    color: colors.primaryNavy,
+    ...font('body', 600),
   },
   successButtonsCol: {
     width: '100%',
     gap: 10,
-  },
-  shareButton: {
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#031753',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  shareButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  doneButton: {
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  doctorRedirectCard: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 12,
-    borderWidth: 1.5,
-    borderColor: '#BAE6FD',
-  },
-  doctorRedirectHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  doctorRedirectTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#031753',
-  },
-  doctorRedirectSub: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-  doctorRedirectBtn: {
-    backgroundColor: '#031753',
-    height: 38,
-    borderRadius: 19,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doctorRedirectBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });

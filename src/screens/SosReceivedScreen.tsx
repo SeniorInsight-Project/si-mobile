@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosLocationMap from '../components/SosLocationMap';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import {
   AlarmeRecebido,
   DesfechoSos,
@@ -124,9 +125,14 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
           <View style={styles.erroBox} testID="sos-erro-carga">
             <Icon name="error" size={22} color={colors.coralDark} />
             <Text style={styles.erroTexto}>{erroCarga}</Text>
-            <TouchableOpacity style={styles.tentar} onPress={carregar} accessibilityRole="button" testID="sos-tentar-de-novo">
-              <Text style={styles.tentarTexto}>Tentar de novo</Text>
-            </TouchableOpacity>
+            <Button
+              title="Tentar de novo"
+              variant="secondary"
+              iconLeft="refresh"
+              fullWidth={false}
+              onPress={carregar}
+              testID="sos-tentar-de-novo"
+            />
           </View>
         ) : !alarme ? (
           <View style={styles.erroBox} testID="sos-sem-chamado">
@@ -189,29 +195,27 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
             ) : (
               <>
                 {Boolean(telefoneIdoso) && (
-                  <TouchableOpacity style={styles.ligar} onPress={ligarParaIdoso} accessibilityRole="button" testID="sos-ligar-idoso">
-                    <Icon name="call" size={22} color={colors.white} />
-                    <Text style={styles.botaoTexto}>Ligar para {alarme.idosoNome}</Text>
-                  </TouchableOpacity>
+                  <Button
+                    title={`Ligar para ${alarme.idosoNome}`}
+                    iconLeft="call"
+                    variant="sos"
+                    size="xl"
+                    onPress={ligarParaIdoso}
+                    testID="sos-ligar-idoso"
+                  />
                 )}
 
                 {alarme.status === 'DISPARADO' && (
-                  <TouchableOpacity
-                    style={[styles.assumir, enviando && styles.desabilitado]}
-                    onPress={assumir}
+                  <Button
+                    title="Estou a caminho"
+                    iconLeft="directions_car"
+                    variant="primary"
+                    size="xl"
+                    loading={enviando}
                     disabled={enviando}
-                    accessibilityRole="button"
+                    onPress={assumir}
                     testID="sos-assumir"
-                  >
-                    {enviando ? (
-                      <ActivityIndicator color={colors.white} />
-                    ) : (
-                      <>
-                        <Icon name="directions_car" size={22} color={colors.white} />
-                        <Text style={styles.botaoTexto}>Estou a caminho</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+                  />
                 )}
 
                 {euAssumi && emAtendimento && (
@@ -235,30 +239,26 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
                 )}
 
                 {euAssumi && emAtendimento && !escolhendoDesfecho && (
-                  <TouchableOpacity
-                    style={styles.secundario}
+                  <Button
+                    title="Encerrar chamado"
+                    variant="outline"
                     onPress={() => setEscolhendoDesfecho(true)}
-                    accessibilityRole="button"
                     testID="sos-encerrar"
-                  >
-                    <Text style={styles.secundarioTexto}>Encerrar chamado</Text>
-                  </TouchableOpacity>
+                  />
                 )}
 
                 {euAssumi && emAtendimento && escolhendoDesfecho && (
                   <View style={styles.desfechos} testID="sos-desfechos">
                     <Text style={styles.desfechoPergunta}>Como terminou?</Text>
                     {(Object.keys(ROTULOS_DESFECHO) as DesfechoSos[]).map((d) => (
-                      <TouchableOpacity
+                      <Button
                         key={d}
-                        style={[styles.secundario, enviando && styles.desabilitado]}
-                        onPress={() => encerrar(d)}
+                        title={ROTULOS_DESFECHO[d]}
+                        variant="outline"
                         disabled={enviando}
-                        accessibilityRole="button"
+                        onPress={() => encerrar(d)}
                         testID={`sos-desfecho-${d.toLowerCase()}`}
-                      >
-                        <Text style={styles.secundarioTexto}>{ROTULOS_DESFECHO[d]}</Text>
-                      </TouchableOpacity>
+                      />
                     ))}
                   </View>
                 )}
@@ -293,41 +293,41 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 120, gap: 16 },
-  hero: { backgroundColor: colors.peachBg, borderWidth: 1, borderColor: colors.peachBorder, borderRadius: 24, padding: 20, gap: 8 },
-  chip: { alignSelf: 'flex-start', minHeight: 28, paddingHorizontal: 12, borderRadius: 9999, justifyContent: 'center' },
-  chipTexto: { fontSize: 14, fontWeight: '800', color: colors.white, fontFamily: typography.fontFamily.body },
-  heroTitulo: { fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  heroTexto: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  card: { backgroundColor: colors.white, borderRadius: 24, padding: 20, gap: 14, ...shadows.tier1 },
-  semMapa: { height: 200, borderRadius: 20, backgroundColor: colors.peachBg, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  semMapaTexto: { fontSize: 18, fontWeight: '800', color: colors.coralDark, fontFamily: typography.fontFamily.heading },
+  hero: { backgroundColor: colors.peachBg, borderWidth: 1, borderColor: colors.peachBorder, borderRadius: rounded.card, padding: 20, gap: 8 },
+  chip: { alignSelf: 'flex-start', minHeight: 28, paddingHorizontal: 12, borderRadius: rounded.full, justifyContent: 'center' },
+  chipTexto: { fontSize: 14,  color: colors.white, ...font('body', 700) },
+  heroTitulo: { fontSize: 28, lineHeight: 34,  color: colors.primary, ...font('heading', 800) },
+  heroTexto: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
+  card: { backgroundColor: colors.white, borderRadius: rounded.card, padding: 20, gap: 14, ...shadows.tier1 },
+  semMapa: { height: 200, borderRadius: rounded.xl, backgroundColor: colors.peachBg, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  semMapaTexto: { fontSize: 18,  color: colors.coralDark, ...font('heading', 800) },
   enderecoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  enderecoIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.peachBg, alignItems: 'center', justifyContent: 'center' },
-  enderecoTitulo: { fontSize: 18, lineHeight: 24, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  enderecoSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  privacidade: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.surfaceSubtle },
-  privacidadeTexto: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  ligar: { minHeight: 64, borderRadius: 9999, backgroundColor: colors.coralDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  assumir: { minHeight: 64, borderRadius: 9999, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  enderecoIcon: { width: 48, height: 48, borderRadius: rounded.full, backgroundColor: colors.peachBg, alignItems: 'center', justifyContent: 'center' },
+  enderecoTitulo: { fontSize: 18, lineHeight: 24,  color: colors.primary, ...font('heading', 800) },
+  enderecoSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
+  privacidade: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.surfaceSubtle },
+  privacidadeTexto: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
+  ligar: { minHeight: 64, borderRadius: rounded.full, backgroundColor: colors.coralDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  assumir: { minHeight: 64, borderRadius: rounded.full, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   desabilitado: { opacity: 0.6 },
-  botaoTexto: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 20, backgroundColor: colors.mintBg },
-  statusTitulo: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  statusSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  secundario: { minHeight: 56, borderRadius: 9999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  secundarioTexto: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  botaoTexto: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: rounded.xl, backgroundColor: colors.mintBg },
+  statusTitulo: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  statusSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
+  secundario: { minHeight: 56, borderRadius: rounded.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  secundarioTexto: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
   desfechos: { gap: 10 },
-  desfechoPergunta: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  encerrado: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 20, backgroundColor: colors.mintBg },
-  encerradoTitulo: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  encerradoSub: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  avisoRede: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: colors.coralDark, fontFamily: typography.fontFamily.body },
-  eyebrow: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  indisponivel: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
-  indisponivelTexto: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.coralDark, fontFamily: typography.fontFamily.body },
-  erroBox: { alignItems: 'center', gap: 12, padding: 24, borderRadius: 20, backgroundColor: colors.white, ...shadows.tier1 },
-  erroTexto: { fontSize: 16, lineHeight: 24, textAlign: 'center', color: colors.coralDark, fontWeight: '700', fontFamily: typography.fontFamily.body },
-  semChamadoTexto: { fontSize: 16, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  tentarTexto: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  desfechoPergunta: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  encerrado: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: rounded.xl, backgroundColor: colors.mintBg },
+  encerradoTitulo: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  encerradoSub: { fontSize: 14, color: colors.textSecondary, ...font('body', 400) },
+  avisoRede: { fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 700) },
+  eyebrow: { fontSize: 14,  color: colors.textSecondary, ...font('body', 600) },
+  indisponivel: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.peachBg },
+  indisponivelTexto: { flex: 1, fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 600) },
+  erroBox: { alignItems: 'center', gap: 12, padding: 24, borderRadius: rounded.xl, backgroundColor: colors.white, ...shadows.tier1 },
+  erroTexto: { fontSize: 16, lineHeight: 24, textAlign: 'center', color: colors.coralDark,  ...font('body', 700) },
+  semChamadoTexto: { fontSize: 16, color: colors.textSecondary, ...font('body', 400) },
+  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  tentarTexto: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
 });

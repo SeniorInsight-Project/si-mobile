@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import TextField from '../components/TextField';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import {
   Alerta,
   AlertaError,
@@ -111,13 +113,12 @@ export default function AlertsCenterScreen({
             {alerta.motivoAvaliacao ? ` — ${alerta.motivoAvaliacao}` : ''}
           </Text>
           {pode && (
-            <TouchableOpacity
-              style={styles.linkBtn}
+            <Button
+              title="Alterar"
+              variant="ghost"
+              fullWidth={false}
               onPress={() => setAlertas((l) => l.map((a) => (a.id === alerta.id ? { ...a, avaliacao: undefined } : a)))}
-              accessibilityRole="button"
-            >
-              <Text style={styles.linkText}>Alterar</Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       );
@@ -125,46 +126,45 @@ export default function AlertsCenterScreen({
     if (editandoMotivo === alerta.id) {
       return (
         <View style={styles.motivoBox}>
-          <TextInput
-            style={styles.motivoInput}
+          <TextField
             placeholder="Por que foi alarme falso? (opcional)"
-            placeholderTextColor={colors.textSecondary}
             value={motivo}
             onChangeText={setMotivo}
             multiline
             testID={`alerta-motivo-${alerta.id}`}
+            style={{ marginBottom: 0 }}
           />
-          <TouchableOpacity
-            style={styles.salvarMotivo}
+          <Button
+            title="Salvar"
+            variant="primary"
+            fullWidth={false}
+            style={{ alignSelf: 'flex-start' }}
             onPress={() => avaliar(alerta, 'FALSO', motivo)}
-            accessibilityRole="button"
             testID={`alerta-salvar-${alerta.id}`}
-          >
-            <Text style={styles.salvarMotivoTexto}>Salvar</Text>
-          </TouchableOpacity>
+          />
         </View>
       );
     }
     return (
       <View style={styles.avaliacaoRow}>
-        <TouchableOpacity
-          style={styles.avaliarBtn}
-          onPress={() => avaliar(alerta, 'UTIL')}
-          accessibilityRole="button"
-          testID={`alerta-util-${alerta.id}`}
-        >
-          <Icon name="thumb_up" size={18} color={colors.successDark} />
-          <Text style={[styles.avaliarTexto, { color: colors.successDark }]}>Foi útil</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.avaliarBtn}
-          onPress={() => setEditandoMotivo(alerta.id)}
-          accessibilityRole="button"
-          testID={`alerta-falso-${alerta.id}`}
-        >
-          <Icon name="thumb_down" size={18} color={colors.textSecondary} />
-          <Text style={[styles.avaliarTexto, { color: colors.textSecondary }]}>Alarme falso</Text>
-        </TouchableOpacity>
+        <View style={styles.flex}>
+          <Button
+            title="Foi útil"
+            iconLeft="thumb_up"
+            variant="outline"
+            onPress={() => avaliar(alerta, 'UTIL')}
+            testID={`alerta-util-${alerta.id}`}
+          />
+        </View>
+        <View style={styles.flex}>
+          <Button
+            title="Alarme falso"
+            iconLeft="thumb_down"
+            variant="outline"
+            onPress={() => setEditandoMotivo(alerta.id)}
+            testID={`alerta-falso-${alerta.id}`}
+          />
+        </View>
       </View>
     );
   };
@@ -209,25 +209,24 @@ export default function AlertsCenterScreen({
           <Text style={styles.cardTexto}>{alerta.detalhe}</Text>
           <View style={styles.avaliacaoRow}>
             {Boolean(telefoneIdoso) && (
-              <TouchableOpacity
-                style={[styles.ligarBtn, styles.ligarPrincipal]}
-                onPress={() => ligar(telefoneIdoso as string, nomeIdoso)}
-                accessibilityRole="button"
-                testID="alerta-ligar"
-              >
-                <Icon name="call" size={18} color={colors.white} />
-                <Text style={[styles.avaliarTexto, { color: colors.white }]}>Ligar para {nomeIdoso}</Text>
-              </TouchableOpacity>
+              <View style={styles.flex}>
+                <Button
+                  title={`Ligar para ${nomeIdoso}`}
+                  iconLeft="call"
+                  variant="primary"
+                  onPress={() => ligar(telefoneIdoso as string, nomeIdoso)}
+                  testID="alerta-ligar"
+                />
+              </View>
             )}
-            <TouchableOpacity
-              style={[styles.ligarBtn, styles.ligarSamu]}
+            <Button
+              title={TELEFONE_SAMU}
+              variant="sos"
+              fullWidth={!telefoneIdoso}
               onPress={() => ligar(TELEFONE_SAMU, 'o SAMU')}
-              accessibilityRole="button"
               accessibilityLabel="Ligar para o SAMU, 192"
               testID="alerta-192"
-            >
-              <Text style={[styles.avaliarTexto, { color: colors.coralDark }]}>{TELEFONE_SAMU}</Text>
-            </TouchableOpacity>
+            />
           </View>
           <Text style={styles.aviso}>{AVISO_NAO_DIAGNOSTICO}</Text>
         </View>
@@ -299,9 +298,14 @@ export default function AlertsCenterScreen({
           <View style={styles.vazio} testID="alertas-erro">
             <Icon name="error" size={32} color={colors.coralDark} />
             <Text style={[styles.vazioTexto, { color: colors.coralDark, textAlign: 'center' }]}>{erroCarga}</Text>
-            <TouchableOpacity style={styles.salvarMotivo} onPress={carregar} accessibilityRole="button" testID="alertas-tentar-de-novo">
-              <Text style={styles.salvarMotivoTexto}>Tentar de novo</Text>
-            </TouchableOpacity>
+            <Button
+              title="Tentar de novo"
+              variant="secondary"
+              iconLeft="refresh"
+              fullWidth={false}
+              onPress={carregar}
+              testID="alertas-tentar-de-novo"
+            />
           </View>
         ) : visiveis.length === 0 ? (
           <View style={styles.vazio} testID="alertas-vazio">
@@ -334,42 +338,42 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   filtros: { backgroundColor: colors.canvasBase },
   filtrosContent: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
-  filtro: { minHeight: 48, paddingHorizontal: 18, borderRadius: 9999, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  filtro: { minHeight: 48, paddingHorizontal: 18, borderRadius: rounded.full, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filtroAtivo: { backgroundColor: colors.primary, borderColor: colors.primary },
-  filtroTexto: { fontSize: 14, fontWeight: '800', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  filtroTexto: { fontSize: 14,  color: colors.textSecondary, ...font('body', 700) },
   filtroTextoAtivo: { color: colors.white },
   content: { padding: 16, paddingBottom: 120, gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 24, padding: 20, gap: 8, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.card, padding: 20, gap: 8, ...shadows.tier1 },
   cardCritico: { backgroundColor: colors.peachBg, borderWidth: 1, borderColor: colors.peachBorder },
   cardTecnico: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   chipRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, paddingHorizontal: 12, borderRadius: 9999 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, paddingHorizontal: 12, borderRadius: rounded.full },
   chipCritico: { backgroundColor: colors.coralDark },
   chipAtencao: { backgroundColor: colors.amberBg },
-  chipTexto: { fontSize: 14, fontWeight: '800', fontFamily: typography.fontFamily.body },
-  hora: { fontSize: 14, fontWeight: '700', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  cardTitulo: { fontSize: 20, lineHeight: 26, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  cardTexto: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  aviso: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  chipTexto: { fontSize: 14,  ...font('body', 700) },
+  hora: { fontSize: 14,  color: colors.textSecondary, ...font('body', 700) },
+  cardTitulo: { fontSize: 20, lineHeight: 26,  color: colors.primary, ...font('heading', 800) },
+  cardTexto: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
+  aviso: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
   avaliacaoRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  avaliarBtn: { flex: 1, minHeight: 48, borderRadius: 9999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  avaliarTexto: { fontSize: 16, fontWeight: '700', fontFamily: typography.fontFamily.heading },
-  ligarBtn: { minHeight: 52, borderRadius: 9999, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  avaliarBtn: { flex: 1, minHeight: 48, borderRadius: rounded.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  avaliarTexto: { fontSize: 16,  ...font('heading', 700) },
+  ligarBtn: { minHeight: 52, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   ligarPrincipal: { flex: 2, backgroundColor: colors.coralDark },
   ligarSamu: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.peachBorder },
   avaliado: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 48 },
-  avaliadoTexto: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.body },
+  avaliadoTexto: { flex: 1, fontSize: 14,  color: colors.successDark, ...font('body', 700) },
   linkBtn: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  linkText: { fontSize: 16, fontWeight: '700', color: colors.primary, textDecorationLine: 'underline', fontFamily: typography.fontFamily.heading },
+  linkText: { fontSize: 16,  color: colors.primary, textDecorationLine: 'underline', ...font('heading', 700) },
   motivoBox: { gap: 8 },
-  motivoInput: { minHeight: 72, borderRadius: 16, backgroundColor: colors.surfaceSubtle, padding: 14, fontSize: 16, color: colors.onSurface, textAlignVertical: 'top', fontFamily: typography.fontFamily.body },
-  salvarMotivo: { minHeight: 48, paddingHorizontal: 24, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  salvarMotivoTexto: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  tecnicoIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surfaceSubtle, alignItems: 'center', justifyContent: 'center' },
-  tecnicoTitulo: { fontSize: 16, lineHeight: 22, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  tecnicoSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  motivoInput: { minHeight: 72, borderRadius: rounded.lg, backgroundColor: colors.surfaceSubtle, padding: 14, fontSize: 16, color: colors.textPrimary, textAlignVertical: 'top', ...font('body', 400) },
+  salvarMotivo: { minHeight: 48, paddingHorizontal: 24, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  salvarMotivoTexto: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
+  tecnicoIcon: { width: 48, height: 48, borderRadius: rounded.full, backgroundColor: colors.surfaceSubtle, alignItems: 'center', justifyContent: 'center' },
+  tecnicoTitulo: { fontSize: 16, lineHeight: 22,  color: colors.primary, ...font('heading', 800) },
+  tecnicoSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
   vazio: { alignItems: 'center', gap: 8, padding: 32 },
-  vazioTexto: { fontSize: 16, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  silencio: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  silencioTexto: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  vazioTexto: { fontSize: 16, color: colors.textSecondary, ...font('body', 400) },
+  silencio: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.skyBg },
+  silencioTexto: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
 });

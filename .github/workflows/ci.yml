@@ -33,6 +33,9 @@ jobs:
       - name: Executar testes
         run: npm test
 
+      - name: Auditar estilos de UI
+        run: npm run lint:estilo
+
       - name: Verificar presença do eas.json
         id: check_eas
         run: |

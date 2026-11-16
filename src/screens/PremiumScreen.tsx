@@ -4,14 +4,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
-import { colors, rounded, shadows, typography } from '../theme';
+import Button from '../components/Button';
+import { colors, rounded, shadows, typography, font } from '../theme';
 import {
   comparativoPlanos,
   DireitoPremium,
@@ -67,9 +67,13 @@ export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
           <View style={styles.errorCard}>
             <Icon name="warning" size={24} color={colors.coralDark} />
             <Text style={styles.errorText}>{erro}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={carregar} activeOpacity={0.85}>
-              <Text style={styles.retryBtnText}>Tentar novamente</Text>
-            </TouchableOpacity>
+            <Button
+              title="Tentar novamente"
+              variant="secondary"
+              iconLeft="refresh"
+              fullWidth={false}
+              onPress={carregar}
+            />
           </View>
         ) : (
           <>
@@ -157,20 +161,18 @@ const styles = StyleSheet.create({
   priceText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: '800',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   cardSub: {
     fontSize: 14,
     lineHeight: 20,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   featureRow: {
     flexDirection: 'row',
@@ -182,8 +184,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.onSurface,
-    fontFamily: typography.fontFamily.body,
+    color: colors.textPrimary,
+    ...font('body', 400),
   },
   bodyCenter: {
     fontSize: 14,
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 15,
-    fontWeight: '600',
+    ...font('body', 600),
     color: colors.coralDark,
     textAlign: 'center',
   },
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   retryBtnText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   b2bCard: {
     flexDirection: 'row',
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
   b2bText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.mint.text,
   },
   trialCard: {
@@ -247,7 +249,7 @@ const styles = StyleSheet.create({
   trialText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.amber.text,
   },
 });

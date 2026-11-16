@@ -20,6 +20,13 @@ Initial React Native setup using Expo Go for Android.
 
 Testes: `npm test` (usa os valores fictícios de `.env.test`).
 
+## Padronização de UI
+
+- Prefira os componentes base em `src/components/`: `Button`, `IconButton`, `ModalSheet`, `TextField`, `ChoiceChip` e `Icon`.
+- Use sempre os tokens de `src/theme/` (`colors`, `font`, `rounded`, `shadows`, `sizes`) — sem cores hex/`rgba()`, raios ou fontes literais nas telas.
+- Mantenha alvos de toque com mínimo de `48×48` dp, textos com `fontSize >= 14` e sem emojis em elementos de interface.
+- Antes de abrir PR, execute `npm run lint:estilo` para validar as regras de UI.
+
 ## Variáveis de ambiente
 
 O app só fala com o `si-api-gateway`; não há URL padrão. Se alguma variável abaixo faltar, o app lança um erro ao carregar. Copie `.env.example` para `.env` e reinicie o Expo com `npx expo start -c` depois de alterar.
