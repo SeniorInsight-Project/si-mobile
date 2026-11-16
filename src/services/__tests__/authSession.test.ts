@@ -13,6 +13,7 @@ import {
   SessaoInvalidaError,
   aoEncerrarSessao,
   configurarSessao,
+  desfechoErroOAuth,
   desfechoSemCodigo,
   ehCancelamentoOAuth,
   emailNaoVerificado,
@@ -300,8 +301,18 @@ test('kc_idp_hint: montarConfigAuthComHint preserva a configuração base e adic
   assert.equal('extraParams' in base, false);
 });
 
-test('cancelamento no Google (access_denied) é tratado como cancelamento sem erro', () => {
+test('cancelamento no Google (access_denied) é tratado como cancelamento sem erro apenas com cancelamentoSilencioso', () => {
   assert.equal(ehCancelamentoOAuth({ error: 'access_denied' }), true);
   assert.equal(ehCancelamentoOAuth({ error: 'server_error' }), false);
   assert.equal(ehCancelamentoOAuth(undefined), false);
+
+  // Google (cancelamentoSilencioso = true) com access_denied -> 'cancelado'
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }, true), 'cancelado');
+  // Google com outro erro ou sem params -> 'erro'
+  assert.equal(desfechoErroOAuth({ error: 'server_error' }, true), 'erro');
+  assert.equal(desfechoErroOAuth(undefined, true), 'erro');
+
+  // Entrar (login) e Criar conta (criar-conta) sem cancelamentoSilencioso -> 'erro' mesmo com access_denied
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }, false), 'erro');
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }), 'erro');
 });

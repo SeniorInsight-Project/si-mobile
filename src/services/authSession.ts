@@ -336,6 +336,21 @@ export function ehCancelamentoOAuth(params?: Record<string, string>): boolean {
   return params?.error === 'access_denied';
 }
 
+/**
+ * Decide o desfecho quando o provedor devolve erro.
+ * Só trata `access_denied` como cancelamento silencioso quando explicitamente pedido (fluxo do Google),
+ * preservando o comportamento de erro para "Entrar" e "Criar conta".
+ */
+export function desfechoErroOAuth(
+  params?: Record<string, string>,
+  cancelamentoSilencioso = false,
+): DesfechoAutenticacao {
+  if (cancelamentoSilencioso && ehCancelamentoOAuth(params)) {
+    return 'cancelado';
+  }
+  return 'erro';
+}
+
 export type TelaInicial = 'ElderlyMode' | 'Home' | 'AcessoRestrito';
 
 /** idoso -> modo idoso; familiar -> início da família; qualquer outro papel -> aviso. */

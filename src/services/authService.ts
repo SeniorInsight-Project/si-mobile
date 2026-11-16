@@ -23,8 +23,8 @@ import { runtimeConfig } from '../config/runtime';
 import {
   KEYCLOAK_CLIENT_ID,
   KEYCLOAK_SCOPES,
+  desfechoErroOAuth,
   desfechoSemCodigo,
-  ehCancelamentoOAuth,
   emailNaoVerificado,
   montarConfigAuthComHint,
   salvarSessao,
@@ -94,6 +94,7 @@ export function useAutenticacaoKeycloak(): AutenticacaoKeycloak {
       fluxo: FluxoAutenticacao,
       request: AuthRequest | null,
       prompt: () => Promise<AuthSessionResult>,
+      cancelamentoSilencioso = false,
     ): Promise<DesfechoAutenticacao> => {
       if (!request || !discovery) return 'cancelado';
       setErro(null);
@@ -101,8 +102,9 @@ export function useAutenticacaoKeycloak(): AutenticacaoKeycloak {
       try {
         const resultado = await prompt();
         if (resultado.type === 'error') {
-          if (ehCancelamentoOAuth(resultado.params)) {
-            return desfechoSemCodigo(fluxo);
+          const desfecho = desfechoErroOAuth(resultado.params, cancelamentoSilencioso);
+          if (desfecho === 'cancelado') {
+            return 'cancelado';
           }
           setErro(mensagemDeErro(resultado.params, resultado.error));
           return 'erro';
@@ -149,7 +151,7 @@ export function useAutenticacaoKeycloak(): AutenticacaoKeycloak {
     [autenticar, requestLogin, promptLogin],
   );
   const entrarComGoogle = useCallback(
-    () => autenticar('login', requestGoogle, () => promptGoogle()),
+    () => autenticar('login', requestGoogle, () => promptGoogle(), true),
     [autenticar, requestGoogle, promptGoogle],
   );
   const criarConta = useCallback(
