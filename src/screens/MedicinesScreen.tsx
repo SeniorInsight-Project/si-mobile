@@ -252,8 +252,7 @@ export default function MedicinesScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Rotina De Remédios"
-        subtitle="CUIDADO ATIVO"
+        title="Remédios"
         onNavigate={onNavigate}
       />
 

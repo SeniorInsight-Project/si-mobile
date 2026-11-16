@@ -1,18 +1,14 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  Platform,
-  StatusBar,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, StatusBar, AlertButton } from 'react-native';
 import Constants from 'expo-constants';
 import IconButton from './IconButton';
-import { colors, font, rounded, shadows, sizes, typography } from '../theme';
+import Icon from './Icon';
+import InitialsAvatar from './InitialsAvatar';
+import ElderlySwitcherSheet from './ElderlySwitcherSheet';
+import { colors, font, rounded, shadows, sizes } from '../theme';
 import { usePapel } from '../context/PapelContext';
+import { useIdoso } from '../context/IdosoContext';
+import { useNomeUsuario } from '../context/UsuarioContext';
 
 const TOP_INSET =
   Platform.OS === 'android'
@@ -23,28 +19,40 @@ const TOP_INSET =
 
 export interface AppHeaderProps {
   title?: string;
+  /** Linha de contexto usada só quando não há idoso nem usuário para mostrar. */
   subtitle?: string;
   onNavigate?: (screen: string) => void;
   onPressNotification?: () => void;
+  /** Ação principal do avatar (ex.: "Meus dados" no modo idoso). */
   onPressLogo?: () => void;
   hasNotification?: boolean;
-  /** Quando informado, mostra o botão de sair da conta. */
+  /** Quando informado, o menu do avatar mostra "Sair da conta". */
   onLogout?: () => void;
 }
 
 /**
- * Header Padronizado do SeniorInsight para as telas logadas.
+ * Header das telas logadas (versão B1 compacta):
+ * siglas coloridas do usuário à esquerda (menu da conta), contexto + título no centro
+ * ("Cuidando de <idoso> ⌄" abre o seletor de idoso para o familiar) e notificações à direita.
  */
 export default function AppHeader({
-  title = 'Início Monitoramento',
-  subtitle = 'CUIDADO ATIVO',
+  title = 'Início',
+  subtitle,
   onNavigate,
   onPressNotification,
   onPressLogo,
   hasNotification = true,
   onLogout,
 }: AppHeaderProps) {
-  const handleLogoutPress = () => {
+  const papel = usePapel();
+  const nomeUsuario = useNomeUsuario();
+  const { nomeIdoso } = useIdoso();
+  const [seletorAberto, setSeletorAberto] = useState(false);
+
+  const podeTrocarIdoso = papel === 'FAMILIAR';
+  const primeiroNome = (nomeUsuario ?? '').trim().split(/\s+/)[0];
+
+  const confirmarSaida = () => {
     if (!onLogout) return;
     if (Platform.OS === 'web') {
       onLogout();
@@ -56,7 +64,24 @@ export default function AppHeader({
     ]);
   };
 
-  const papel = usePapel();
+  const handleAvatarPress = () => {
+    const opcoes: AlertButton[] = [];
+    if (onPressLogo) {
+      opcoes.push({ text: 'Meus dados', onPress: onPressLogo });
+    } else if (papel === 'FAMILIAR' && onNavigate) {
+      opcoes.push({ text: 'Perfil do idoso', onPress: () => onNavigate('ElderlyProfile') });
+    }
+    if (onLogout) {
+      opcoes.push({ text: 'Sair da conta', style: 'destructive', onPress: confirmarSaida });
+    }
+    if (opcoes.length === 0) return;
+    if (opcoes.length === 1 || Platform.OS === 'web') {
+      opcoes[0].onPress?.();
+      return;
+    }
+    Alert.alert(nomeUsuario || 'Sua conta', undefined, [...opcoes, { text: 'Cancelar', style: 'cancel' }]);
+  };
+
   const handleNotificationPress = () => {
     if (onPressNotification) {
       onPressNotification();
@@ -67,59 +92,77 @@ export default function AppHeader({
     }
   };
 
-  const handleLogoPress = () => {
-    if (onPressLogo) {
-      onPressLogo();
-    } else if (onNavigate) {
-      onNavigate('ElderlyProfile');
-    }
-  };
+  const contexto = podeTrocarIdoso ? (
+    <View style={styles.contextRow}>
+      <Text style={styles.contextText} numberOfLines={1}>
+        {nomeIdoso ? 'Cuidando de ' : 'Escolha quem acompanhar'}
+        {nomeIdoso ? <Text style={styles.contextNome}>{nomeIdoso}</Text> : null}
+      </Text>
+      <Icon name="keyboard_arrow_down" size={18} color={colors.primary} />
+    </View>
+  ) : primeiroNome && papel === 'IDOSO' ? (
+    <Text style={styles.contextText} numberOfLines={1}>
+      Olá, {primeiroNome}
+    </Text>
+  ) : subtitle ? (
+    <Text style={styles.contextText} numberOfLines={1}>
+      {subtitle}
+    </Text>
+  ) : null;
+
+  const centro = (
+    <>
+      {contexto}
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {title}
+      </Text>
+    </>
+  );
 
   return (
     <View style={styles.safeAreaHeader}>
       <View style={styles.headerContainer}>
-        <View style={styles.leftTitleContainer}>
-          <Text style={styles.headerSubtitle}>{subtitle}</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {title}
-          </Text>
-        </View>
+        <TouchableOpacity
+          onPress={handleAvatarPress}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={nomeUsuario ? `Conta de ${nomeUsuario}` : 'Sua conta'}
+        >
+          <InitialsAvatar nome={nomeUsuario} />
+        </TouchableOpacity>
 
-        <View style={styles.rightActionsRow}>
-          <View style={styles.notificationWrapper}>
-            <IconButton
-              icon="notifications"
-              variant="neutral"
-              accessibilityLabel="Notificações"
-              onPress={handleNotificationPress}
-            />
-            {hasNotification && <View style={styles.notificationDot} pointerEvents="none" />}
-          </View>
-
-          {onLogout ? (
-            <IconButton
-              icon="logout"
-              variant="neutral"
-              accessibilityLabel="Sair da conta"
-              onPress={handleLogoutPress}
-            />
-          ) : null}
-
+        {podeTrocarIdoso ? (
           <TouchableOpacity
-            style={styles.logoButton}
-            onPress={handleLogoPress}
-            activeOpacity={0.85}
+            style={styles.center}
+            onPress={() => setSeletorAberto(true)}
+            activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Perfil do idoso"
+            accessibilityLabel={nomeIdoso ? `Trocar idoso. Acompanhando ${nomeIdoso}` : 'Escolher idoso'}
           >
-            <Image
-              source={require('../../assets/logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            {centro}
           </TouchableOpacity>
+        ) : (
+          <View style={styles.center}>{centro}</View>
+        )}
+
+        <View>
+          <IconButton
+            icon="notifications"
+            variant="neutral"
+            accessibilityLabel={hasNotification ? 'Notificações, há novos alertas' : 'Notificações'}
+            onPress={handleNotificationPress}
+          />
+          {hasNotification && <View style={styles.notificationDot} pointerEvents="none" />}
         </View>
       </View>
+
+      {podeTrocarIdoso ? (
+        <ElderlySwitcherSheet
+          visible={seletorAberto}
+          onClose={() => setSeletorAberto(false)}
+          onCadastrar={onNavigate ? () => onNavigate('RegisterElderly') : undefined}
+        />
+      ) : null}
     </View>
   );
 }
@@ -130,65 +173,54 @@ const styles = StyleSheet.create({
     paddingTop: TOP_INSET,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    borderBottomLeftRadius: rounded.xl,
+    borderBottomRightRadius: rounded.xl,
     ...shadows.tier1,
     zIndex: 20,
   },
   headerContainer: {
-    height: 68,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     paddingHorizontal: 16,
-    backgroundColor: colors.surface,
+    paddingBottom: 8,
   },
-  leftTitleContainer: {
+  center: {
     flex: 1,
+    minHeight: sizes.touchMin,
     justifyContent: 'center',
-    paddingRight: 12,
   },
-  headerSubtitle: {
-    ...typography.labelSm,
+  contextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contextText: {
+    flexShrink: 1,
+    fontSize: 14,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginBottom: 2,
+    ...font('body', 500),
+  },
+  contextNome: {
+    color: colors.primary,
+    ...font('body', 600),
   },
   headerTitle: {
     fontSize: 18,
-    color: colors.textPrimary,
+    lineHeight: 24,
+    color: colors.primary,
     ...font('heading', 700),
-  },
-  rightActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  notificationWrapper: {
-    position: 'relative',
   },
   notificationDot: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 10,
     width: 10,
     height: 10,
     borderRadius: rounded.full,
     backgroundColor: colors.coralDark,
     borderWidth: 1.5,
     borderColor: colors.white,
-  },
-  logoButton: {
-    width: sizes.iconButton,
-    height: sizes.iconButton,
-    minWidth: sizes.touchMin,
-    minHeight: sizes.touchMin,
-    borderRadius: rounded.full,
-    backgroundColor: colors.surfaceSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  logoImage: {
-    width: 32,
-    height: 32,
-    borderRadius: rounded.full,
   },
 });

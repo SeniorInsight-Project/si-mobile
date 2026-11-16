@@ -51,11 +51,7 @@ export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
 
   return (
     <ScreenWrapper>
-      <AppHeader
-        title="Conhecer o Premium"
-        onNavigate={onNavigate}
-        onPressLogo={() => onNavigate('Home')}
-      />
+      <AppHeader title="Premium" onNavigate={onNavigate} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {carregando ? (

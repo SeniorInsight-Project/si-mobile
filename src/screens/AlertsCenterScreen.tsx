@@ -270,7 +270,7 @@ export default function AlertsCenterScreen({
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Central de Alertas" onNavigate={onNavigate} />
+      <AppHeader title="Central de alertas" onNavigate={onNavigate} />
       <View style={styles.filtros}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtrosContent}>
           {FILTROS.map((f) => {

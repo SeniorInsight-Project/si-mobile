@@ -117,7 +117,7 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Pedido de Socorro" onNavigate={onNavigate} />
+      <AppHeader title="Pedido de socorro" onNavigate={onNavigate} />
       <ScrollView contentContainerStyle={styles.content}>
         {carregando ? (
           <ActivityIndicator color={colors.primary} />

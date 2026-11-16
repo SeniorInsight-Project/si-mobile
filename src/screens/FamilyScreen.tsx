@@ -283,8 +283,7 @@ export default function FamilyScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Família Perfil"
-        subtitle="CUIDADO ATIVO"
+        title="Família"
         onNavigate={onNavigate}
       />
 

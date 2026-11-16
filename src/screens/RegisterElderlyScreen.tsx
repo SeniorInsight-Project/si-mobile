@@ -62,7 +62,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Cadastrar Idoso" onNavigate={onNavigate} />
+      <AppHeader title="Cadastrar idoso" onNavigate={onNavigate} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>

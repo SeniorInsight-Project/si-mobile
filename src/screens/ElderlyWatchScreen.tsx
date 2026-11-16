@@ -56,7 +56,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Meu Relógio" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
+      <AppHeader title="Meu relógio" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.title}>Vamos conectar seu relógio</Text>

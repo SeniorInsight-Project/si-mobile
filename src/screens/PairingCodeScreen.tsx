@@ -23,7 +23,7 @@ export default function PairingCodeScreen({ onNavigate, idosoId, nomeIdoso }: Pa
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Código de Pareamento" onNavigate={onNavigate} />
+      <AppHeader title="Código de pareamento" onNavigate={onNavigate} />
       <ScrollView contentContainerStyle={styles.content}>
         <CodigoPareamentoPainel
           idosoId={idosoId}
