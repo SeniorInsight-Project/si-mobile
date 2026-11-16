@@ -6,7 +6,7 @@ import {
   type BiometriaIdoso,
   type CartaoBiometria,
 } from '../services/elderlyTelemetryService';
-import { colors, typography, shadows } from '../theme';
+import { colors, font, rounded, shadows } from '../theme';
 
 export interface ElderlyMetricsCardsProps {
   biometria: BiometriaIdoso | null;
@@ -97,17 +97,17 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minHeight: 150,
-    borderRadius: 24,
+    borderRadius: rounded.card,
     borderWidth: 1.5,
     padding: 16,
     gap: 6,
     ...shadows.tier1,
   },
-  iconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  iconCircle: { width: 48, height: 48, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },
-  metricNumber: { fontSize: 32, lineHeight: 38, fontWeight: '800', fontFamily: typography.fontFamily.heading },
-  semDados: { fontSize: 22, lineHeight: 28, fontWeight: '800', fontFamily: typography.fontFamily.heading },
-  unidade: { fontSize: 18, fontWeight: '700', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  metricLabel: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  atualizacao: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  metricNumber: { ...font('heading', 800), fontSize: 32, lineHeight: 38 },
+  semDados: { ...font('heading', 800), fontSize: 22, lineHeight: 28 },
+  unidade: { ...font('body', 700), fontSize: 18, color: colors.textSecondary },
+  metricLabel: { ...font('body', 600), fontSize: 18, lineHeight: 24, color: colors.textPrimary },
+  atualizacao: { ...font('body', 600), fontSize: 18, lineHeight: 24, color: colors.textSecondary },
 });
