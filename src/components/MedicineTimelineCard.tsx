@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import { RotinaMedicamento } from '../services/medicamentoService';
 
 function getCardTheme(item: RotinaMedicamento) {
@@ -349,9 +349,8 @@ const styles = StyleSheet.create({
   },
   timelineTimeText: {
     fontSize: 12,
-    fontWeight: '700',
     marginTop: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   timeTextTaken: {
     color: '#059669',
@@ -414,9 +413,8 @@ const styles = StyleSheet.create({
   },
   medName: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   nextBadge: {
     backgroundColor: '#FFEBE7',
@@ -426,9 +424,8 @@ const styles = StyleSheet.create({
   },
   nextBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   pausedBadge: {
     backgroundColor: '#F2F4F7',
@@ -438,14 +435,13 @@ const styles = StyleSheet.create({
   },
   pausedBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#64748B',
   },
   medDosage: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   instructionPill: {
     flexDirection: 'row',
@@ -458,8 +454,7 @@ const styles = StyleSheet.create({
   },
   instructionPillText: {
     fontSize: 11,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   switchTrack: {
     width: 48,
@@ -498,9 +493,8 @@ const styles = StyleSheet.create({
   },
   takenText: {
     fontSize: 11,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   actionsRow: {
     flexDirection: 'row',
@@ -523,9 +517,8 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   pauseBtn: {
     flex: 1,
@@ -542,9 +535,8 @@ const styles = StyleSheet.create({
   },
   pauseBtnText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   pauseBtnTextActive: {
     color: '#059669',
@@ -561,8 +553,7 @@ const styles = StyleSheet.create({
   },
   deleteBtnText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#BA1A1A',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, shadows, typography } from '../theme';
+import { colors, shadows, typography, font } from '../theme';
 import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface ConfirmarEmailScreenProps {
@@ -137,9 +137,8 @@ const styles = StyleSheet.create({
   },
   safeBadgeText: {
     fontSize: 13,
-    fontWeight: '700',
     color: colors.primaryNavyDeep,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   iconCircle: {
     alignSelf: 'center',
@@ -156,10 +155,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '800',
     textAlign: 'center',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 10,
@@ -167,7 +165,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   infoCard: {
     marginTop: 24,
@@ -190,16 +188,15 @@ const styles = StyleSheet.create({
   infoTexts: { flex: 1 },
   infoTitle: {
     fontSize: 17,
-    fontWeight: '700',
     color: colors.successDark,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   infoText: {
     marginTop: 2,
     fontSize: 14,
     lineHeight: 20,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   warningCard: {
     marginTop: 16,
@@ -217,7 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.amber.textDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   primaryButton: {
     marginTop: 24,
@@ -233,17 +230,15 @@ const styles = StyleSheet.create({
   primaryButtonDisabled: { opacity: 0.7 },
   primaryButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: colors.white,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   errorText: {
     marginTop: 12,
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
     color: colors.secondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   linkButton: {
     marginTop: 16,
@@ -255,8 +250,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 16,
-    fontWeight: '700',
     color: colors.primaryNavyDeep,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

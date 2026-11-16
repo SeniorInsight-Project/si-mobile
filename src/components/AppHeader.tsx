@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import Icon from './Icon';
-import { typography, shadows } from '../theme';
+import { typography, shadows, font } from '../theme';
 import { usePapel } from '../context/PapelContext';
 
 const TOP_INSET =
@@ -153,18 +153,16 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   rightActionsRow: {
     flexDirection: 'row',

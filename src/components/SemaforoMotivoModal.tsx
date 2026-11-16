@@ -9,7 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import { ScoreBemEstar, FaixaScore, ExplicacaoMotivo } from '../services/riskScoreService';
 
 export interface SemaforoMotivoModalProps {
@@ -253,14 +253,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   headerSubtitle: {
     fontSize: 12,
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   closeButton: {
     width: 48,
@@ -285,14 +284,13 @@ const styles = StyleSheet.create({
   },
   scoreBadgeTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   scoreBadgeSub: {
     fontSize: 13,
     color: '#475569',
     marginTop: 2,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   scorePill: {
     paddingHorizontal: 12,
@@ -301,24 +299,22 @@ const styles = StyleSheet.create({
   },
   scorePillText: {
     color: '#FFFFFF',
-    fontWeight: '800',
     fontSize: 13,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   section: {
     gap: 8,
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   sectionSubtitle: {
     fontSize: 13,
     color: '#64748B',
     lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   fatoresContainer: {
     backgroundColor: '#F8FAFC',
@@ -340,8 +336,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1E293B',
     lineHeight: 20,
-    fontWeight: '500',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   recomendacaoCard: {
     flexDirection: 'row',
@@ -361,9 +356,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: '#1E3A8A',
-    fontWeight: '600',
     lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   recomendacaoTextCritico: {
     color: '#B91C1C',
@@ -385,8 +379,7 @@ const styles = StyleSheet.create({
   botaoLigarEmergenciaText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   avisoMedicoBox: {
     backgroundColor: '#FFF8E7',
@@ -403,16 +396,15 @@ const styles = StyleSheet.create({
   },
   avisoMedicoTitle: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#92400E',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   avisoMedicoText: {
     fontSize: 12,
     color: '#78350F',
     lineHeight: 17,
     fontStyle: 'italic',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   modalFooter: {
     padding: 20,
@@ -429,7 +421,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

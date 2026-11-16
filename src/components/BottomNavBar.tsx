@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import { ABAS_POR_PAPEL } from '../services/acessoService';
 
@@ -104,13 +104,11 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   tabLabelActive: {
     fontSize: 12,
     color: '#FFFFFF',
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
 });

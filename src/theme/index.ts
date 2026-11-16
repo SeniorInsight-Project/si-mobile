@@ -138,7 +138,70 @@ export const colors = {
   errorBright: '#DC2626',
 };
 
+export const fonts = {
+  heading: {
+    600: 'PlusJakartaSans_600SemiBold',
+    700: 'PlusJakartaSans_700Bold',
+    800: 'PlusJakartaSans_800ExtraBold',
+  },
+  body: {
+    400: 'Inter_400Regular',
+    500: 'Inter_500Medium',
+    600: 'Inter_600SemiBold',
+    700: 'Inter_700Bold',
+  },
+} as const;
+
+export type FontKind = keyof typeof fonts;
+export type HeadingFontWeight = keyof typeof fonts.heading;
+export type BodyFontWeight = keyof typeof fonts.body;
+export type FontWeightInput =
+  | HeadingFontWeight
+  | BodyFontWeight
+  | '400'
+  | '500'
+  | '600'
+  | '700'
+  | '800'
+  | 'normal'
+  | 'regular'
+  | 'medium'
+  | 'semibold'
+  | 'bold';
+
+export function font(
+  kind: FontKind,
+  weight: FontWeightInput = kind === 'heading' ? 700 : 400,
+): Pick<TextStyle, 'fontFamily'> {
+  const numericMap: Record<string, number> = {
+    normal: 400,
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+  };
+  const raw =
+    typeof weight === 'string'
+      ? (numericMap[weight.toLowerCase()] ?? Number(weight))
+      : weight;
+  const family = fonts[kind];
+  const available = Object.keys(family)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let chosen = available[0];
+  let bestDiff = Math.abs(raw - chosen);
+  for (const w of available) {
+    const diff = Math.abs(raw - w);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      chosen = w;
+    }
+  }
+  return { fontFamily: family[chosen as keyof typeof family] };
+}
+
 export const typography: {
+  /** @deprecated use font('heading'|'body', weight) */
   fontFamily: {
     heading: string;
     body: string;
@@ -163,65 +226,65 @@ export const typography: {
   labelMedium?: TextStyle;
 } = {
   fontFamily: {
-    heading: 'Plus Jakarta Sans',
-    body: 'Inter',
+    heading: fonts.heading[700],
+    body: fonts.body[400],
   },
   displayLg: {
     fontSize: 34,
-    fontWeight: '800',
     lineHeight: 42,
+    ...font('heading', 800),
   },
   headlineLg: {
     fontSize: 26,
-    fontWeight: '700',
     lineHeight: 34,
+    ...font('heading', 700),
   },
   headlineMd: {
     fontSize: 20,
-    fontWeight: '700',
     lineHeight: 28,
+    ...font('heading', 700),
   },
   headlineSm: {
     fontSize: 17,
-    fontWeight: '600',
     lineHeight: 24,
+    ...font('heading', 600),
   },
   bodyLg: {
     fontSize: 18,
-    fontWeight: '400',
     lineHeight: 28,
+    ...font('body', 400),
   },
   bodyMd: {
     fontSize: 16,
-    fontWeight: '400',
     lineHeight: 24,
+    ...font('body', 400),
   },
   bodySm: {
     fontSize: 14,
-    fontWeight: '500',
     lineHeight: 20,
+    ...font('body', 500),
   },
   labelLg: {
     fontSize: 15,
-    fontWeight: '700',
     lineHeight: 20,
+    ...font('body', 700),
   },
   labelMd: {
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
+    ...font('body', 600),
   },
   labelSm: {
     fontSize: 14,
-    fontWeight: '700',
     lineHeight: 18,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+    ...font('body', 700),
   },
   metricDisplay: {
     fontSize: 28,
-    fontWeight: '800',
     lineHeight: 32,
+    ...font('heading', 800),
   },
 };
 
@@ -289,6 +352,8 @@ export const sizes = {
 
 export default {
   colors,
+  fonts,
+  font,
   typography,
   rounded,
   shadows,

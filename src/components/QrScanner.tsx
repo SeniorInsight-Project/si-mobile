@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 
 export interface QrScannerProps {
   /** Chamado uma vez por leitura, com o texto do QR. */
@@ -97,10 +97,10 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 10,
   },
-  title: { fontSize: 20, fontWeight: '700', color: colors.white, textAlign: 'center', fontFamily: typography.fontFamily.heading },
-  text: { fontSize: 18, lineHeight: 24, color: colors.outlineVariant, textAlign: 'center', fontFamily: typography.fontFamily.body },
+  title: { fontSize: 20,  color: colors.white, textAlign: 'center', ...font('heading', 700) },
+  text: { fontSize: 18, lineHeight: 24, color: colors.outlineVariant, textAlign: 'center', ...font('body', 400) },
   button: { minHeight: 56, paddingHorizontal: 20, borderRadius: 9999, backgroundColor: colors.successDark, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  buttonText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   link: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  linkText: { fontSize: 18, fontWeight: '700', color: colors.white, textDecorationLine: 'underline', fontFamily: typography.fontFamily.heading },
+  linkText: { fontSize: 18,  color: colors.white, textDecorationLine: 'underline', ...font('heading', 700) },
 });

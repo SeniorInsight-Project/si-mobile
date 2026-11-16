@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import QrScanner from '../components/QrScanner';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 import {
   PareamentoError,
   ResultadoPareamento,
@@ -108,14 +108,13 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   closeButton: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  topTitle: { fontSize: 20,  color: colors.white, ...font('heading', 700) },
   instruction: {
     marginTop: 12,
     fontSize: 20,
     lineHeight: 28,
-    fontWeight: '600',
     color: colors.white,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   viewfinder: {
     marginTop: 28,
@@ -145,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryNavyDeep,
   },
   statusChipError: { backgroundColor: colors.coralDark },
-  statusText: { flexShrink: 1, fontSize: 18, lineHeight: 24, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.body },
+  statusText: { flexShrink: 1, fontSize: 18, lineHeight: 24,  color: colors.white, ...font('body', 700) },
   codeButton: {
     marginTop: 28,
     minHeight: 64,
@@ -156,13 +155,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  codeButtonText: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  codeButtonText: { fontSize: 20,  color: colors.primary, ...font('heading', 700) },
   privacy: {
     marginTop: 20,
     fontSize: 18,
     lineHeight: 26,
     textAlign: 'center',
     color: colors.outlineVariant,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
 });

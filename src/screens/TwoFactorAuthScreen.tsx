@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface TwoFactorAuthScreenProps {
   onNavigate: (screen: string) => void;
@@ -261,9 +261,8 @@ const styles = StyleSheet.create({
   },
   safeAccessText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   avatarContainer: {
     width: 40,
@@ -298,26 +297,23 @@ const styles = StyleSheet.create({
   },
   stepPillText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   title: {
     fontSize: 30,
-    fontWeight: '800',
     color: '#1A285A',
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     fontSize: 15,
-    fontWeight: '500',
     color: '#525B70',
     lineHeight: 22,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   phoneHighlight: {
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#131E3D',
   },
   codeCard: {
@@ -339,9 +335,8 @@ const styles = StyleSheet.create({
   },
   codeCardLabel: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#525B70',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   smsActiveRow: {
     flexDirection: 'row',
@@ -356,9 +351,8 @@ const styles = StyleSheet.create({
   },
   smsActiveText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#059669',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   digitBoxesRow: {
     flexDirection: 'row',
@@ -380,9 +374,8 @@ const styles = StyleSheet.create({
   },
   digitText: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   activeBoxDot: {
     width: 10,
@@ -413,21 +406,18 @@ const styles = StyleSheet.create({
   },
   resendTimerLabel: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#525B70',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   resendTimerValue: {
     fontSize: 13,
-    fontWeight: '800',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   altMethodLink: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#D83729',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   keypadCard: {
     backgroundColor: '#FFFFFF',
@@ -461,17 +451,15 @@ const styles = StyleSheet.create({
   },
   keyNumber: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#131E3D',
     lineHeight: 24,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   keySubText: {
     fontSize: 9,
-    fontWeight: '700',
     color: '#525B70',
     marginTop: 1,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   validateButton: {
     width: '100%',
@@ -491,9 +479,8 @@ const styles = StyleSheet.create({
   },
   validateButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   lgpdCard: {
     flexDirection: 'row',
@@ -516,15 +503,13 @@ const styles = StyleSheet.create({
   },
   lgpdTitle: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#003B26',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   lgpdSubtitle: {
     fontSize: 11,
-    fontWeight: '500',
     color: '#003B26',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
 });

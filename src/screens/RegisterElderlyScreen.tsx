@@ -5,7 +5,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import InputField from '../components/InputField';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import type { Idoso } from '../services/elderlyService';
 import { CadastroIdosoError, cadastrarIdoso } from '../services/idosoCadastroService';
 import {
@@ -185,10 +185,10 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: colors.skyBg,
   },
-  stepText: { fontSize: 14, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
-  title: { fontSize: 24, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.primary, fontFamily: typography.fontFamily.body },
+  stepText: { fontSize: 14,  color: colors.primary, ...font('body', 700) },
+  title: { fontSize: 24,  color: colors.primary, ...font('heading', 800) },
+  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
+  fieldLabel: { fontSize: 14,  color: colors.primary, ...font('body', 600) },
   sexoRow: { flexDirection: 'row', gap: 8 },
   sexoChip: {
     minHeight: 48,
@@ -200,9 +200,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sexoChipActive: { backgroundColor: colors.primary },
-  sexoText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  sexoText: { fontSize: 14,  color: colors.textSecondary, ...font('body', 700) },
   sexoTextActive: { color: colors.white },
-  error: { fontSize: 14, color: colors.coralDark, fontWeight: '600', fontFamily: typography.fontFamily.body },
+  error: { fontSize: 14, color: colors.coralDark,  ...font('body', 600) },
   warning: {
     flexDirection: 'row',
     gap: 10,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.amberBorder,
   },
-  warningText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  warningText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, ...font('body', 400) },
   submit: {
     minHeight: 56,
     borderRadius: 9999,
@@ -223,6 +223,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitDisabled: { opacity: 0.7 },
-  submitText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  footnote: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  submitText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
+  footnote: { fontSize: 14, color: colors.textSecondary, ...font('body', 400) },
 });

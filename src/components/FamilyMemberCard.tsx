@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { MembroRede } from '../services/redeProtecaoService';
+import { font } from '../theme';
 
 export interface FamilyMemberCardProps {
   member?: MembroRede | null;
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 20,
-    fontWeight: 'bold',
+    ...font('body', 700),
     color: '#475569',
   },
   avatarStatusDot: {
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   dotVerifiedText: {
     fontSize: 8,
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    ...font('body', 700),
   },
   infoCol: {
     flex: 1,
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 16,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0F172A',
     marginRight: 5,
   },
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#1E3A8A', // Tom azul escuro de destaque
     marginTop: 2,
     marginBottom: 4,
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
   },
   badgeTextBase: {
     fontSize: 11,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   badgePlantao: {
     backgroundColor: '#FEF2F2',

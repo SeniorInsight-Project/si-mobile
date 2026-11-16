@@ -16,6 +16,7 @@ import {
 import Icon from './Icon';
 import { ConvitePendente, DadosConviteMedicoInput } from '../services/redeProtecaoService';
 import { useIdoso } from '../context/IdosoContext';
+import { font } from '../theme';
 
 export interface InviteDoctorModalProps {
   visible: boolean;
@@ -203,7 +204,7 @@ export default function InviteDoctorModal({
                   </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Validade Temporal:</Text>
-                    <Text style={[styles.detailValue, { color: '#B45309', fontWeight: '800' }]}>
+                    <Text style={[styles.detailValue, { color: '#B45309', ...font('body', 700) }]}>
                       72 horas (Uso único)
                     </Text>
                   </View>
@@ -374,7 +375,7 @@ export default function InviteDoctorModal({
                 <View style={styles.noticeRow}>
                   <Icon name="hourglass_top" size={15} color="#B45309" style={{ marginRight: 6 }} />
                   <Text style={styles.noticeText}>
-                    O convite é de uso único e expira automaticamente em <Text style={{ fontWeight: '700' }}>72 horas</Text>.
+                    O convite é de uso único e expira automaticamente em <Text style={{ ...font('body', 700) }}>72 horas</Text>.
                   </Text>
                 </View>
 
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#031753',
     letterSpacing: -0.3,
   },
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
   },
   infoBannerTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0369A1',
     marginBottom: 2,
   },
@@ -528,19 +529,19 @@ const styles = StyleSheet.create({
   },
   limitPillText: {
     fontSize: 12,
-    fontWeight: '600',
+    ...font('body', 600),
     color: '#031753',
   },
   limitPillTextAlert: {
     color: '#DC2626',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#1E293B',
   },
   requiredMark: {
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#0F172A',
-    fontWeight: '500',
+    ...font('body', 500),
   },
   textAreaField: {
     height: '100%',
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#475467',
   },
   submitButton: {
@@ -632,7 +633,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 14,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
@@ -651,7 +652,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#065F46',
     textAlign: 'center',
     marginBottom: 6,
@@ -682,12 +683,12 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
+    ...font('body', 600),
   },
   detailValue: {
     fontSize: 12,
     color: '#0F172A',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   successActionsCol: {
     width: '100%',
@@ -708,7 +709,7 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     fontSize: 14,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
   },
   debugButtonText: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   finishButton: {
@@ -742,7 +743,7 @@ const styles = StyleSheet.create({
   },
   finishButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#475467',
   },
 });

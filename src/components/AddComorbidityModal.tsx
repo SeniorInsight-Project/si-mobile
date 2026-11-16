@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows, rounded } from '../theme';
+import { colors, typography, shadows, rounded, font } from '../theme';
 import { AVISO_OUTRAS_COMORBIDADES, CONDICOES_CLINICAS_DRS } from '../services/comorbidadeService';
 
 const CONDICOES_DRS_UI: Record<(typeof CONDICOES_CLINICAS_DRS)[number], { icon: string; color: string }> = {
@@ -233,16 +233,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '800',
     color: colors.primary,
     marginBottom: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   closeBtn: {
     width: 48,
@@ -274,7 +273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: colors.onSurface,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   addButton: {
     backgroundColor: colors.primaryNavy,
@@ -286,26 +285,23 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.onPrimary,
-    fontWeight: '700',
     fontSize: 13,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   errorText: {
     fontSize: 12,
     color: colors.errorBright,
-    fontWeight: '600',
     marginBottom: 10,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '800',
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginTop: 12,
     marginBottom: 10,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   suggestionsScroll: {
     maxHeight: 260,
@@ -344,13 +340,12 @@ const styles = StyleSheet.create({
   suggestionText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '600',
     color: colors.onSurface,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   suggestionTextDisabled: {
     color: colors.successDark,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   avisoOutrasBox: {
     flexDirection: 'row',
@@ -367,8 +362,7 @@ const styles = StyleSheet.create({
   avisoOutrasText: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '600',
     color: colors.amber.text,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
 });

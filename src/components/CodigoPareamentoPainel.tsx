@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 
 import { View, Text, TouchableOpacity, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Icon from './Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import { idosoIdDoServidor } from '../services/elderlyService';
 import {
   MENSAGENS_PAREAMENTO,
@@ -223,15 +223,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   code: {
     textAlign: 'center',
     fontSize: 40,
-    fontWeight: '800',
     letterSpacing: 2,
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   chipsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
   chip: {
@@ -242,14 +241,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 9999,
   },
-  chipText: { fontSize: 14, fontWeight: '700', fontFamily: typography.fontFamily.body },
+  chipText: { fontSize: 14,  ...font('body', 700) },
   errorBox: { gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
   errorText: {
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '700',
     color: colors.coralDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
   retry: {
     minHeight: 48,
@@ -260,7 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  retryText: { fontSize: 16, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  retryText: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
   primary: {
     minHeight: 56,
     borderRadius: 9999,
@@ -270,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  primaryText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   secondary: {
     minHeight: 56,
     borderRadius: 9999,
@@ -282,6 +280,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  secondaryText: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  secondaryText: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
   disabled: { opacity: 0.6 },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface DiaDaSemana {
   id: string;
@@ -87,19 +87,17 @@ const styles = StyleSheet.create({
   },
   dayName: {
     fontSize: 10,
-    fontWeight: '700',
     color: '#64748B',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   dayNameActive: {
     color: '#CBD5E1',
   },
   dayNumber: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   dayNumberActive: {
     color: '#FFFFFF',

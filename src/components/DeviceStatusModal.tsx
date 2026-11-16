@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows, rounded } from '../theme';
+import { colors, typography, shadows, rounded, font } from '../theme';
 import {
   formatarHora,
   formatarResumoStatus,
@@ -267,14 +267,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: colors.textPrimary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   headerSubtitle: {
     fontSize: 13,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     marginTop: 2,
   },
   closeButton: {
@@ -312,14 +311,13 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 14,
-    fontWeight: '700',
     color: colors.peach.text,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   alertMessage: {
     fontSize: 12,
     color: colors.peach.textDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     marginTop: 2,
     lineHeight: 18,
   },
@@ -339,22 +337,20 @@ const styles = StyleSheet.create({
   },
   canonicalTag: {
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.5,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   canonicalSummary: {
     fontSize: 17,
-    fontWeight: '700',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     lineHeight: 24,
   },
   deviceInfo: {
     fontSize: 12,
     color: colors.textMuted,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     marginTop: 6,
   },
   sectionCard: {
@@ -379,14 +375,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
     color: colors.textPrimary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   batteryPercentage: {
     fontSize: 18,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   progressBarTrack: {
     height: 8,
@@ -402,14 +396,13 @@ const styles = StyleSheet.create({
   batteryHint: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     lineHeight: 18,
   },
   sensorCount: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   sensorList: {
     marginTop: 6,
@@ -429,9 +422,8 @@ const styles = StyleSheet.create({
   },
   sensorName: {
     fontSize: 14,
-    fontWeight: '600',
     color: colors.textPrimary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   sensorBadge: {
     flexDirection: 'row',
@@ -453,8 +445,7 @@ const styles = StyleSheet.create({
   },
   sensorBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   helpBox: {
     flexDirection: 'row',
@@ -469,7 +460,7 @@ const styles = StyleSheet.create({
   helpText: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     flex: 1,
     lineHeight: 18,
   },
@@ -485,8 +476,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: colors.white,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows, rounded } from '../theme';
+import { colors, typography, shadows, rounded, font } from '../theme';
 import { AlarmeEmergencia } from '../services/alarmeSosService';
 import { SosQueueStatusInfo } from '../services/sosQueueService';
 import { ContatoEmergencia } from '../services/contatoEmergenciaService';
@@ -254,8 +254,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  topEyebrow: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, letterSpacing: 0.6, fontFamily: typography.fontFamily.heading },
-  topTitle: { fontSize: 20, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  topEyebrow: { fontSize: 14,  color: colors.textSecondary, letterSpacing: 0.6, ...font('heading', 600) },
+  topTitle: { fontSize: 20,  color: colors.primary, ...font('heading', 800) },
   content: { padding: 16, paddingBottom: 32, gap: 16 },
   heroCard: {
     alignItems: 'center',
@@ -278,10 +278,10 @@ const styles = StyleSheet.create({
     ...shadows.tier3,
   },
   sosButtonTimeout: { backgroundColor: colors.errorBright },
-  sosButtonText: { fontSize: 32, fontWeight: '800', color: colors.white, fontFamily: typography.fontFamily.heading },
-  sosButtonSub: { fontSize: 14, fontWeight: '600', color: colors.white, fontFamily: typography.fontFamily.body },
-  heroTitle: { marginTop: 8, fontSize: 28, fontWeight: '800', color: colors.coralDark, textAlign: 'center', fontFamily: typography.fontFamily.heading },
-  heroSub: { fontSize: 18, lineHeight: 26, fontWeight: '600', color: colors.onSurface, textAlign: 'center', fontFamily: typography.fontFamily.body },
+  sosButtonText: { fontSize: 32,  color: colors.white, ...font('heading', 800) },
+  sosButtonSub: { fontSize: 14,  color: colors.white, ...font('body', 600) },
+  heroTitle: { marginTop: 8, fontSize: 28,  color: colors.coralDark, textAlign: 'center', ...font('heading', 800) },
+  heroSub: { fontSize: 18, lineHeight: 26,  color: colors.onSurface, textAlign: 'center', ...font('body', 600) },
   cancelButton: {
     minHeight: 64,
     borderRadius: 9999,
@@ -293,21 +293,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  cancelText: { fontSize: 20, fontWeight: '800', color: colors.coralDark, fontFamily: typography.fontFamily.heading },
+  cancelText: { fontSize: 20,  color: colors.coralDark, ...font('heading', 800) },
   helpBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 20, backgroundColor: colors.skyBg },
-  helpTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  helpSub: { fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  helpTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  helpSub: { fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
   rescueCard: { padding: 20, borderRadius: 24, backgroundColor: colors.mintBg, gap: 12 },
   rescueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rescueTitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  rescueSub: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  rescueBody: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
+  rescueTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  rescueSub: { fontSize: 14, color: colors.textSecondary, ...font('body', 400) },
+  rescueBody: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
   offlineBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
-  offlineText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  offlineText: { flex: 1, fontSize: 16,  color: colors.coralDark, ...font('body', 700) },
   retryBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg },
-  retryText: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  retryText: { flex: 1, fontSize: 16,  color: colors.amber.textDark, ...font('body', 700) },
   infoBox: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
   callButton: {
     minHeight: 64,
     borderRadius: 9999,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   callButtonUrgent: { backgroundColor: colors.coralDark },
-  callText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  callText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   minimize: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  minimizeText: { fontSize: 16, fontWeight: '600', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  minimizeText: { fontSize: 16,  color: colors.textSecondary, ...font('body', 600) },
 });

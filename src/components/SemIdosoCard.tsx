@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 
 export interface SemIdosoCardProps {
   onNavigate?: (screen: string) => void;
@@ -74,9 +74,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
     color: colors.textPrimary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -84,7 +83,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -105,8 +104,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   secondaryButton: {
     height: 48,
@@ -118,7 +116,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.primary,
     fontSize: 15,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
 });

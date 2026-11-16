@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface TolerancePickerProps {
   selectedTolerance?: number;
@@ -92,15 +92,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   subtitle: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   pillTray: {
     flexDirection: 'row',
@@ -122,19 +120,17 @@ const styles = StyleSheet.create({
   },
   pillButtonText: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   pillButtonTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   footerHint: {
     fontSize: 11,
-    fontWeight: '500',
     color: '#64748B',
     textAlign: 'center',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
 });

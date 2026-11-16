@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import {
   obterDetalhesConvite,
   aceitarConvite,
@@ -248,7 +248,7 @@ export default function AcceptInviteScreen({
               <Icon name="person" size={16} color="#031753" style={{ marginRight: 8 }} />
               <Text style={styles.inviterText}>
                 Convite enviado por{' '}
-                <Text style={{ fontWeight: '700', color: '#0F172A' }}>
+                <Text style={{ ...font('body', 700), color: '#0F172A' }}>
                   {convite.solicitanteNome || 'Carlos Silva'}
                 </Text>{' '}
                 ({convite.solicitanteGrau || 'Administrador'})
@@ -374,18 +374,16 @@ const styles = StyleSheet.create({
   },
   badgeTopText: {
     fontSize: 11,
-    fontWeight: '800',
     color: '#003B26',
     letterSpacing: 0.3,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   screenTitle: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 4,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   screenSubtitle: {
     fontSize: 13,
@@ -393,7 +391,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 16,
     lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   stateCard: {
     backgroundColor: '#FFFFFF',
@@ -409,7 +407,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: '#64748B',
-    fontWeight: '600',
+    ...font('body', 600),
   },
   expiredCard: {
     backgroundColor: '#FFFFFF',
@@ -435,10 +433,9 @@ const styles = StyleSheet.create({
   },
   expiredTitle: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#B51C13',
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   expiredDescription: {
     fontSize: 14,
@@ -446,7 +443,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   expiredInfoBox: {
     flexDirection: 'row',
@@ -461,7 +458,7 @@ const styles = StyleSheet.create({
     color: '#9A3412',
     lineHeight: 16,
     flex: 1,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   backButton: {
     height: 48,
@@ -473,9 +470,8 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#334155',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   mainWhiteCard: {
     backgroundColor: '#FFFFFF',
@@ -503,25 +499,22 @@ const styles = StyleSheet.create({
   },
   elderlyAvatarInitials: {
     fontSize: 17,
-    fontWeight: '800',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   elderlyTexts: {
     flex: 1,
   },
   elderlyName: {
     fontSize: 17,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   elderlyAge: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   roleTag: {
     backgroundColor: '#E8F8F0',
@@ -531,9 +524,8 @@ const styles = StyleSheet.create({
   },
   roleTagText: {
     fontSize: 11,
-    fontWeight: '800',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   inviterBox: {
     flexDirection: 'row',
@@ -550,17 +542,16 @@ const styles = StyleSheet.create({
     color: '#475569',
     lineHeight: 17,
     flex: 1,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   accessList: {
     marginBottom: 18,
   },
   accessListTitle: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#131E3D',
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   accessItem: {
     flexDirection: 'row',
@@ -570,7 +561,7 @@ const styles = StyleSheet.create({
   accessItemText: {
     fontSize: 13,
     color: '#334155',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   temporalNotice: {
     flexDirection: 'row',
@@ -584,7 +575,7 @@ const styles = StyleSheet.create({
   temporalNoticeText: {
     fontSize: 12,
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   authActionsContainer: {
     gap: 12,
@@ -594,7 +585,7 @@ const styles = StyleSheet.create({
     color: '#475569',
     textAlign: 'center',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   primaryAuthButton: {
     height: 52,
@@ -612,9 +603,8 @@ const styles = StyleSheet.create({
   },
   primaryAuthButtonText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   secondaryAuthButton: {
     height: 50,
@@ -627,9 +617,8 @@ const styles = StyleSheet.create({
   },
   secondaryAuthButtonText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#1E2E69',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   acceptActionsContainer: {
     gap: 10,
@@ -651,9 +640,8 @@ const styles = StyleSheet.create({
   },
   acceptCtaButtonText: {
     fontSize: 15,
-    fontWeight: '800',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   declineButton: {
     height: 44,
@@ -662,8 +650,7 @@ const styles = StyleSheet.create({
   },
   declineButtonText: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
 });

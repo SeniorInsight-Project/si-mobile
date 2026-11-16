@@ -4,7 +4,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { CONSENTIMENTO_PADRAO, Consentimentos, obterConsentimentos } from '../services/consentimentoService';
 import {
@@ -144,25 +144,25 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 16, ...shadows.tier1 },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
+  title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
+  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   stepIconDone: { backgroundColor: colors.mintBg },
   stepIconNow: { backgroundColor: colors.skyBg },
   stepTexts: { flex: 1 },
-  stepTitle: { fontSize: 16, lineHeight: 22, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  stepSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  stepTitle: { fontSize: 16, lineHeight: 22,  color: colors.primary, ...font('heading', 700) },
+  stepSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
   chip: { minHeight: 28, paddingHorizontal: 10, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
   chipDone: { backgroundColor: colors.mintBg },
   chipOther: { backgroundColor: colors.skyBg },
-  chipText: { fontSize: 14, fontWeight: '800', fontFamily: typography.fontFamily.body },
+  chipText: { fontSize: 14,  ...font('body', 700) },
   chipTextDone: { color: colors.successDark },
   chipTextOther: { color: colors.primary },
   status: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: 20 },
   simulado: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
-  simuladoTexto: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
-  warning: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  simuladoTexto: { flex: 1, fontSize: 14, lineHeight: 20,  color: colors.amber.textDark, ...font('body', 600) },
+  warning: { fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 600) },
   primary: {
     minHeight: 64,
     borderRadius: 9999,
@@ -172,9 +172,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  primaryText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
-  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, fontFamily: typography.fontFamily.body },
+  infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
   secondary: {
     minHeight: 56,
     borderRadius: 9999,
@@ -184,5 +184,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  secondaryText: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
 });

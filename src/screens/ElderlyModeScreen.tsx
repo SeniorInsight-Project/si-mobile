@@ -22,7 +22,7 @@ import {
 } from '../services/relogioStatusService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 import {
   listarRotinas,
   confirmarIngestao,
@@ -687,14 +687,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginBottom: 2,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   greetingTitle: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   audioButton: {
     width: 48,
@@ -717,7 +715,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '600',
+    ...font('body', 600),
   },
   medicineCard: {
     width: '100%',
@@ -760,10 +758,9 @@ const styles = StyleSheet.create({
   },
   medicineTagText: {
     fontSize: 12,
-    fontWeight: '800',
     color: '#031753',
     letterSpacing: 0.4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   todayBadge: {
     backgroundColor: '#D0E8FF',
@@ -773,9 +770,8 @@ const styles = StyleSheet.create({
   },
   todayBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#1E2E69',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   medicineBody: {
     flexDirection: 'row',
@@ -789,18 +785,16 @@ const styles = StyleSheet.create({
   },
   medicineName: {
     fontSize: 24,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 4,
     lineHeight: 28,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   medicineDosage: {
     fontSize: 16,
     color: '#1E2E69',
-    fontWeight: '600',
     marginBottom: 12,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   instructionBubble: {
     flexDirection: 'row',
@@ -815,8 +809,7 @@ const styles = StyleSheet.create({
   instructionText: {
     fontSize: 13,
     color: '#2D418A',
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   medicineImageContainer: {
     width: 80,
@@ -866,9 +859,8 @@ const styles = StyleSheet.create({
   takenButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
-    fontWeight: '800',
     letterSpacing: 0.5,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   allTakenCard: {
     backgroundColor: '#FFFFFF',
@@ -886,22 +878,21 @@ const styles = StyleSheet.create({
   },
   allTakenBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#003B26',
   },
   allTakenTitle: {
     fontSize: 18,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   allTakenSubtitle: {
     fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -912,17 +903,16 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   emptySubtitle: {
     fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   viewRoutineButton: {
     backgroundColor: '#031753',
@@ -933,8 +923,7 @@ const styles = StyleSheet.create({
   viewRoutineButtonText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   nextCard: {
     height: 76,
@@ -967,16 +956,14 @@ const styles = StyleSheet.create({
   },
   nextSubLabel: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   nextMainLabel: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   sosCard: {
     backgroundColor: '#FFFFFF',
@@ -1012,17 +999,15 @@ const styles = StyleSheet.create({
   },
   sosBannerText: {
     fontSize: 12,
-    fontWeight: '800',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   sosWarningSubtitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#131E3D',
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   sosButtonOuterWrapper: {
     alignItems: 'center',
@@ -1059,11 +1044,10 @@ const styles = StyleSheet.create({
   },
   sosMainButtonText: {
     fontSize: 22,
-    fontWeight: '800',
     color: '#FFFFFF',
     marginTop: 6,
     letterSpacing: 0.5,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   sosSubPill: {
     backgroundColor: '#B51C13',
@@ -1074,9 +1058,8 @@ const styles = StyleSheet.create({
   },
   sosSubPillText: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#FFCECB',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   pressingOverlay: {
     position: 'absolute',
@@ -1091,12 +1074,12 @@ const styles = StyleSheet.create({
   },
   countdownNumber: {
     fontSize: 52,
-    fontWeight: '900',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   countdownSub: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
     textTransform: 'uppercase',
   },
@@ -1122,8 +1105,7 @@ const styles = StyleSheet.create({
   sosFooterInstruction: {
     fontSize: 14,
     color: '#B51C13',
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   sosFooterSub: {
     fontSize: 13,
@@ -1131,7 +1113,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   caregiversRow: {
     flexDirection: 'row',
@@ -1156,13 +1138,12 @@ const styles = StyleSheet.create({
   },
   avatarTxt: {
     fontSize: 9,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   caregiversText: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
 });

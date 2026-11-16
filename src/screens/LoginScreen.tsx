@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import {
   abrirRedefinicaoSenha,
   useAutenticacaoKeycloak,
@@ -154,27 +154,24 @@ const styles = StyleSheet.create({
   },
   safeBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#003B26',
     letterSpacing: 0.5,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   title: {
     fontSize: 30,
-    fontWeight: '700',
     color: '#131E3D',
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   subtitle: {
     fontSize: 15,
-    fontWeight: '500',
     color: '#64748B',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 22,
     paddingHorizontal: 12,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   mainWhiteCard: {
     backgroundColor: '#FFFFFF',
@@ -194,8 +191,7 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: '#D83729',
     fontSize: 13,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   loginButton: {
     width: '100%',
@@ -218,16 +214,14 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#D83729',
     fontSize: 13,
-    fontWeight: '600',
     textAlign: 'center',
     marginTop: 12,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   loginButtonText: {
     fontSize: 17,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   securityBadgeWrapper: {
     alignItems: 'center',
@@ -245,8 +239,7 @@ const styles = StyleSheet.create({
   securityCardText: {
     fontSize: 12,
     color: '#2D418A',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   footer: {
     alignItems: 'center',
@@ -256,13 +249,11 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#64748B',
     fontSize: 15,
-    fontWeight: '500',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   footerLink: {
     color: '#1E2E69',
     fontSize: 16,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

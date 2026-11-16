@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import type { StatusRelogioIdoso } from '../services/relogioStatusService';
-import { typography, shadows } from '../theme';
+import { typography, shadows, font } from '../theme';
 
 export interface WatchStatusCardProps {
   status: StatusRelogioIdoso | null;
@@ -98,18 +98,17 @@ const styles = StyleSheet.create({
   },
   badgeLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    ...font('body', 700),
     letterSpacing: 0.8,
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     lineHeight: 24,
   },
   subtitle: {
     fontSize: 13,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     marginTop: 2,
   },
 });

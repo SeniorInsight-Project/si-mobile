@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface EntryAppScreenProps {
@@ -112,15 +112,14 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: colors.mintBg,
   },
-  badgeText: { fontSize: 14, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.body },
+  badgeText: { fontSize: 14,  color: colors.successDark, ...font('body', 700) },
   title: {
     marginTop: 16,
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '800',
     textAlign: 'center',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 12,
@@ -129,7 +128,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   card: {
     backgroundColor: colors.white,
@@ -139,7 +138,7 @@ const styles = StyleSheet.create({
     gap: 12,
     ...shadows.tier1,
   },
-  cardEyebrow: { fontSize: 14, color: colors.textSecondary, fontWeight: '600', fontFamily: typography.fontFamily.body },
+  cardEyebrow: { fontSize: 14, color: colors.textSecondary,  ...font('body', 600) },
   primaryButton: {
     minHeight: 56,
     borderRadius: 9999,
@@ -158,17 +157,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  primaryButtonText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  primaryButtonText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   linkButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  linkNavy: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  linkNavy: { fontSize: 16,  color: colors.primary, ...font('heading', 700) },
   errorText: {
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
     color: colors.secondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
-  linkGreen: { fontSize: 18, fontWeight: '700', color: colors.successDark, fontFamily: typography.fontFamily.heading },
+  linkGreen: { fontSize: 18,  color: colors.successDark, ...font('heading', 700) },
   idosoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   idosoIcon: {
     width: 48,
@@ -179,6 +177,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   idosoTexts: { flex: 1 },
-  idosoTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  idosoSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  idosoTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
+  idosoSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
 });

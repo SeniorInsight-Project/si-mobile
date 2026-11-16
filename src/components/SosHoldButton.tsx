@@ -12,7 +12,7 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import Icon from './Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 
 const HOLD_DURATION_MS = 2000; // 2 segundos conforme HU-063 / RN-009
 const BUTTON_SIZE = 196;
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   mainText: {
     ...typography.titleLarge,
     color: '#FFFFFF',
-    fontWeight: '900',
+    ...font('body', 700),
     letterSpacing: 2,
     fontSize: 22,
     textAlign: 'center',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   overlayEmergenciaText: {
     ...typography.labelMedium,
     color: '#FEE2E2',
-    fontWeight: '800',
+    ...font('body', 700),
     letterSpacing: 2,
     fontSize: 13,
     marginBottom: 2,
@@ -273,14 +273,14 @@ const styles = StyleSheet.create({
   countdownNumber: {
     ...typography.displayMedium,
     color: '#FFFFFF',
-    fontWeight: '900',
+    ...font('body', 700),
     fontSize: 48,
     lineHeight: 52,
   },
   countdownLabel: {
     ...typography.labelMedium,
     color: '#FECACA',
-    fontWeight: '700',
+    ...font('body', 700),
     marginTop: 2,
   },
   instructionRow: {
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   instructionText: {
     ...typography.bodyMedium,
     color: '#B51C13',
-    fontWeight: '700',
+    ...font('body', 700),
     fontSize: 15,
   },
   footerSubText: {

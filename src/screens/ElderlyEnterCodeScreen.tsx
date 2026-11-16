@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView
 import ScreenWrapper from '../components/ScreenWrapper';
 import PairingCodeInput from '../components/PairingCodeInput';
 import Icon from '../components/Icon';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 import {
   MENSAGENS_PAREAMENTO,
   PareamentoError,
@@ -160,13 +160,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backButton: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  topTitle: { fontSize: 20,  color: colors.primary, ...font('heading', 700) },
   title: {
     marginTop: 12,
     fontSize: 30,
-    fontWeight: '800',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 8,
@@ -174,7 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   errorBox: {
     marginTop: 16,
@@ -189,9 +188,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     lineHeight: 26,
-    fontWeight: '700',
     color: colors.coralDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
   enterButton: {
     marginTop: 20,
@@ -204,7 +202,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   enterButtonDisabled: { opacity: 0.7 },
-  enterButtonText: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  enterButtonText: { fontSize: 20,  color: colors.white, ...font('heading', 700) },
   qrButton: {
     marginTop: 12,
     minHeight: 64,
@@ -217,13 +215,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  qrButtonText: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  qrButtonText: { fontSize: 20,  color: colors.primary, ...font('heading', 700) },
   footnote: {
     marginTop: 20,
     fontSize: 18,
     lineHeight: 26,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
 });

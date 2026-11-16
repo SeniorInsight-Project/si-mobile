@@ -42,7 +42,7 @@ import {
   obterDireitoPremium,
 } from '../services/premiumService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
@@ -428,13 +428,13 @@ export default function HomeScreen({
         {/* FAIXA DE PLANO / TRIAL / ERRO DE PLANO (HU-040 a 042) */}
         {erroPlano ? (
           <View style={{ backgroundColor: colors.peachBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.peachBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, fontWeight: '600' }}>{erroPlano}</Text>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, ...font('body', 600) }}>{erroPlano}</Text>
             <TouchableOpacity
               onPress={carregarPlano}
               style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>Tentar novamente</Text>
+              <Text style={{ color: colors.white, fontSize: 14, ...font('body', 700) }}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>
         ) : (faixaTrial || avisoTrial) ? (
@@ -443,10 +443,10 @@ export default function HomeScreen({
             style={{ backgroundColor: colors.amberBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.amberBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
             activeOpacity={0.85}
           >
-            <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, fontWeight: '700' }}>
+            <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, ...font('body', 700) }}>
               {avisoTrial || faixaTrial}
             </Text>
-            <Text style={{ fontSize: 14, color: colors.primaryNavy, fontWeight: '700' }}>Conhecer o Premium</Text>
+            <Text style={{ fontSize: 14, color: colors.primaryNavy, ...font('body', 700) }}>Conhecer o Premium</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  addElderlyButtonText: { fontSize: 16, fontWeight: '700', color: '#031753' },
+  addElderlyButtonText: { fontSize: 16, ...font('body', 700), color: '#031753' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -886,14 +886,13 @@ const styles = StyleSheet.create({
   },
   dataLossTitle: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#991B1B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   dataLossMessage: {
     fontSize: 12,
     color: '#650001',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
     marginTop: 2,
     lineHeight: 16,
   },
@@ -949,9 +948,8 @@ const styles = StyleSheet.create({
   },
   elderlyName: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   ageBadge: {
     backgroundColor: '#F2F4F7',
@@ -961,15 +959,13 @@ const styles = StyleSheet.create({
   },
   ageBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   monitoredBy: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   elderlyBadgesRight: {
     alignItems: 'flex-end',
@@ -986,9 +982,8 @@ const styles = StyleSheet.create({
   },
   telemetryText: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   semaforoCard: {
     backgroundColor: '#E8F8F0',
@@ -1034,9 +1029,8 @@ const styles = StyleSheet.create({
   },
   semaforoTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   tempoRealBadge: {
     backgroundColor: '#FFFFFF',
@@ -1046,10 +1040,9 @@ const styles = StyleSheet.create({
   },
   tempoRealTag: {
     fontSize: 11,
-    fontWeight: '800',
     color: '#003B26',
     letterSpacing: 0.5,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   statusInnerCard: {
     flexDirection: 'row',
@@ -1093,23 +1086,20 @@ const styles = StyleSheet.create({
   },
   statusTagLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#059669',
     letterSpacing: 0.5,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   statusMainLabel: {
     fontSize: 20,
-    fontWeight: '800',
     color: '#003B26',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   statusSubLabel: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   scoreInlinePill: {
     paddingHorizontal: 8,
@@ -1120,8 +1110,7 @@ const styles = StyleSheet.create({
   scoreInlinePillText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   touchHintRow: {
     flexDirection: 'row',
@@ -1132,8 +1121,7 @@ const styles = StyleSheet.create({
   touchHintText: {
     fontSize: 11,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   paywallCard: {
     backgroundColor: '#F5F3FF',
@@ -1165,23 +1153,21 @@ const styles = StyleSheet.create({
   },
   paywallTagText: {
     fontSize: 11,
-    fontWeight: '800',
     color: '#6D28D9',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   paywallTitle: {
     fontSize: 18,
-    fontWeight: '800',
     color: '#4C1D95',
     marginBottom: 6,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   paywallMessage: {
     fontSize: 13,
     color: '#6D28D9',
     lineHeight: 18,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   paywallButton: {
     height: 52,
@@ -1195,8 +1181,7 @@ const styles = StyleSheet.create({
   paywallButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   rotinaCard: {
     backgroundColor: '#E6F3FA',
@@ -1228,23 +1213,21 @@ const styles = StyleSheet.create({
   },
   rotinaBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
     color: '#1E40AF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   rotinaTitle: {
     fontSize: 17,
-    fontWeight: '800',
     color: '#1E3A8A',
     marginBottom: 6,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   rotinaSubtext: {
     fontSize: 12,
     color: '#3B82F6',
     lineHeight: 17,
     marginBottom: 14,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   rotinaProgressTrack: {
     height: 8,
@@ -1260,9 +1243,8 @@ const styles = StyleSheet.create({
   },
   rotinaDaysLabel: {
     fontSize: 11,
-    fontWeight: '600',
     color: '#1E40AF',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   semaforoSubCards: {
     flexDirection: 'row',
@@ -1283,8 +1265,7 @@ const styles = StyleSheet.create({
   subCardTitle: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   subCardValueRow: {
     flexDirection: 'row',
@@ -1293,21 +1274,18 @@ const styles = StyleSheet.create({
   },
   subCardValue: {
     fontSize: 18,
-    fontWeight: '800',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subCardUnit: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   remedioStatusTag: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#059669',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   mapCard: {
     backgroundColor: '#FFFFFF',
@@ -1342,9 +1320,8 @@ const styles = StyleSheet.create({
   },
   mapTitle: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   gpsAtivoBadge: {
     flexDirection: 'row',
@@ -1363,9 +1340,8 @@ const styles = StyleSheet.create({
   },
   gpsAtivoText: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   mapVisualContainer: {
     height: 176,
@@ -1458,15 +1434,13 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   safeZoneText: {
     fontSize: 11,
     color: '#059669',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   targetButton: {
     width: 32,
@@ -1494,9 +1468,8 @@ const styles = StyleSheet.create({
   },
   telemetrySectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   telemetrySyncBadge: {
     flexDirection: 'row',
@@ -1515,9 +1488,8 @@ const styles = StyleSheet.create({
   },
   telemetrySyncText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#047857',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   telemetrySyncTextAlerta: {
     color: '#92400E',
@@ -1554,15 +1526,14 @@ const styles = StyleSheet.create({
   },
   semDadosText: {
     fontSize: 14,
-    fontWeight: '700',
     color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   semDadosSubtext: {
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   repousoRow: {
     flexDirection: 'row',
@@ -1573,8 +1544,7 @@ const styles = StyleSheet.create({
   repousoText: {
     fontSize: 11,
     color: '#475569',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   metricHeaderRow: {
     flexDirection: 'row',
@@ -1598,21 +1568,18 @@ const styles = StyleSheet.create({
   },
   metaBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   metricLabelPeach: {
     fontSize: 12,
     color: '#9A3412',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   metricLabelSky: {
     fontSize: 12,
     color: '#1E2E69',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   metricValueRow: {
     flexDirection: 'row',
@@ -1622,19 +1589,18 @@ const styles = StyleSheet.create({
   },
   metricValueLarge: {
     fontSize: 22,
-    fontWeight: '800',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   metricUnitPeach: {
     fontSize: 11,
     color: '#9A3412',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   metricUnitSky: {
     fontSize: 11,
     color: '#1E2E69',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   progressBarTrack: {
     height: 6,

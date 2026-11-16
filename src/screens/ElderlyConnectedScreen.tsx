@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import { ResultadoPareamento, mensagemBoasVindas } from '../services/pareamentoService';
 
 export interface ElderlyConnectedScreenProps {
@@ -79,10 +79,9 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 24,
     fontSize: 32,
-    fontWeight: '800',
     textAlign: 'center',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 12,
@@ -91,14 +90,14 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'center',
     color: colors.onSurface,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 20, ...shadows.tier1 },
   row: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   rowTexts: { flex: 1 },
-  rowTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  rowSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  rowTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
+  rowSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
   button: {
     marginTop: 24,
     minHeight: 64,
@@ -109,5 +108,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  buttonText: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  buttonText: { fontSize: 20,  color: colors.white, ...font('heading', 700) },
 });

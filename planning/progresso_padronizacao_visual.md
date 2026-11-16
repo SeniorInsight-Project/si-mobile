@@ -28,3 +28,16 @@
 - **Pendências para próximas etapas:**
   - Etapa 2: instalar `@expo-google-fonts/plus-jakarta-sans`, `@expo-google-fonts/inter` e `expo-font`, carregar fontes no `App.tsx` e rodar codemod de `fontWeight`.
   - Nenhuma tela foi alterada nesta etapa.
+
+---
+
+## Etapa 2 — Fontes e tipografia por peso (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos alterados/criados:**
+  - `package.json` / `package-lock.json` / `app.json` (se atualizado pelo Expo): instalados `expo-font`, `@expo-google-fonts/plus-jakarta-sans` e `@expo-google-fonts/inter`.
+  - `App.tsx`: carregamento das fontes com `useFonts` (Plus Jakarta Sans 600, 700, 800 e Inter 400, 500, 600, 700), reaproveitando o `ActivityIndicator` durante o carregamento e seguindo com a fonte do sistema em caso de erro (`RN-014`).
+  - `src/theme/index.ts`: exportados `fonts` e `font(kind, weight)`, e atualizados os estilos de `typography` (`displayLg` a `metricDisplay`) para usar `font(...)`.
+  - `scripts/codemod-fontes.mjs`: codemod AST em TypeScript que transformou 522 estilos em 48 arquivos `.tsx` (23 aproximações de peso anotadas, 0 casos ambíguos), adicionando `import { font } from '.../theme'`.
+- **Pendências para próximas etapas:**
+  - Etapa 3: criar componentes base (`Button`, `IconButton`, `ModalSheet`, `TextField`).

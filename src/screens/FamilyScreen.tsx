@@ -33,7 +33,7 @@ import {
   MembroRede,
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 
 export interface FamilyScreenProps {
@@ -782,7 +782,7 @@ export default function FamilyScreen({
                       <Text
                         style={{
                           fontSize: 15,
-                          fontWeight: '700',
+                          ...font('body', 700),
                           color: membro.avatarCor,
                         }}
                       >
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  deleteAccountText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  deleteAccountText: { fontSize: 14, ...font('body', 600), color: '#64748B' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -1135,10 +1135,9 @@ const styles = StyleSheet.create({
   },
   circleConnectedLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#059669',
     letterSpacing: 0.4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   activeMembersPill: {
     backgroundColor: '#E8F8F0',
@@ -1148,24 +1147,21 @@ const styles = StyleSheet.create({
   },
   activeMembersText: {
     fontSize: 11,
-    fontWeight: '700',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   summaryTitle: {
     fontSize: 22,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   summarySubtitle: {
     fontSize: 13,
-    fontWeight: '500',
     color: '#64748B',
     lineHeight: 19,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   onDutyBox: {
     flexDirection: 'row',
@@ -1188,16 +1184,14 @@ const styles = StyleSheet.create({
   },
   onDutyTitle: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#031753',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   onDutySub: {
     fontSize: 11,
-    fontWeight: '600',
     color: '#1E2E69',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   filtersRow: {
     flexDirection: 'row',
@@ -1222,13 +1216,12 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   filterPillTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   membersList: {
     gap: 14,
@@ -1281,16 +1274,14 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 17,
-    fontWeight: '800',
     color: '#131E3D',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   memberSub: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   roleBadge: {
     paddingHorizontal: 10,
@@ -1299,8 +1290,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   memberBottomBar: {
     height: 52,
@@ -1320,14 +1310,13 @@ const styles = StyleSheet.create({
   },
   memberInfoText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
     flex: 1,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   memberInfoTextHighlight: {
     color: '#131E3D',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   memberActionsRight: {
     flexDirection: 'row',
@@ -1376,17 +1365,15 @@ const styles = StyleSheet.create({
   },
   sosSequenceTitle: {
     fontSize: 13,
-    fontWeight: '800',
     color: '#B51C13',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   sosSequenceSub: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#64748B',
     lineHeight: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   inviteCtaButton: {
     height: 56,
@@ -1404,9 +1391,8 @@ const styles = StyleSheet.create({
   },
   inviteCtaText: {
     fontSize: 15,
-    fontWeight: '800',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   inviteCtaButtonDisabled: {
     backgroundColor: '#94A3B8',
@@ -1448,14 +1434,14 @@ const styles = StyleSheet.create({
   },
   pendingName: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0F172A',
     marginBottom: 2,
   },
   pendingSubtitle: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '500',
+    ...font('body', 500),
   },
   pendingStatusBadge: {
     flexDirection: 'row',
@@ -1467,7 +1453,7 @@ const styles = StyleSheet.create({
   },
   pendingStatusText: {
     fontSize: 11,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#B45309',
   },
   pendingInfoRow: {
@@ -1482,7 +1468,7 @@ const styles = StyleSheet.create({
   pendingInfoText: {
     fontSize: 11,
     color: '#64748B',
-    fontWeight: '500',
+    ...font('body', 500),
   },
   pendingActionsRow: {
     flexDirection: 'row',
@@ -1500,7 +1486,7 @@ const styles = StyleSheet.create({
   },
   pendingBtnEditText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#031753',
   },
   pendingBtnShare: {
@@ -1514,7 +1500,7 @@ const styles = StyleSheet.create({
   },
   pendingBtnShareText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0369A1',
   },
   pendingBtnCancel: {
@@ -1528,7 +1514,7 @@ const styles = StyleSheet.create({
   },
   pendingBtnCancelText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#DC2626',
   },
   emptyPendingCard: {
@@ -1553,7 +1539,7 @@ const styles = StyleSheet.create({
   },
   emptyPendingTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#1E293B',
     marginBottom: 6,
     textAlign: 'center',
@@ -1590,7 +1576,7 @@ const styles = StyleSheet.create({
   },
   doctorHeaderTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#031753',
   },
   doctorHeaderSubtitle: {
@@ -1609,7 +1595,7 @@ const styles = StyleSheet.create({
   },
   doctorCountBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0369A1',
   },
   doctorCountBadgeTextAlert: {
@@ -1638,7 +1624,7 @@ const styles = StyleSheet.create({
   },
   doctorInviteTopButtonText: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   doctorInviteTopButtonTextDisabled: {
@@ -1688,7 +1674,7 @@ const styles = StyleSheet.create({
   },
   pendingBtnDebugText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   pendingBtnRejectDebug: {
@@ -1732,7 +1718,7 @@ const styles = StyleSheet.create({
   },
   doctorRejectedName: {
     fontSize: 15,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#1E293B',
   },
   doctorRejectedSub: {
@@ -1750,7 +1736,7 @@ const styles = StyleSheet.create({
   },
   doctorRejectedBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#DC2626',
   },
   doctorRejectedAlertBox: {
@@ -1766,7 +1752,7 @@ const styles = StyleSheet.create({
   },
   doctorRejectedAlertText: {
     fontSize: 13,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#B91C1C',
   },
   doctorRejectedHelpText: {
@@ -1790,7 +1776,7 @@ const styles = StyleSheet.create({
   },
   doctorRejectedBtnReinviteText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#031753',
   },
   doctorRejectedBtnDismiss: {
@@ -1804,7 +1790,7 @@ const styles = StyleSheet.create({
   },
   doctorRejectedBtnDismissText: {
     fontSize: 12,
-    fontWeight: '600',
+    ...font('body', 600),
     color: '#64748B',
   },
   adminMainDoctorBanner: {
@@ -1836,7 +1822,7 @@ const styles = StyleSheet.create({
   },
   adminMainDoctorTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#031753',
   },
   adminMainDoctorSub: {
@@ -1860,7 +1846,7 @@ const styles = StyleSheet.create({
   },
   adminMainDoctorBtnText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   adminMainDoctorBtnTextDisabled: {
@@ -1894,7 +1880,7 @@ const styles = StyleSheet.create({
   },
   inviteCtaHalfText: {
     fontSize: 13,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#FFFFFF',
     letterSpacing: 0.2,
   },
@@ -1920,7 +1906,7 @@ const styles = StyleSheet.create({
   },
   errorCardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#991B1B',
     marginTop: 8,
     marginBottom: 12,
@@ -1936,7 +1922,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    ...font('body', 700),
     fontSize: 14,
   },
   emptyContainer: {

@@ -4,7 +4,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import { colors, typography, shadows, font } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import {
   ComprovanteExclusao,
@@ -179,23 +179,23 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: 24, padding: 20, gap: 12, ...shadows.tier1 },
   badge: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   badgePequeno: { width: 48, height: 48, borderRadius: 24 },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  subtitle: { fontSize: 18, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, fontFamily: typography.fontFamily.body },
+  title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
+  subtitle: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
+  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  linhaTitulo: { fontSize: 16, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  linhaSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  linhaTitulo: { fontSize: 16,  color: colors.primary, ...font('heading', 800) },
+  linhaSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
   assinatura: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.amberBg, borderWidth: 1, borderColor: colors.amberBorder },
-  assinaturaTexto: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
-  label: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
+  assinaturaTexto: { flex: 1, fontSize: 14, lineHeight: 20,  color: colors.amber.textDark, ...font('body', 600) },
+  label: { fontSize: 16,  color: colors.primary, ...font('body', 700) },
   campo: { minHeight: 56, borderRadius: 16, backgroundColor: colors.surfaceSubtle, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
-  input: { flex: 1, minHeight: 52, fontSize: 18, fontWeight: '700', color: colors.onSurface, fontFamily: typography.fontFamily.body },
-  erro: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: colors.coralDark, fontFamily: typography.fontFamily.body },
+  input: { flex: 1, minHeight: 52, fontSize: 18,  color: colors.onSurface, ...font('body', 700) },
+  erro: { fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 700) },
   danger: { minHeight: 56, borderRadius: 9999, backgroundColor: colors.coralDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  dangerTexto: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
+  dangerTexto: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   desabilitado: { opacity: 0.45 },
   cancelar: { minHeight: 56, borderRadius: 9999, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  cancelarTexto: { fontSize: 18, fontWeight: '700', color: colors.textSecondary, fontFamily: typography.fontFamily.heading },
-  protocolo: { fontSize: 16, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
-  simulado: { fontSize: 14, fontWeight: '700', color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  cancelarTexto: { fontSize: 18,  color: colors.textSecondary, ...font('heading', 700) },
+  protocolo: { fontSize: 16,  color: colors.primary, ...font('body', 700) },
+  simulado: { fontSize: 14,  color: colors.amber.textDark, ...font('body', 700) },
 });

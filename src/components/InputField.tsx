@@ -11,7 +11,7 @@ import {
   TextStyle,
 } from 'react-native';
 import Icon from './Icon';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 
 export interface InputFieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
@@ -125,9 +125,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   inputArea: {
     flexDirection: 'row',
@@ -163,9 +162,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '500',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   eyeButton: {
     padding: 6,

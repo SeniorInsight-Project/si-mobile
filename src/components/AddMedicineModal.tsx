@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Icon from './Icon';
 import Checkbox from './Checkbox';
-import { colors, typography, shadows, rounded } from '../theme';
+import { colors, typography, shadows, rounded, font } from '../theme';
 import { RotinaMedicamento } from '../services/medicamentoService';
 import { formatarHorarioInput, normalizarHorario } from '../services/timeFormat';
 
@@ -484,9 +484,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '800',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   closeBtn: {
     width: 36,
@@ -512,9 +511,8 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: colors.peach.textDark,
-    fontWeight: '600',
     flex: 1,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   body: {
     paddingHorizontal: 20,
@@ -528,10 +526,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '700',
     color: colors.primary,
     marginBottom: 8,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   required: {
     color: colors.secondaryCoral,
@@ -545,7 +542,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.onSurface,
     backgroundColor: colors.surface,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   textArea: {
     height: 70,
@@ -573,12 +570,11 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   chipLabelActive: {
     color: colors.primary,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   quickTimesRow: {
     flexDirection: 'row',
@@ -601,12 +597,11 @@ const styles = StyleSheet.create({
   quickTimeText: {
     fontSize: 11,
     color: colors.textSecondary,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   quickTimeTextActive: {
     color: colors.onPrimary,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   actionButtonsContainer: {
     marginTop: 20,
@@ -640,7 +635,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   buttonInnerRow: {
     flexDirection: 'row',
@@ -649,9 +644,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 15,
-    fontWeight: '700',
     color: colors.onPrimary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   deleteButton: {
     height: 48,
@@ -664,9 +658,8 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 14,
-    fontWeight: '700',
     color: colors.secondaryCoral,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   cancelButton: {
     height: 48,
@@ -679,8 +672,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
 });

@@ -23,7 +23,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { colors, typography, rounded, shadows } from '../theme';
+import { colors, typography, rounded, shadows, font } from '../theme';
 import {
   validarTelefone,
   LIMITE_CONTATOS_EMERGENCIA,
@@ -537,7 +537,7 @@ export default function EmergencyContactsScreen({
                 onPress={carregarLista}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: colors.white, fontSize: 14, fontWeight: '600' }}>Tentar novamente</Text>
+                <Text style={{ color: colors.white, fontSize: 14, ...font('body', 600) }}>Tentar novamente</Text>
               </TouchableOpacity>
             </View>
           ) : contatos.length === 0 ? (
@@ -605,7 +605,7 @@ export default function EmergencyContactsScreen({
           {comoFuncionaAberto && (
             <View style={styles.accordionBody}>
               <Text style={styles.accordionBodyText}>
-                Ao pressionar o <Text style={{ fontWeight: '700', color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
+                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
               </Text>
               <View style={styles.accordionStepRow}>
                 <View style={styles.accordionStepNumber}>
@@ -697,7 +697,7 @@ export default function EmergencyContactsScreen({
                   />
                 </View>
                 {erroTelefone ? (
-                  <Text style={{ color: colors.coral, fontSize: 12, marginTop: 4, fontWeight: '600' }} testID="msg-erro-telefone">
+                  <Text style={{ color: colors.coral, fontSize: 12, marginTop: 4, ...font('body', 600) }} testID="msg-erro-telefone">
                     {erroTelefone}
                   </Text>
                 ) : null}
@@ -796,8 +796,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     color: colors.peachText,
     marginBottom: 4,
   },
@@ -817,8 +816,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     color: colors.navy,
     marginBottom: 12,
   },
@@ -842,12 +840,12 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   stepLabel: {
     fontSize: 10,
     color: colors.textSecondary,
-    fontWeight: '600',
+    ...font('body', 600),
     textAlign: 'center',
   },
   contactsListSection: {
@@ -871,7 +869,7 @@ const styles = StyleSheet.create({
   },
   badgeAtivosText: {
     fontSize: 10,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.mintText,
     marginLeft: 4,
   },
@@ -902,7 +900,7 @@ const styles = StyleSheet.create({
   },
   contactAvatarText: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   contactInfo: {
     flex: 1,
@@ -913,7 +911,7 @@ const styles = StyleSheet.create({
   },
   contactName: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.navy,
     marginRight: 6,
   },
@@ -933,7 +931,7 @@ const styles = StyleSheet.create({
   },
   ordemBadgeText: {
     fontSize: 9,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.skyText,
   },
   ordemBadgeTextPrimeiro: {
@@ -946,7 +944,7 @@ const styles = StyleSheet.create({
   },
   contactPhone: {
     fontSize: 11,
-    fontWeight: '600',
+    ...font('body', 600),
     color: colors.textPrimary,
     marginTop: 2,
   },
@@ -992,7 +990,7 @@ const styles = StyleSheet.create({
   },
   samuTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    ...font('body', 700),
     color: colors.peachText,
   },
   samuDescription: {
@@ -1010,7 +1008,7 @@ const styles = StyleSheet.create({
   },
   samuCallText: {
     color: colors.white,
-    fontWeight: '700',
+    ...font('body', 700),
     fontSize: 13,
     marginLeft: 6,
   },
@@ -1038,8 +1036,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
     color: colors.navy,
   },
   inputGroup: {
@@ -1047,7 +1044,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    ...font('body', 600),
     color: colors.textPrimary,
     marginBottom: 6,
   },
@@ -1085,12 +1082,12 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 11,
-    fontWeight: '600',
+    ...font('body', 600),
     color: colors.textSecondary,
   },
   chipTextSelected: {
     color: colors.white,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   submitButton: {
     flexDirection: 'row',
@@ -1105,7 +1102,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   btnHeaderNovoContato: {
     flexDirection: 'row',
@@ -1119,7 +1116,7 @@ const styles = StyleSheet.create({
   btnHeaderNovoContatoText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
   },
   contactCardDragging: {
     borderColor: colors.navy,
@@ -1188,9 +1185,8 @@ const styles = StyleSheet.create({
   },
   accordionTitle: {
     fontSize: 13,
-    fontWeight: '700',
     color: colors.navy,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   accordionBody: {
     padding: 16,
@@ -1221,7 +1217,7 @@ const styles = StyleSheet.create({
   },
   accordionStepNumberText: {
     fontSize: 11,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#031753',
   },
   accordionStepDesc: {
@@ -1254,9 +1250,8 @@ const styles = StyleSheet.create({
   },
   modalHeaderTitle: {
     fontSize: 16,
-    fontWeight: '800',
     color: colors.navy,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   modalHeaderSubtitle: {
     fontSize: 12,
@@ -1288,7 +1283,7 @@ const styles = StyleSheet.create({
   },
   modalCancelBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    ...font('body', 600),
     color: colors.textSecondary,
   },
 });

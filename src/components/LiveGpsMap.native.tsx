@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import {
   obterLocalizacaoAtual,
   DEFAULT_COORDS,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   osmAttributionText: {
     fontSize: 9,
     color: '#475467',
-    fontWeight: '600',
+    ...font('body', 600),
   },
   mapAddressBar: {
     position: 'absolute',
@@ -457,15 +457,13 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   safeZoneText: {
     fontSize: 11,
     color: '#059669',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   targetButton: {
     width: 32,

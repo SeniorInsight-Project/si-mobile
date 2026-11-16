@@ -20,7 +20,7 @@ import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import {
   listarRotinas,
@@ -419,15 +419,13 @@ const styles = StyleSheet.create({
   dailySubtitle: {
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   dailyTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#131E3D',
     marginTop: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   progressBadge: {
     flexDirection: 'row',
@@ -440,9 +438,8 @@ const styles = StyleSheet.create({
   },
   progressBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   progressStatsRow: {
     flexDirection: 'row',
@@ -452,15 +449,13 @@ const styles = StyleSheet.create({
   },
   progressStatsLeft: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   progressStatsRight: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#059669',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   progressBarTrack: {
     height: 10,
@@ -483,9 +478,8 @@ const styles = StyleSheet.create({
   },
   timelineSectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   newMedicinePillBtn: {
     height: 40,
@@ -503,9 +497,8 @@ const styles = StyleSheet.create({
   },
   newMedicinePillText: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   timelineSection: {
     marginBottom: 16,
@@ -519,16 +512,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 15,
-    fontWeight: '700',
     color: '#131E3D',
     marginBottom: 4,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   emptySubtitle: {
     fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
 });

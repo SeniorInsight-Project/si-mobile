@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface RescueCommandCardProps {
   onAssumirResgate?: () => void;
@@ -132,17 +132,15 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   cardDescription: {
     fontSize: 13,
-    fontWeight: '500',
     color: '#64748B',
     lineHeight: 19,
     marginBottom: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   rescueButton: {
     backgroundColor: '#031753',
@@ -178,17 +176,15 @@ const styles = StyleSheet.create({
   rescueButtonTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '700',
     lineHeight: 23,
     marginBottom: 3,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   rescueButtonSubtitle: {
     color: '#B7C4FF',
     fontSize: 12,
-    fontWeight: '600',
     lineHeight: 16,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   presencePillRow: {
     height: 44,
@@ -206,9 +202,8 @@ const styles = StyleSheet.create({
   redeAtentaLabel: {
     fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
     marginRight: 8,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   avatarGroup: {
     flexDirection: 'row',
@@ -223,7 +218,7 @@ const styles = StyleSheet.create({
   },
   caregiverInitials: {
     fontSize: 9,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   avatarOverlap: {
@@ -232,7 +227,6 @@ const styles = StyleSheet.create({
   onlineStatusText: {
     fontSize: 12,
     color: '#059669',
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

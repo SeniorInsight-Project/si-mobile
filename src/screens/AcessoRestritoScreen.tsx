@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface AcessoRestritoScreenProps {
   onLogout: () => void;
@@ -43,17 +43,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#131E3D',
     textAlign: 'center',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   message: {
     fontSize: 15,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 22,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   button: {
     marginTop: 8,
@@ -66,8 +65,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

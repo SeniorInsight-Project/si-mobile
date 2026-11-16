@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Icon from './Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 function getComorbidityTheme(name = '') {
   const lower = name.toLowerCase();
@@ -135,8 +135,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   closeButton: {
     marginLeft: 10,

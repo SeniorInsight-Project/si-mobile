@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography } from '../theme';
+import { typography, font } from '../theme';
 
 export interface OnboardingScreenProps {
   onNavigate: (screen: string) => void;
@@ -153,8 +153,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#031753',
     fontSize: 12,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   logoImage: {
     width: 220,
@@ -225,11 +224,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
     color: '#131E3D',
     textAlign: 'center',
     lineHeight: 34,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   subtitle: {
     fontSize: 15,
@@ -237,7 +235,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 23,
     marginTop: 10,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   pillsRow: {
     flexDirection: 'row',
@@ -269,8 +267,7 @@ const styles = StyleSheet.create({
   },
   featurePillText: {
     fontSize: 13,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 600),
   },
   footer: {
     marginTop: 22,
@@ -293,9 +290,8 @@ const styles = StyleSheet.create({
   },
   ctaButtonText: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   loginRow: {
     flexDirection: 'row',
@@ -304,15 +300,13 @@ const styles = StyleSheet.create({
   },
   loginPrompt: {
     fontSize: 18,
-    fontWeight: '500',
     color: '#64748B',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   loginLinkButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingHorizontal: 4 },
   loginLink: {
     fontSize: 18,
-    fontWeight: '700',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 });

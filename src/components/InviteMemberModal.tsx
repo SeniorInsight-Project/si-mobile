@@ -20,6 +20,7 @@ import {
   ConviteResponse,
 } from '../services/redeProtecaoService';
 import { useIdoso } from '../context/IdosoContext';
+import { font } from '../theme';
 
 const GRAUS_SUGERIDOS = [
   'Filho(a)',
@@ -206,11 +207,11 @@ export default function InviteMemberModal({
               <Text style={styles.successTitle}>Convite Gerado com Sucesso!</Text>
               <Text style={styles.successSub}>
                 O convite para{' '}
-                <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
+                <Text style={{ ...font('body', 700), color: '#0F172A' }}>
                   {conviteGerado.emailDestinatario || email}
                 </Text>{' '}
                 foi registrado com papel de{' '}
-                <Text style={{ fontWeight: 'bold', color: '#0F172A' }}>
+                <Text style={{ ...font('body', 700), color: '#0F172A' }}>
                   {conviteGerado.papelAcessoSugerido || papelAcesso}
                 </Text>{' '}
                 e validade temporal de 48 horas.
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    ...font('body', 700),
     color: '#0F172A',
   },
   modalSubtitle: {
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
   closeIcon: {
     fontSize: 14,
     color: '#64748B',
-    fontWeight: 'bold',
+    ...font('body', 700),
   },
   modalScroll: {
     paddingHorizontal: 20,
@@ -514,7 +515,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    ...font('body', 600),
     color: '#334155',
     marginBottom: 6,
   },
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: '#1D4ED8',
-    fontWeight: 'bold',
+    ...font('body', 700),
   },
   roleOptionCard: {
     flexDirection: 'row',
@@ -606,7 +607,7 @@ const styles = StyleSheet.create({
   },
   roleTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0F172A',
   },
   roleTitleSelected: {
@@ -620,7 +621,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#0369A1',
   },
   roleSubtitle: {
@@ -649,7 +650,7 @@ const styles = StyleSheet.create({
   },
   securityTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
+    ...font('body', 700),
     color: '#1D4ED8',
     marginBottom: 4,
   },
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    ...font('body', 600),
     color: '#64748B',
   },
   submitButton: {
@@ -698,7 +699,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   successContainer: {
@@ -717,7 +718,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#0F172A',
     textAlign: 'center',
     marginBottom: 8,
@@ -740,14 +741,13 @@ const styles = StyleSheet.create({
   },
   inviteLinkLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#031753',
   },
   inviteLinkText: {
     fontSize: 12,
     color: '#2563EB',
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    ...font('body', 600),
   },
   successButtonsCol: {
     width: '100%',
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
   doneButton: {
@@ -780,7 +780,7 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    ...font('body', 600),
     color: '#475569',
   },
   doctorRedirectCard: {
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
   },
   doctorRedirectTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    ...font('body', 700),
     color: '#031753',
   },
   doctorRedirectSub: {
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
   },
   doctorRedirectBtnText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#FFFFFF',
   },
 });

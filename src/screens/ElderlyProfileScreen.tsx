@@ -16,7 +16,7 @@ import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { colors, typography } from '../theme';
+import { colors, typography, font } from '../theme';
 import {
   listarComorbidades,
   adicionarComorbidades,
@@ -457,7 +457,7 @@ export default function ElderlyProfileScreen({
           <View style={styles.comorbiditiesCard}>
             {!podeEditar && (
               <View style={{ backgroundColor: colors.surfaceSubtle, borderRadius: 12, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 14, color: colors.textSecondary, fontWeight: '600' }}>
+                <Text style={{ fontSize: 14, color: colors.textSecondary, ...font('body', 600) }}>
                   Modo somente leitura (Familiar de Apoio)
                 </Text>
               </View>
@@ -486,7 +486,7 @@ export default function ElderlyProfileScreen({
                 ))}
 
                 {comorbidades.some((item) => !ehCondicaoDoSemaforo(item)) && (
-                  <Text style={{ fontSize: 14, color: colors.amber.text, marginTop: 8, fontWeight: '600' }}>
+                  <Text style={{ fontSize: 14, color: colors.amber.text, marginTop: 8, ...font('body', 600) }}>
                     * Condições em "Outras": {AVISO_OUTRAS_COMORBIDADES.toLowerCase()}.
                   </Text>
                 )}
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: colors.navy,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -853,29 +853,26 @@ const styles = StyleSheet.create({
   },
   monitoredBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
     color: '#003B26',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   elderlyName: {
     fontSize: 22,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
     color: '#131E3D',
     marginBottom: 4,
     textAlign: 'center',
   },
   elderlyPlanSubtitle: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#64748B',
     marginBottom: 18,
     textAlign: 'center',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   planBadgeText: {
     color: '#2D418A',
-    fontWeight: '700',
+    ...font('body', 700),
   },
   statsTray: {
     flexDirection: 'row',
@@ -896,15 +893,13 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 10,
     color: '#64748B',
-    fontWeight: '700',
     marginBottom: 2,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   bloodValue: {
     fontSize: 16,
-    fontWeight: '800',
     color: '#B51C13',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   glycemiaRow: {
     flexDirection: 'row',
@@ -913,20 +908,18 @@ const styles = StyleSheet.create({
   },
   glycemiaValue: {
     fontSize: 16,
-    fontWeight: '800',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   glycemiaUnit: {
     fontSize: 10,
-    fontWeight: '700',
+    ...font('body', 700),
     color: '#64748B',
   },
   checkinValue: {
     fontSize: 15,
-    fontWeight: '800',
     color: '#059669',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
 
   /* SEÇÃO 2: COMORBIDADES & ALERTAS */
@@ -972,8 +965,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
     color: '#131E3D',
   },
   addPillButton: {
@@ -987,9 +979,8 @@ const styles = StyleSheet.create({
   },
   addPillText: {
     fontSize: 12,
-    fontWeight: '700',
     color: '#031753',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   comorbiditiesCard: {
     backgroundColor: '#FFFFFF',
@@ -1003,11 +994,10 @@ const styles = StyleSheet.create({
   },
   sectionInstruction: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#64748B',
     lineHeight: 16,
     marginBottom: 14,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -1038,9 +1028,8 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#131E3D',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   pillInputContainer: {
     height: 56,
@@ -1060,8 +1049,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#131E3D',
     fontSize: 15,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 600),
   },
   fieldsRow: {
     flexDirection: 'row',
@@ -1098,17 +1086,15 @@ const styles = StyleSheet.create({
   },
   syncAlertTitle: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#003B26',
     marginBottom: 3,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
   syncAlertDescription: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#003B26',
     lineHeight: 17,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 500),
   },
 
   /* BOTÕES DE AÇÃO */
@@ -1133,8 +1119,7 @@ const styles = StyleSheet.create({
   primarySaveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   secondaryHistoryButton: {
     backgroundColor: '#FFFFFF',
@@ -1153,8 +1138,7 @@ const styles = StyleSheet.create({
   secondaryHistoryButtonText: {
     color: '#031753',
     fontSize: 15,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 700),
   },
 
   /* CADASTRO (HU-008) E IDENTIDADE DE ACESSO (HU-009) */
@@ -1180,14 +1164,14 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    ...font('body', 700),
     fontSize: 12,
   },
   errorText: {
     color: '#DC2626',
     marginTop: 4,
     fontSize: 12,
-    fontWeight: '600',
+    ...font('body', 600),
   },
   warningBox: {
     backgroundColor: '#FFFBEB',
@@ -1200,7 +1184,7 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 12,
     color: '#92400E',
-    fontWeight: '600',
+    ...font('body', 600),
   },
   sexRow: {
     flexDirection: 'row',
@@ -1224,7 +1208,7 @@ const styles = StyleSheet.create({
   },
   sexButtonText: {
     color: '#334155',
-    fontWeight: '600',
+    ...font('body', 600),
     fontSize: 12,
   },
   sexButtonTextSelected: {
