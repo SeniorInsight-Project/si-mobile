@@ -180,3 +180,8 @@ export async function atualizarDadosIdoso(
 export function obterIdosoLocalPorId(idosoId: string): Idoso | null {
   return localElderliesStore.find((idoso) => idoso.idosoId === idosoId) || null;
 }
+
+/** Exclusão da conta (HU-022): esquece os idosos guardados em memória. */
+export function descartarIdososEmMemoria(): void {
+  localElderliesStore = [];
+}
