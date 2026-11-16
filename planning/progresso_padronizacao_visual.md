@@ -118,3 +118,17 @@
   - `src/components/WatchStatusCard.tsx` (hex `7 → 0`, `fontSize < 14`: `2 → 0`).
 - **Pendências para próximas etapas:**
   - Etapas 6c–6e: Remédios/Contatos, Modo Idoso/SOS e telas/componentes restantes.
+
+---
+
+## Etapa 6c — Remédios e Contatos de emergência (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos migrados:**
+  - `src/screens/MedicinesScreen.tsx` (removido `#F7F9FC`, `newMedicinePillBtn` → `<Button variant="primary" size="md" iconLeft="add" fullWidth={false}>`, hex `23 → 0`, `fontSize < 14`: `6 → 0`).
+  - `src/components/MedicineTimelineCard.tsx` (editar/pausar/excluir → `<IconButton>` 48 px `neutral`/`neutral`/`danger`, pausado com `colors.mint.background`, status `TOMADO`/`PENDENTE`/`ATRASADO` com `mint`/`amber`/`peach`, hex/rgba `63 → 0`, `fontSize < 14`: `9 → 0`).
+  - `src/components/TolerancePicker.tsx` (opções 10/15/30 min em chips de 48 px `rounded.full`, hex `11 → 0`, `fontSize < 14`: `3 → 0`).
+  - `src/components/DayOfWeekSelector.tsx` (alvo `>= 48` e texto `>= 14 px`, hex `8 → 0`, `fontSize < 14`: `1 → 0`).
+  - `src/screens/EmergencyContactsScreen.tsx` (`actionCallButton`/`actionDeleteButton` → `<IconButton>` 48 px `primary`/`danger`, `samuCallBtn` → `<Button variant="sos">`, `btnHeaderNovoContato` → `<Button variant="primary" size="md">`, ordenação/escalonamento SOS preservados, hex `20 → 0`, `fontSize < 14`: `19 → 0`).
+- **Pendências para próximas etapas:**
+  - Etapas 6d–6e: Modo Idoso/SOS e telas/componentes restantes.

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Icon from './Icon';
-import { typography, font } from '../theme';
+import { colors, font, rounded, shadows, sizes } from '../theme';
 
 export interface TolerancePickerProps {
   selectedTolerance?: number;
@@ -19,7 +19,7 @@ export default function TolerancePicker({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Icon name="notifications" size={18} color="#B51C13" />
+            <Icon name="notifications" size={18} color={colors.coralDark} />
           </View>
           <View>
             <Text style={styles.title}>Janela de Tolerância</Text>
@@ -37,7 +37,9 @@ export default function TolerancePicker({
               key={mins}
               style={[styles.pillButton, isSelected && styles.pillButtonActive]}
               onPress={() => onSelectTolerance && onSelectTolerance(mins)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
             >
               <Text
                 style={[
@@ -61,15 +63,11 @@ export default function TolerancePicker({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -85,51 +83,55 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF1EC',
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   subtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   pillTray: {
     flexDirection: 'row',
-    backgroundColor: '#F5F7FA',
-    borderRadius: 16,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.lg,
     padding: 6,
-    gap: 6,
+    gap: 8,
     marginBottom: 10,
   },
   pillButton: {
     flex: 1,
-    height: 36,
-    borderRadius: 12,
+    minHeight: sizes.touchMin,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pillButtonActive: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   pillButtonText: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('heading', 600),
   },
   pillButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.white,
     ...font('body', 700),
   },
   footerHint: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     ...font('body', 500),
   },

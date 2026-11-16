@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { typography, font } from '../theme';
+import { colors, font, rounded, shadows, sizes } from '../theme';
 
 export interface DiaDaSemana {
   id: string;
@@ -43,14 +43,15 @@ export default function DayOfWeekSelector({
             key={item.id}
             style={[styles.dayCard, isSelected && styles.dayCardActive]}
             onPress={() => onSelectDate && onSelectDate(item)}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={item.labelCompleta}
+            accessibilityState={{ selected: isSelected }}
           >
-            <Text style={[styles.dayName, isSelected && styles.dayNameActive]}>
+            <Text style={[styles.dayName, isSelected && styles.dayNameActive]} numberOfLines={1}>
               {item.diaSemana}
             </Text>
-            <Text
-              style={[styles.dayNumber, isSelected && styles.dayNumberActive]}
-            >
+            <Text style={[styles.dayNumber, isSelected && styles.dayNumberActive]}>
               {item.diaNumero}
             </Text>
             {isSelected && <View style={styles.activeGreenDot} />}
@@ -66,48 +67,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   dayCard: {
     flex: 1,
-    height: 60,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 16,
+    minWidth: sizes.touchMin - 4,
+    minHeight: 66,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.lg,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    paddingVertical: 6,
   },
   dayCardActive: {
-    backgroundColor: '#031753',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: colors.primary,
+    ...shadows.tier1,
   },
   dayName: {
-    fontSize: 10,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 2,
     ...font('heading', 700),
   },
   dayNameActive: {
-    color: '#CBD5E1',
+    color: colors.outlineVariant,
   },
   dayNumber: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   dayNumberActive: {
-    color: '#FFFFFF',
+    color: colors.white,
   },
   activeGreenDot: {
     position: 'absolute',
     bottom: 5,
     width: 6,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.full,
+    backgroundColor: colors.success,
   },
 });

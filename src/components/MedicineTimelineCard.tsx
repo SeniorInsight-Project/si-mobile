@@ -7,52 +7,53 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from './Icon';
-import { typography, font } from '../theme';
+import IconButton from './IconButton';
+import { colors, font, rounded, shadows } from '../theme';
 import { RotinaMedicamento } from '../services/medicamentoService';
 
 function getCardTheme(item: RotinaMedicamento) {
   const nome = (item.medicamentoNome || '').toLowerCase();
   if (nome.includes('losart')) {
     return {
-      thumbBg: '#E8F8F0',
-      iconColor: '#003B26',
-      pillBg: '#E8F8F0',
-      pillText: '#003B26',
+      thumbBg: colors.mint.background,
+      iconColor: colors.mint.textDark,
+      pillBg: colors.mint.background,
+      pillText: colors.mint.textDark,
       pillIcon: 'water_drop',
     };
   }
   if (nome.includes('vitam')) {
     return {
-      thumbBg: '#EBF5FF',
-      iconColor: '#2D418A',
-      pillBg: '#EBF5FF',
-      pillText: '#2D418A',
+      thumbBg: colors.infoSurface,
+      iconColor: colors.primaryNavy,
+      pillBg: colors.infoSurface,
+      pillText: colors.primaryNavy,
       pillIcon: 'sunny',
     };
   }
   if (nome.includes('metform')) {
     return {
-      thumbBg: '#FFF1EC',
-      iconColor: '#9A3412',
-      pillBg: '#FFF1EC',
-      pillText: '#9A3412',
+      thumbBg: colors.peach.background,
+      iconColor: colors.amber.textDark,
+      pillBg: colors.peach.background,
+      pillText: colors.amber.textDark,
       pillIcon: 'schedule',
     };
   }
   if (nome.includes('sinvast')) {
     return {
-      thumbBg: '#F3EEFF',
-      iconColor: '#5B21B6',
-      pillBg: '#F3EEFF',
-      pillText: '#5B21B6',
+      thumbBg: colors.lavender.background,
+      iconColor: colors.lavender.textDark,
+      pillBg: colors.lavender.background,
+      pillText: colors.lavender.textDark,
       pillIcon: 'dark_mode',
     };
   }
   return {
-    thumbBg: item.corFundoThumb || '#EBF5FF',
-    iconColor: '#031753',
-    pillBg: '#EBF5FF',
-    pillText: '#2D418A',
+    thumbBg: item.corFundoThumb || colors.infoSurface,
+    iconColor: colors.primary,
+    pillBg: colors.infoSurface,
+    pillText: colors.primaryNavy,
     pillIcon: 'water_drop',
   };
 }
@@ -87,15 +88,15 @@ export default function MedicineTimelineCard({
   const renderTimelineMarker = () => {
     const renderMarkerIcon = () => {
       if (isTomado) {
-        return <Icon name="check" size={14} color="#FFFFFF" />;
+        return <Icon name="check" size={14} color={colors.white} />;
       }
       if (isProximo) {
-        return <Icon name="schedule" size={14} color="#FFFFFF" />;
+        return <Icon name="schedule" size={14} color={colors.white} />;
       }
       if (item.iconeTipo === 'moon') {
-        return <Icon name="dark_mode" size={14} color="#64748B" />;
+        return <Icon name="dark_mode" size={14} color={colors.textSecondary} />;
       }
-      return <Icon name="sunny" size={14} color="#64748B" />;
+      return <Icon name="sunny" size={14} color={colors.textSecondary} />;
     };
 
     return (
@@ -217,7 +218,7 @@ export default function MedicineTimelineCard({
                 {loadingAction ? (
                   <ActivityIndicator
                     size="small"
-                    color={isTomado ? '#FFFFFF' : '#031753'}
+                    color={isTomado ? colors.white : colors.primary}
                   />
                 ) : (
                   <View
@@ -251,7 +252,7 @@ export default function MedicineTimelineCard({
         {/* Barra inferior de Status Tomado (#F2F4F7) */}
         {isTomado && (
           <View style={styles.takenBanner}>
-            <Icon name="check_circle" size={14} color="#059669" />
+            <Icon name="check_circle" size={14} color={colors.successDark} />
             <Text style={styles.takenText}>
               {item.horarioIngestaoHoje
                 ? `Tomado com sucesso às ${item.horarioIngestaoHoje}`
@@ -263,44 +264,28 @@ export default function MedicineTimelineCard({
         {/* Botões de Ação */}
         {!somenteConfirmar && (
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.editBtn}
+          <IconButton
+            icon="edit"
+            variant="neutral"
+            accessibilityLabel={`Editar ${item.nomeMedicamento || item.medicamentoNome || 'medicamento'}`}
             onPress={() => onEdit && onEdit(item)}
-            activeOpacity={0.8}
-          >
-            <Icon name="edit" size={14} color="#131E3D" />
-            <Text style={styles.editBtnText}>Editar</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            style={[styles.pauseBtn, isPausado && styles.pauseBtnActive]}
+          <IconButton
+            icon={isPausado ? 'play_arrow' : 'pause'}
+            variant="neutral"
+            accessibilityLabel={isPausado ? 'Retomar medicamento' : 'Pausar medicamento'}
             onPress={() => onTogglePause && onTogglePause(item)}
-            activeOpacity={0.8}
             disabled={loadingAction}
-          >
-            <Icon
-              name={isPausado ? 'play_arrow' : 'pause'}
-              size={14}
-              color={isPausado ? '#059669' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.pauseBtnText,
-                isPausado && styles.pauseBtnTextActive,
-              ]}
-            >
-              {isPausado ? 'Retomar' : 'Pausar'}
-            </Text>
-          </TouchableOpacity>
+            style={isPausado ? { backgroundColor: colors.mint.background } : undefined}
+          />
 
-          <TouchableOpacity
-            style={styles.deleteBtn}
+          <IconButton
+            icon="delete"
+            variant="danger"
+            accessibilityLabel={`Excluir ${item.nomeMedicamento || item.medicamentoNome || 'medicamento'}`}
             onPress={() => onDelete && onDelete(item)}
-            activeOpacity={0.8}
-          >
-            <Icon name="delete" size={14} color="#BA1A1A" />
-            <Text style={styles.deleteBtnText}>Excluir</Text>
-          </TouchableOpacity>
+          />
         </View>
         )}
       </View>
@@ -325,56 +310,52 @@ const styles = StyleSheet.create({
     top: 32,
     bottom: -24,
     width: 2,
-    backgroundColor: 'rgba(3, 23, 83, 0.14)',
+    backgroundColor: colors.border,
     zIndex: 1,
   },
   timelineCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
   timelineCircleTaken: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
   },
   timelineCircleNext: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning,
   },
   timelineCirclePending: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.outlineVariant,
   },
   timelineTimeText: {
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 4,
     ...font('heading', 700),
   },
   timeTextTaken: {
-    color: '#059669',
+    color: colors.successDark,
   },
   timeTextNext: {
-    color: '#D97706',
+    color: colors.amber.text,
   },
   timeTextPending: {
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   cardNext: {
     borderWidth: 2,
-    borderColor: '#EBF5FF',
+    borderColor: colors.infoSurface,
   },
   cardPaused: {
     opacity: 0.65,
@@ -386,7 +367,7 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -413,34 +394,34 @@ const styles = StyleSheet.create({
   },
   medName: {
     fontSize: 16,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   nextBadge: {
-    backgroundColor: '#FFEBE7',
+    backgroundColor: colors.peach.background,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   nextBadgeText: {
-    fontSize: 10,
-    color: '#B51C13',
+    fontSize: 14,
+    color: colors.coralDark,
     ...font('heading', 700),
   },
   pausedBadge: {
-    backgroundColor: '#F2F4F7',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   pausedBadgeText: {
-    fontSize: 10,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   medDosage: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   instructionPill: {
@@ -449,31 +430,31 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   instructionPillText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('heading', 700),
   },
   switchTrack: {
     width: 48,
     height: 28,
-    borderRadius: 14,
+    borderRadius: rounded.input,
     padding: 4,
     justifyContent: 'center',
   },
   switchTrackActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
   },
   switchTrackInactive: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
   },
   switchKnob: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.input,
+    backgroundColor: colors.white,
   },
   switchKnobLeft: {
     alignSelf: 'flex-start',
@@ -484,16 +465,16 @@ const styles = StyleSheet.create({
   takenBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F4F7',
+    backgroundColor: colors.surfaceSubtle,
     height: 30,
-    borderRadius: 12,
+    borderRadius: rounded.input,
     paddingHorizontal: 10,
     marginTop: 12,
     gap: 6,
   },
   takenText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   actionsRow: {
@@ -503,7 +484,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.surfaceSubtle,
   },
   editBtn: {
     flex: 1,
@@ -512,12 +493,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 12,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.input,
   },
   editBtnText: {
-    fontSize: 12,
-    color: '#131E3D',
+    fontSize: 14,
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   pauseBtn: {
@@ -527,19 +508,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 12,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.input,
   },
   pauseBtnActive: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
   },
   pauseBtnText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('heading', 700),
   },
   pauseBtnTextActive: {
-    color: '#059669',
+    color: colors.successDark,
   },
   deleteBtn: {
     flex: 1,
@@ -548,12 +529,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.input,
   },
   deleteBtnText: {
-    fontSize: 12,
-    color: '#BA1A1A',
+    fontSize: 14,
+    color: colors.error,
     ...font('heading', 700),
   },
 });

@@ -20,7 +20,8 @@ import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
-import { typography, font } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import {
   listarRotinas,
@@ -276,7 +277,7 @@ export default function MedicinesScreen({
             </View>
 
             <View style={styles.progressBadge}>
-              <Icon name="check_circle" size={14} color="#003B26" />
+              <Icon name="check_circle" size={14} color={colors.mint.textDark} />
               <Text style={styles.progressBadgeText}>
                 {percentualConcluido}% Concluído
               </Text>
@@ -320,14 +321,14 @@ export default function MedicinesScreen({
         <View style={styles.timelineHeaderRow}>
           <Text style={styles.timelineSectionTitle}>Horários de Hoje</Text>
           {!somenteConfirmar && (
-            <TouchableOpacity
-              style={styles.newMedicinePillBtn}
+            <Button
+              title="Novo Remédio"
+              variant="primary"
+              size="md"
+              iconLeft="add"
+              fullWidth={false}
               onPress={handleOpenAddModal}
-              activeOpacity={0.85}
-            >
-              <Icon name="add" size={16} color="#FFFFFF" />
-              <Text style={styles.newMedicinePillText}>Novo Remédio</Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
 
@@ -335,14 +336,14 @@ export default function MedicinesScreen({
         <View style={styles.timelineSection}>
           {loading ? (
             <ActivityIndicator
-              color="#031753"
+              color={colors.primary}
               size="large"
               style={{ marginVertical: 30 }}
             />
           ) : rotinasUnicas.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={{ marginBottom: 10 }}>
-                <Icon name="medication" size={36} color="#94A3B8" />
+                <Icon name="medication" size={36} color={colors.textMuted} />
               </View>
               <Text style={styles.emptyTitle}>Nenhum medicamento agendado</Text>
               <Text style={styles.emptySubtitle}>
@@ -392,7 +393,6 @@ export default function MedicinesScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9FC',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -400,15 +400,11 @@ const styles = StyleSheet.create({
     paddingBottom: 105,
   },
   dailyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 20,
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   dailyHeaderRow: {
     flexDirection: 'row',
@@ -417,28 +413,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dailySubtitle: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   dailyTitle: {
     fontSize: 22,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginTop: 2,
     ...font('heading', 700),
   },
   progressBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   progressBadgeText: {
-    fontSize: 12,
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     ...font('heading', 700),
   },
   progressStatsRow: {
@@ -448,26 +444,26 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   progressStatsLeft: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   progressStatsRight: {
-    fontSize: 12,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     ...font('heading', 700),
   },
   progressBarTrack: {
     height: 10,
-    backgroundColor: '#F2F4F7',
-    borderRadius: 9999,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.full,
     marginBottom: 20,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 9999,
+    backgroundColor: colors.success,
+    borderRadius: rounded.full,
   },
   timelineHeaderRow: {
     flexDirection: 'row',
@@ -478,26 +474,22 @@ const styles = StyleSheet.create({
   },
   timelineSectionTitle: {
     fontSize: 20,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   newMedicinePillBtn: {
     height: 40,
-    backgroundColor: '#D83729',
+    backgroundColor: colors.coralDark,
     paddingHorizontal: 16,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 3,
+    ...shadows.tier2,
   },
   newMedicinePillText: {
-    fontSize: 13,
-    color: '#FFFFFF',
+    fontSize: 14,
+    color: colors.white,
     ...font('heading', 700),
   },
   timelineSection: {
@@ -506,19 +498,19 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 36,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 4,
     ...font('heading', 700),
   },
   emptySubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     ...font('body', 400),
