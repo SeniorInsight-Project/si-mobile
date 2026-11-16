@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
 import { MsIcon, MsIconDefinition } from 'material-symbols-react-native';
+import { colors } from '../theme';
 import {
   msFavorite,
   msFavoriteFill,
@@ -94,6 +95,18 @@ import {
   msPersonOff,
   msSyncProblem,
   msAutorenew,
+  msBackspace,
+  msBadge,
+  msBugReport,
+  msExpandMore,
+  msFamilyRestroom,
+  msFingerprint,
+  msGavel,
+  msHealthAndSafety,
+  msMedicalServices,
+  msSend,
+  msStars,
+  msTouchApp,
 } from '@material-symbols-react-native/rounded-400';
 
 const ICON_MAP: Record<string, MsIconDefinition> = {
@@ -248,6 +261,19 @@ const ICON_MAP: Record<string, MsIconDefinition> = {
   clipboard: msAssignment,
   description: msAssignment,
   file_text: msAssignment,
+  // Nomes usados nas telas que caíam no fallback "help" (?).
+  backspace: msBackspace,
+  badge: msBadge,
+  bug_report: msBugReport,
+  expand_more: msExpandMore,
+  family_restroom: msFamilyRestroom,
+  fingerprint: msFingerprint,
+  gavel: msGavel,
+  health_and_safety: msHealthAndSafety,
+  medical_services: msMedicalServices,
+  send: msSend,
+  stars: msStars,
+  touch_app: msTouchApp,
 };
 
 export interface IconProps {
@@ -263,7 +289,7 @@ export interface IconProps {
 export default function Icon({
   name,
   size = 20,
-  color = '#072369',
+  color = colors.primary,
   style,
 }: IconProps) {
   const iconDefinition = ICON_MAP[name] || msHelp;

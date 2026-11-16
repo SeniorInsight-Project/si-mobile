@@ -11,9 +11,15 @@ export interface CheckboxProps {
 
 export default function Checkbox({ isChecked, onToggle, children }: CheckboxProps) {
   return (
-    <TouchableOpacity style={styles.container} onPress={onToggle} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onToggle}
+      activeOpacity={0.85}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: isChecked }}
+    >
       <View style={[styles.box, isChecked && styles.boxChecked]}>
-        {isChecked && <Icon name="check" size={14} color="#FFFFFF" />}
+        {isChecked && <Icon name="check" size={14} color={colors.white} />}
       </View>
       <View style={styles.textContainer}>
         {children}
@@ -43,8 +49,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   boxChecked: {
-    backgroundColor: colors.secondaryCoral,
-    borderColor: colors.secondaryCoral,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   textContainer: {
     flex: 1,

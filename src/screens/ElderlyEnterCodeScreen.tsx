@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import PairingCodeInput from '../components/PairingCodeInput';
 import Icon from '../components/Icon';
-import { colors, typography } from '../theme';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
+import { colors, typography, font, rounded } from '../theme';
 import {
   MENSAGENS_PAREAMENTO,
   PareamentoError,
@@ -80,15 +82,13 @@ export default function ElderlyEnterCodeScreen({
     <ScreenWrapper hasHeader={false}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => onNavigate('EntryApp')}
-            accessibilityRole="button"
+          <IconButton
+            icon="arrow_back"
+            variant="ghost"
             accessibilityLabel="Voltar"
+            onPress={() => onNavigate('EntryApp')}
             testID="codigo-voltar"
-          >
-            <Icon name="arrow_back" size={28} color={colors.primary} />
-          </TouchableOpacity>
+          />
           <Text style={styles.topTitle} accessibilityRole="header">
             Entrar com código
           </Text>
@@ -114,41 +114,30 @@ export default function ElderlyEnterCodeScreen({
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.enterButton, carregando && styles.enterButtonDisabled]}
-          onPress={() => entrar(codigo)}
-          disabled={carregando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={carregando ? 'Conectando' : 'Entrar com o código'}
-          accessibilityState={{ disabled: carregando, busy: carregando }}
-          testID="codigo-entrar"
-        >
-          {carregando ? (
-            <>
-              <ActivityIndicator color={colors.white} />
-              <Text style={styles.enterButtonText}>Conectando...</Text>
-            </>
-          ) : (
-            <>
-              <Icon name="login" size={24} color={colors.white} />
-              <Text style={styles.enterButtonText}>Entrar</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.actionsWrapper}>
+          <Button
+            title={carregando ? 'Conectando...' : 'Entrar'}
+            iconLeft="login"
+            variant="success"
+            size="xl"
+            loading={carregando}
+            disabled={carregando}
+            onPress={() => entrar(codigo)}
+            accessibilityLabel={carregando ? 'Conectando' : 'Entrar com o código'}
+            testID="codigo-entrar"
+          />
 
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={() => onNavigate('ElderlyQrScan')}
-          disabled={carregando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Ler QR Code com a câmera"
-          testID="codigo-ler-qr"
-        >
-          <Icon name="qr_code_scanner" size={24} color={colors.primary} />
-          <Text style={styles.qrButtonText}>Ler QR Code</Text>
-        </TouchableOpacity>
+          <Button
+            title="Ler QR Code"
+            iconLeft="qr_code_scanner"
+            variant="outline"
+            size="lg"
+            disabled={carregando}
+            onPress={() => onNavigate('ElderlyQrScan')}
+            accessibilityLabel="Ler QR Code com a câmera"
+            testID="codigo-ler-qr"
+          />
+        </View>
 
         <Text style={styles.footnote}>O código vale por pouco tempo e só pode ser usado uma vez.</Text>
       </ScrollView>
@@ -160,13 +149,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backButton: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
+  topTitle: { fontSize: 20,  color: colors.primary, ...font('heading', 700) },
   title: {
     marginTop: 12,
     fontSize: 30,
-    fontWeight: '800',
     color: colors.primary,
-    fontFamily: typography.fontFamily.heading,
+    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 8,
@@ -174,7 +162,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
   errorBox: {
     marginTop: 16,
@@ -182,48 +170,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.peachBg,
   },
   errorText: {
     flex: 1,
     fontSize: 18,
     lineHeight: 26,
-    fontWeight: '700',
     color: colors.coralDark,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 700),
   },
   enterButton: {
     marginTop: 20,
     minHeight: 64,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.successDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  enterButtonDisabled: { opacity: 0.7 },
-  enterButtonText: { fontSize: 20, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  qrButton: {
-    marginTop: 12,
-    minHeight: 64,
-    borderRadius: 9999,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+  actionsWrapper: {
+    marginTop: 24,
+    gap: 12,
   },
-  qrButtonText: { fontSize: 20, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.heading },
   footnote: {
     marginTop: 20,
     fontSize: 18,
     lineHeight: 26,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontFamily: typography.fontFamily.body,
+    ...font('body', 400),
   },
 });

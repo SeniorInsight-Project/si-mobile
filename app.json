@@ -57,7 +57,8 @@
           "cameraPermission": "O SeniorInsight usa a câmera só para ler o QR Code que seu familiar mostra. Nenhuma foto é guardada.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

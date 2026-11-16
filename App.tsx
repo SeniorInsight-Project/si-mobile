@@ -2,6 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
+import { useFonts } from 'expo-font';
+import {
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ConfirmarEmailScreen from './src/screens/ConfirmarEmailScreen';
@@ -27,6 +39,8 @@ import ElderlyWatchScreen from './src/screens/ElderlyWatchScreen';
 import PremiumScreen from './src/screens/PremiumScreen';
 import { PapelProvider } from './src/context/PapelContext';
 import { IdosoProvider } from './src/context/IdosoContext';
+import { UsuarioProvider } from './src/context/UsuarioContext';
+import { colors } from './src/theme';
 import { PapelApp, resolverNavegacao } from './src/services/acessoService';
 import { ResultadoPareamento, codigoDoDeepLink } from './src/services/pareamentoService';
 import { obterAparelhoPareado } from './src/services/aparelhoPareadoService';
@@ -60,6 +74,24 @@ interface PerfilIdentity {
 const ASSINATURA_ATIVA = false;
 
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+  // RN-014: se o carregamento das fontes falhar, segue com a fonte do sistema para não bloquear SOS nem remédios.
+  const fontsProntas = fontsLoaded || Boolean(fontError);
+
+  useEffect(() => {
+    if (fontError) {
+      console.warn('[App] Falha ao carregar fontes customizadas, usando fonte do sistema:', fontError.message);
+    }
+  }, [fontError]);
+
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
   const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string | null>(null);
@@ -404,6 +436,7 @@ export default function App() {
 
   return (
     <PapelProvider value={papel}>
+      <UsuarioProvider value={usuarioLogado?.nome ?? null}>
       <IdosoProvider
         value={{
           idosoId: idosoSelecionadoId,
@@ -413,14 +446,15 @@ export default function App() {
         }}
       >
         <StatusBar style="auto" />
-        {restaurandoSessao ? (
+        {restaurandoSessao || !fontsProntas ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color="#D83729" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           renderScreen()
         )}
       </IdosoProvider>
+      </UsuarioProvider>
     </PapelProvider>
   );
 }

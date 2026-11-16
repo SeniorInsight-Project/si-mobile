@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import InputField from '../components/InputField';
 import Icon from '../components/Icon';
-import { colors, typography, shadows } from '../theme';
+import Button from '../components/Button';
+import ChoiceChip from '../components/ChoiceChip';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import type { Idoso } from '../services/elderlyService';
 import { CadastroIdosoError, cadastrarIdoso } from '../services/idosoCadastroService';
 import {
@@ -60,7 +62,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Cadastrar Idoso" onNavigate={onNavigate} />
+      <AppHeader title="Cadastrar idoso" onNavigate={onNavigate} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
@@ -102,21 +104,14 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
             <Text style={styles.fieldLabel}>Sexo</Text>
             <View style={styles.sexoRow}>
-              {SEXOS.map((sexo) => {
-                const ativo = form.sexo === sexo;
-                return (
-                  <TouchableOpacity
-                    key={sexo}
-                    style={[styles.sexoChip, ativo && styles.sexoChipActive]}
-                    onPress={() => alterar('sexo', sexo)}
-                    accessibilityRole="radio"
-                    aria-checked={ativo}
-                    testID={`cadastro-sexo-${sexo.toLowerCase()}`}
-                  >
-                    <Text style={[styles.sexoText, ativo && styles.sexoTextActive]}>{sexo.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {SEXOS.map((sexo) => (
+                <ChoiceChip
+                  key={sexo}
+                  label={sexo.toUpperCase()}
+                  selected={form.sexo === sexo}
+                  onPress={() => alterar('sexo', sexo)}
+                />
+              ))}
             </View>
             {erros.sexo && <Text style={styles.error}>{erros.sexo}</Text>}
 
@@ -146,23 +141,16 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
           {Boolean(erroGeral) && <Text style={styles.error}>{erroGeral}</Text>}
 
-          <TouchableOpacity
-            style={[styles.submit, salvando && styles.submitDisabled]}
-            onPress={salvar}
+          <Button
+            title="Salvar e gerar código"
+            iconLeft="qr_code"
+            variant="primary"
+            size="lg"
+            loading={salvando}
             disabled={salvando}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            onPress={salvar}
             testID="cadastro-salvar"
-          >
-            {salvando ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Icon name="qr_code" size={22} color={colors.white} />
-                <Text style={styles.submitText}>Salvar e gerar código</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          />
           <Text style={styles.footnote}>Campos obrigatórios: nome, data de nascimento, sexo e celular.</Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -174,7 +162,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 110, gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 10, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 10, ...shadows.tier1 },
   stepChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -182,40 +170,40 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.skyBg,
   },
-  stepText: { fontSize: 14, fontWeight: '700', color: colors.primary, fontFamily: typography.fontFamily.body },
-  title: { fontSize: 24, fontWeight: '800', color: colors.primary, fontFamily: typography.fontFamily.heading },
-  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.primary, fontFamily: typography.fontFamily.body },
+  stepText: { fontSize: 14,  color: colors.primary, ...font('body', 700) },
+  title: { fontSize: 24,  color: colors.primary, ...font('heading', 800) },
+  subtitle: { fontSize: 16, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
+  fieldLabel: { fontSize: 14,  color: colors.primary, ...font('body', 600) },
   sexoRow: { flexDirection: 'row', gap: 8 },
   sexoChip: {
     minHeight: 48,
     minWidth: 48,
     paddingHorizontal: 18,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sexoChipActive: { backgroundColor: colors.primary },
-  sexoText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  sexoText: { fontSize: 14,  color: colors.textSecondary, ...font('body', 700) },
   sexoTextActive: { color: colors.white },
-  error: { fontSize: 14, color: colors.coralDark, fontWeight: '600', fontFamily: typography.fontFamily.body },
+  error: { fontSize: 14, color: colors.coralDark,  ...font('body', 600) },
   warning: {
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.amberBg,
     borderWidth: 1,
     borderColor: colors.amberBorder,
   },
-  warningText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, fontFamily: typography.fontFamily.body },
+  warningText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, ...font('body', 400) },
   submit: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,6 +211,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitDisabled: { opacity: 0.7 },
-  submitText: { fontSize: 18, fontWeight: '700', color: colors.white, fontFamily: typography.fontFamily.heading },
-  footnote: { fontSize: 14, color: colors.textSecondary, fontFamily: typography.fontFamily.body },
+  submitText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
+  footnote: { fontSize: 14, color: colors.textSecondary, ...font('body', 400) },
 });

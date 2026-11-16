@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors, typography } from '../theme';
+import { colors, font, rounded, shadows, sizes } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import { ABAS_POR_PAPEL } from '../services/acessoService';
 
@@ -38,15 +38,21 @@ export default function BottomNavBar({ currentScreen, onNavigate }: BottomNavBar
               style={[styles.tabItem, isActive && styles.tabItemActive]}
               onPress={() => onNavigate && onNavigate(tab.id)}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: isActive }}
             >
               <View style={styles.iconContainer}>
                 <Icon
                   name={tab.icon}
                   size={20}
-                  color={isActive ? '#FFFFFF' : '#64748B'}
+                  color={isActive ? colors.primary : colors.textMuted}
                 />
               </View>
-              <Text style={isActive ? styles.tabLabelActive : styles.tabLabel}>
+              <Text
+                numberOfLines={1}
+                style={isActive ? styles.tabLabelActive : styles.tabLabel}
+              >
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -66,35 +72,29 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   bottomTabNav: {
-    height: 64,
-    borderRadius: 48,
-    backgroundColor: '#FFFFFF',
+    minHeight: 64,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 4,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 10,
+    ...shadows.tier3,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.7)',
+    borderColor: colors.border,
   },
   tabItem: {
     flex: 1,
+    minWidth: sizes.touchMin,
+    minHeight: sizes.touchMin,
     height: 56,
-    borderRadius: 32,
+    borderRadius: rounded.full,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   tabItemActive: {
-    backgroundColor: '#031753',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.infoSurface,
   },
   iconContainer: {
     marginBottom: 2,
@@ -102,15 +102,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.textMuted,
+    ...font('body', 600),
   },
   tabLabelActive: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    color: colors.primary,
+    ...font('body', 700),
   },
 });
