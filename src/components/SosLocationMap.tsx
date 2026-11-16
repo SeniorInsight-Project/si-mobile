@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors } from '../theme';
+import { colors, rounded } from '../theme';
 import { obterUrlPadraoTileOsm } from '../services/osmTileService';
 
 const TILE = 256;
@@ -61,7 +61,7 @@ export default function SosLocationMap({ latitude, longitude, height = 200 }: So
 }
 
 const styles = StyleSheet.create({
-  frame: { borderRadius: 20, overflow: 'hidden', backgroundColor: colors.surfaceContainer, alignItems: 'center', justifyContent: 'center' },
+  frame: { borderRadius: rounded.xl, overflow: 'hidden', backgroundColor: colors.surfaceContainer, alignItems: 'center', justifyContent: 'center' },
   // origem do mosaico no centro do quadro
   mosaic: { position: 'absolute', left: '50%', top: '50%', width: 0, height: 0 },
   tile: { position: 'absolute', width: TILE, height: TILE },

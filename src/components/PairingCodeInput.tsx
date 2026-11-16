@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, typography, font } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 import { CODIGO_MAX, CODIGO_MIN, sanitizarCodigo } from '../services/pareamentoService';
 
 export interface PairingCodeInputProps {
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 56,
     height: 72,
-    borderRadius: 12,
+    borderRadius: rounded.md,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.white,

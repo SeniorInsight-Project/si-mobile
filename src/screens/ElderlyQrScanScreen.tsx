@@ -4,7 +4,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import QrScanner from '../components/QrScanner';
-import { colors, typography, font } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 import {
   PareamentoError,
   ResultadoPareamento,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 260,
     height: 260,
-    borderRadius: 32,
+    borderRadius: rounded.card,
     borderWidth: 4,
     borderColor: colors.successDark,
     backgroundColor: colors.primaryNavyDeep,
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primaryNavyDeep,
   },
   statusChipError: { backgroundColor: colors.coralDark },
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   codeButton: {
     marginTop: 28,
     minHeight: 64,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',

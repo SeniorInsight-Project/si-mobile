@@ -1413,15 +1413,6 @@ const styles = StyleSheet.create({
     color: colors.successDark,
     ...font('body', 600),
   },
-  targetButton: {
-    width: 32,
-    height: 32,
-    borderRadius: rounded.lg,
-    backgroundColor: colors.surfaceSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
   telemetrySection: {
     marginBottom: 18,
   },

@@ -910,20 +910,6 @@ const styles = StyleSheet.create({
     ...font('heading', 800),
     color: colors.textPrimary,
   },
-  addPillButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 35,
-    paddingHorizontal: 14,
-    borderRadius: rounded.full,
-    backgroundColor: colors.infoSurface,
-    gap: 5,
-  },
-  addPillText: {
-    fontSize: 14,
-    color: colors.primary,
-    ...font('heading', 700),
-  },
   comorbiditiesCard: {
     backgroundColor: colors.white,
     borderRadius: rounded.full,

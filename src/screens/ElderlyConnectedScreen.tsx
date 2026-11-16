@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
-import { colors, shadows, font } from '../theme';
+import { colors, shadows, font, rounded } from '../theme';
 import { ResultadoPareamento, mensagemBoasVindas } from '../services/pareamentoService';
 
 export interface ElderlyConnectedScreenProps {
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 112,
     height: 112,
-    borderRadius: 56,
+    borderRadius: rounded.full,
     backgroundColor: colors.successDark,
     alignItems: 'center',
     justifyContent: 'center',
@@ -91,16 +91,16 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...font('body', 400),
   },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 20, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 20, ...shadows.tier1 },
   row: { flexDirection: 'row', gap: 14, alignItems: 'center' },
-  rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 48, height: 48, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   rowTexts: { flex: 1 },
   rowTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
   rowSub: { fontSize: 18, lineHeight: 24, color: colors.textSecondary, ...font('body', 400) },
   button: {
     marginTop: 24,
     minHeight: 64,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.successDark,
     flexDirection: 'row',
     alignItems: 'center',

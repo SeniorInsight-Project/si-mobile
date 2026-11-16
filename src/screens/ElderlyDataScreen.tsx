@@ -6,7 +6,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
-import { colors, typography, shadows, font } from '../theme';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { usePapel } from '../context/PapelContext';
 import {
@@ -102,7 +102,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
       <ScrollView contentContainerStyle={styles.content}>
         {isFamiliar && (
           <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
-            <Icon name="gavel" size={20} color="#B51C13" />
+            <Icon name="gavel" size={20} color={colors.coralDark} />
             <Text style={styles.curatelaBannerText}>
               Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar essas escolhas.
             </Text>
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.peachBg,
     borderWidth: 1.5,
     borderColor: colors.peachBorder,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     padding: 16,
   },
   curatelaBannerText: {
@@ -260,39 +260,39 @@ const styles = StyleSheet.create({
     color: colors.coralDark,
     ...font('body', 700),
   },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 4, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 4, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
   body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   eyebrow: { fontSize: 14,  color: colors.textSecondary, marginBottom: 8, ...font('body', 600) },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64 },
-  rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 48, height: 48, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   rowIconOn: { backgroundColor: colors.mintBg },
   rowIconOff: { backgroundColor: colors.surfaceSubtle },
   rowTexts: { flex: 1 },
   rowTitle: { fontSize: 18,  color: colors.primary, ...font('heading', 700) },
   rowSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
-  sosNote: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, backgroundColor: colors.peachBg, marginTop: 8 },
+  sosNote: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.md, backgroundColor: colors.peachBg, marginTop: 8 },
   sosTag: { fontSize: 14,  color: colors.coralDark, ...font('heading', 800) },
   sosNoteText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.coralDark, ...font('body', 400) },
   pauseNote: {
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.amberBg,
     borderWidth: 1,
     borderColor: colors.amberBorder,
   },
   pauseText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, ...font('body', 400) },
-  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.skyBg },
+  info: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.skyBg },
   infoText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.primary, ...font('body', 400) },
   saved: { fontSize: 16,  color: colors.successDark, ...font('body', 700) },
-  primary: { minHeight: 56, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  primary: { minHeight: 56, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   disabled: { opacity: 0.7 },
   erroCarga: { gap: 12, alignItems: 'center', paddingVertical: 8 },
   erroCargaTexto: { fontSize: 16, lineHeight: 24,  textAlign: 'center', color: colors.coralDark, ...font('body', 700) },
-  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: 9999, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  tentar: { minHeight: 48, paddingHorizontal: 24, borderRadius: rounded.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   tentarTexto: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
   logout: { minHeight: 48, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
   logoutText: { fontSize: 16,  color: colors.textSecondary, ...font('body', 600) },

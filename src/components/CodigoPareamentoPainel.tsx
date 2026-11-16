@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Icon from './Icon';
 import Button from './Button';
-import { colors, typography, shadows, font } from '../theme';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import { idosoIdDoServidor } from '../services/elderlyService';
 import {
   MENSAGENS_PAREAMENTO,
@@ -201,10 +201,10 @@ export default function CodigoPareamentoPainel({
 
 const styles = StyleSheet.create({
   wrap: { gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 12, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 12, ...shadows.tier1 },
   qrBox: {
     minHeight: 232,
-    borderRadius: 20,
+    borderRadius: rounded.xl,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
@@ -230,12 +230,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: 28,
+    minHeight: 28, // estilo-ok: badge informativo, não é alvo de toque
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   chipText: { fontSize: 14,  ...font('body', 700) },
-  errorBox: { gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.peachBg },
+  errorBox: { gap: 10, padding: 14, borderRadius: rounded.lg, backgroundColor: colors.peachBg },
   errorText: {
     fontSize: 16,
     lineHeight: 22,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   retry: {
     minHeight: 48,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.coralDark,
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   retryText: { fontSize: 16,  color: colors.white, ...font('heading', 700) },
   primary: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   primaryText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   secondary: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,

@@ -7,7 +7,7 @@ import InputField from '../components/InputField';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import ChoiceChip from '../components/ChoiceChip';
-import { colors, typography, shadows, font } from '../theme';
+import { colors, typography, shadows, font, rounded } from '../theme';
 import type { Idoso } from '../services/elderlyService';
 import { CadastroIdosoError, cadastrarIdoso } from '../services/idosoCadastroService';
 import {
@@ -162,7 +162,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 110, gap: 16 },
-  card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 10, ...shadows.tier1 },
+  card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 10, ...shadows.tier1 },
   stepChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.skyBg,
   },
   stepText: { fontSize: 14,  color: colors.primary, ...font('body', 700) },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     minWidth: 48,
     paddingHorizontal: 18,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.amberBg,
     borderWidth: 1,
     borderColor: colors.amberBorder,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   warningText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.amber.textDark, ...font('body', 400) },
   submit: {
     minHeight: 56,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',

@@ -160,3 +160,15 @@
   - `src/theme/index.ts`: removidos todos os aliases `@deprecated` sem uso (`navy`, `navyLight`, `primaryContainer`, `secondary`, `secondaryCoral`, `secondaryCoralBright`, `secondaryContainer`, `canvasCard`, `onSurface`, `slate400`, `slate100`, `borderLight`, `errorBright`, `typography.fontFamily`).
 - **Pendências para próximas etapas:**
   - Etapa 7: guarda-corpo automático (`lint:estilo`).
+
+---
+
+## Etapa 7 — Guarda-corpo automático e documentação (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos criados/atualizados:**
+  - `scripts/auditar-estilos.mjs`: auditor Node puro verificando 7 regras em `src/screens` e `src/components` (`hex-rgba-literal`, `font-size-min`, `border-radius-literal`, `font-family-literal`, `touch-target-min`, `emoji-ui`, `icon-import`), com suporte a `// estilo-ok: <motivo>` e resumo por regra.
+  - `package.json`: adicionado script `"lint:estilo": "node scripts/auditar-estilos.mjs"`.
+  - `.github/workflows/ci.yml`: adicionado passo `npm run lint:estilo` após `npm test`.
+  - `README.md`: adicionada seção `## Padronização de UI`.
+  - Limpeza final nas telas e componentes restantes para zerar todas as 92 ocorrências apontadas na primeira execução do auditor (hex remanescente em `ElderlyDataScreen.tsx`, estilos mortos de botões migrados, `borderRadius` literais → `rounded.*` e exceção comentada para badge informativo em `CodigoPareamentoPainel.tsx`).

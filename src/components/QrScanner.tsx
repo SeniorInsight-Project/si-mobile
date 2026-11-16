@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Button from './Button';
-import { colors, typography, font } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 
 export interface QrScannerProps {
   /** Chamado uma vez por leitura, com o texto do QR. */
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20,  color: colors.white, textAlign: 'center', ...font('heading', 700) },
   text: { fontSize: 18, lineHeight: 24, color: colors.outlineVariant, textAlign: 'center', ...font('body', 400) },
-  button: { minHeight: 56, paddingHorizontal: 20, borderRadius: 9999, backgroundColor: colors.successDark, alignItems: 'center', justifyContent: 'center' },
+  button: { minHeight: 56, paddingHorizontal: 20, borderRadius: rounded.full, backgroundColor: colors.successDark, alignItems: 'center', justifyContent: 'center' },
   buttonText: { fontSize: 18,  color: colors.white, ...font('heading', 700) },
   link: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   linkText: { fontSize: 18,  color: colors.white, textDecorationLine: 'underline', ...font('heading', 700) },

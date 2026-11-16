@@ -5,7 +5,7 @@ import PairingCodeInput from '../components/PairingCodeInput';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import IconButton from '../components/IconButton';
-import { colors, typography, font } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 import {
   MENSAGENS_PAREAMENTO,
   PareamentoError,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     backgroundColor: colors.peachBg,
   },
   errorText: {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   enterButton: {
     marginTop: 20,
     minHeight: 64,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.successDark,
     flexDirection: 'row',
     alignItems: 'center',

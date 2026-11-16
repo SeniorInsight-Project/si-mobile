@@ -887,23 +887,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
-  actionCallButton: {
-    width: 36,
-    height: 36,
-    borderRadius: rounded.xl,
-    backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  actionDeleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: rounded.lg,
-    backgroundColor: colors.canvasBase,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   samuCard: {
     flexDirection: 'row',
     alignItems: 'center',

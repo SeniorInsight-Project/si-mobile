@@ -5,7 +5,7 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
-import { colors, typography, font } from '../theme';
+import { colors, typography, font, rounded } from '../theme';
 import { saudacaoIdoso } from '../services/pareamentoService';
 
 export interface PairingCodeScreenProps {
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     backgroundColor: colors.skyBg,
   },
   stepText: { fontSize: 14,  color: colors.primary, ...font('body', 700) },

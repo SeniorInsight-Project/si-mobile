@@ -477,21 +477,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...font('heading', 700),
   },
-  newMedicinePillBtn: {
-    height: 40,
-    backgroundColor: colors.coralDark,
-    paddingHorizontal: 16,
-    borderRadius: rounded.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    ...shadows.tier2,
-  },
-  newMedicinePillText: {
-    fontSize: 14,
-    color: colors.white,
-    ...font('heading', 700),
-  },
   timelineSection: {
     marginBottom: 16,
   },
