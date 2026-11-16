@@ -3,16 +3,15 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
   Image,
-  ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { typography, font } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import {
   abrirRedefinicaoSenha,
   useAutenticacaoKeycloak,
@@ -54,7 +53,7 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
             />
 
             <View style={styles.safeBadge}>
-              <Icon name="favorite" size={14} color="#003B26" />
+              <Icon name="favorite" size={16} color={colors.mint.textDark} />
               <Text style={styles.safeBadgeText}>AMBIENTE SEGURO</Text>
             </View>
 
@@ -64,45 +63,39 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
             </Text>
           </View>
 
-          {/* CARD BRANCO EXTRUDADO PRINCIPAL (rx=32) */}
+          {/* CARD BRANCO EXTRUDADO PRINCIPAL */}
           {/* O formulário de e-mail e senha é o tema do Keycloak; aqui só abrimos o login. */}
           <View style={styles.mainWhiteCard}>
-            <TouchableOpacity
-              style={[styles.loginButton, (!pronto || carregando) && styles.loginButtonDisabled]}
+            <Button
+              title="Entrar"
               onPress={handleEntrar}
+              variant="primary"
+              size="lg"
+              iconRight="arrow_forward"
+              loading={carregando || !pronto}
               disabled={!pronto || carregando}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-            >
-              {carregando || !pronto ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={styles.loginButtonText}>Entrar</Text>
-                  <Icon name="arrow_forward" size={20} color="#FFFFFF" />
-                </>
-              )}
-            </TouchableOpacity>
+            />
 
             {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
 
-            <TouchableOpacity
-              style={styles.forgotPasswordButton}
-              onPress={() => {
-                abrirRedefinicaoSenha().catch((err) =>
-                  console.warn('[LoginScreen] Falha ao abrir a redefinição de senha:', err?.message),
-                );
-              }}
-              accessibilityRole="link"
-            >
-              <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-            </TouchableOpacity>
+            <View style={styles.forgotWrapper}>
+              <Button
+                title="Esqueceu a senha?"
+                onPress={() => {
+                  abrirRedefinicaoSenha().catch((err) =>
+                    console.warn('[LoginScreen] Falha ao abrir a redefinição de senha:', err?.message),
+                  );
+                }}
+                variant="ghost"
+                fullWidth={false}
+              />
+            </View>
           </View>
 
           {/* BADGE DE SEGURANÇA FORA DO CARD */}
           <View style={styles.securityBadgeWrapper}>
             <View style={styles.securityCard}>
-              <Icon name="shield_check" size={15} color="#2D418A" />
+              <Icon name="shield_check" size={16} color={colors.primaryNavy} />
               <Text style={styles.securityCardText}>
                 Dados protegidos por criptografia de grau médico
               </Text>
@@ -112,14 +105,14 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
           {/* RODAPÉ EM DUAS LINHAS */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Novo no SeniorInsight?</Text>
-            <TouchableOpacity
+            <Button
+              title="Criar conta de cuidador"
               onPress={handleCriarConta}
+              variant="ghost"
+              fullWidth={false}
               disabled={!pronto || carregando}
-              accessibilityRole="button"
               testID="login-criar-conta"
-            >
-              <Text style={styles.footerLink}>Criar conta de cuidador</Text>
-            </TouchableOpacity>
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -145,28 +138,27 @@ const styles = StyleSheet.create({
   safeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginBottom: 14,
     gap: 6,
   },
   safeBadgeText: {
-    fontSize: 12,
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     letterSpacing: 0.5,
     ...font('heading', 700),
   },
   title: {
-    fontSize: 30,
-    color: '#131E3D',
+    ...typography.headlineLg,
+    color: colors.textPrimary,
     textAlign: 'center',
-    ...font('heading', 700),
   },
   subtitle: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 22,
@@ -174,54 +166,21 @@ const styles = StyleSheet.create({
     ...font('body', 500),
   },
   mainWhiteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     padding: 24,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 5,
+    ...shadows.tier2,
   },
-  forgotPasswordButton: {
-    alignSelf: 'center',
-    marginTop: 18,
-    paddingVertical: 4,
-  },
-  forgotPasswordText: {
-    color: '#D83729',
-    fontSize: 13,
-    ...font('heading', 700),
-  },
-  loginButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: 9999,
-    backgroundColor: '#D83729',
-    flexDirection: 'row',
+  forgotWrapper: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
+    marginTop: 10,
   },
   errorText: {
-    color: '#D83729',
-    fontSize: 13,
+    color: colors.error,
+    fontSize: 14,
     textAlign: 'center',
     marginTop: 12,
     ...font('body', 600),
-  },
-  loginButtonText: {
-    fontSize: 17,
-    color: '#FFFFFF',
-    ...font('heading', 700),
   },
   securityBadgeWrapper: {
     alignItems: 'center',
@@ -230,15 +189,15 @@ const styles = StyleSheet.create({
   securityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
-    borderRadius: 9999,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.full,
     paddingVertical: 8,
     paddingHorizontal: 16,
     gap: 8,
   },
   securityCardText: {
-    fontSize: 12,
-    color: '#2D418A',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('heading', 600),
   },
   footer: {
@@ -247,13 +206,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footerText: {
-    color: '#64748B',
+    color: colors.textSecondary,
     fontSize: 15,
     ...font('body', 500),
-  },
-  footerLink: {
-    color: '#1E2E69',
-    fontSize: 16,
-    ...font('heading', 700),
   },
 });

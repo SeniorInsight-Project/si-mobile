@@ -57,3 +57,20 @@
   - `src/services/__tests__/buttonStyles.test.ts`: testes de contraste WCAG AA (`>= 4.5:1`), alturas e comportamento de `disabled`.
 - **Pendências para próximas etapas:**
   - Etapa 4: migrar as 7 telas de autenticação e onboarding.
+
+---
+
+## Etapa 4 — Autenticação e onboarding (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos migrados:**
+  - `src/screens/OnboardingScreen.tsx`
+  - `src/screens/LoginScreen.tsx`
+  - `src/screens/TwoFactorAuthScreen.tsx`
+  - `src/screens/ConfirmarEmailScreen.tsx`
+  - `src/screens/AcessoRestritoScreen.tsx`
+  - `src/screens/EntryAppScreen.tsx`
+  - `src/screens/AcceptInviteScreen.tsx`
+- **O que foi feito:** todos os hex/rgba substituídos por tokens do `src/theme`, CTAs migrados para `<Button variant="primary" size="lg">`, links para `<Button variant="ghost">`, voltar para `<IconButton>`, botão do idoso mantido em `variant="success" size="xl"`, títulos unificados em `typography.headlineLg` (26 px), nenhum texto < 14 px e nenhum `borderRadius` literal.
+- **Pendências para próximas etapas:**
+  - Etapa 5: migrar os 8 modais para `<ModalSheet>` e componentes base.

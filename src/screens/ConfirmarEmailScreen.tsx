@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, shadows, typography, font } from '../theme';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import { useAutenticacaoKeycloak, type DesfechoAutenticacao } from '../services/authService';
 
 export interface ConfirmarEmailScreenProps {
@@ -35,22 +37,20 @@ export default function ConfirmarEmailScreen({ onNavigate, onDesfecho }: Confirm
     <ScreenWrapper hasHeader={false}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => onNavigate('EntryApp')}
-            accessibilityRole="button"
+          <IconButton
+            icon="arrow_back"
+            variant="neutral"
             accessibilityLabel="Voltar para a tela anterior"
-          >
-            <Icon name="arrow_back" size={20} color={colors.primary} />
-          </TouchableOpacity>
+            onPress={() => onNavigate('EntryApp')}
+          />
           <View style={styles.safeBadge}>
-            <Icon name="shield" size={14} color={colors.primaryNavyDeep} />
+            <Icon name="shield" size={16} color={colors.primaryNavyDeep} />
             <Text style={styles.safeBadgeText}>Ambiente Seguro</Text>
           </View>
         </View>
 
         <View style={styles.iconCircle}>
-          <Icon name="mail" size={40} color={colors.secondaryCoral} />
+          <Icon name="mail" size={40} color={colors.coral} />
         </View>
 
         <Text style={styles.title} accessibilityRole="header">
@@ -74,41 +74,37 @@ export default function ConfirmarEmailScreen({ onNavigate, onDesfecho }: Confirm
 
         {aindaNaoConfirmado ? (
           <View style={styles.warningCard} testID="confirmar-email-pendente">
-            <Icon name="info" size={18} color={colors.amberText} />
+            <Icon name="info" size={18} color={colors.amber.text} />
             <Text style={styles.warningText}>
               Seu e-mail ainda não foi confirmado. Toque no link que enviamos e tente de novo.
             </Text>
           </View>
         ) : null}
 
-        <TouchableOpacity
-          style={[styles.primaryButton, ocupado && styles.primaryButtonDisabled]}
-          onPress={handleJaConfirmei}
-          disabled={ocupado}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          testID="confirmar-email-ja-confirmei"
-        >
-          {ocupado ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <>
-              <Text style={styles.primaryButtonText}>Já confirmei</Text>
-              <Icon name="arrow_forward" size={20} color={colors.white} />
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.primaryWrapper}>
+          <Button
+            title="Já confirmei"
+            onPress={handleJaConfirmei}
+            variant="primary"
+            size="lg"
+            iconRight="arrow_forward"
+            loading={ocupado}
+            disabled={ocupado}
+            testID="confirmar-email-ja-confirmei"
+          />
+        </View>
 
         {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => onNavigate('EntryApp')}
-          accessibilityRole="button"
-        >
-          <Icon name="arrow_back" size={18} color={colors.primaryNavyDeep} />
-          <Text style={styles.linkText}>Voltar ao início</Text>
-        </TouchableOpacity>
+        <View style={styles.linkWrapper}>
+          <Button
+            title="Voltar ao início"
+            onPress={() => onNavigate('EntryApp')}
+            variant="ghost"
+            iconLeft="arrow_back"
+            fullWidth={false}
+          />
+        </View>
       </ScrollView>
     </ScreenWrapper>
   );
@@ -117,26 +113,17 @@ export default function ConfirmarEmailScreen({ onNavigate, onDesfecho }: Confirm
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.tier2,
-  },
   safeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
-    backgroundColor: colors.skyBg,
+    borderRadius: rounded.full,
+    backgroundColor: colors.sky.background,
   },
   safeBadgeText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.primaryNavyDeep,
     ...font('heading', 700),
   },
@@ -145,19 +132,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
     width: 96,
     height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.white,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.tier3,
   },
   title: {
     marginTop: 24,
-    fontSize: 28,
-    lineHeight: 34,
+    ...typography.headlineLg,
     textAlign: 'center',
     color: colors.primary,
-    ...font('heading', 800),
   },
   subtitle: {
     marginTop: 10,
@@ -173,14 +158,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    borderRadius: 20,
-    backgroundColor: colors.mintBg,
+    borderRadius: rounded.xl,
+    backgroundColor: colors.mint.background,
     ...shadows.tier1,
   },
   infoCheck: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: rounded.full,
     backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
@@ -204,10 +189,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 14,
-    borderRadius: 16,
-    backgroundColor: colors.amberBg,
+    borderRadius: rounded.lg,
+    backgroundColor: colors.amber.background,
     borderWidth: 1,
-    borderColor: colors.amberBorder,
+    borderColor: colors.amber.border,
   },
   warningText: {
     flex: 1,
@@ -216,41 +201,18 @@ const styles = StyleSheet.create({
     color: colors.amber.textDark,
     ...font('body', 400),
   },
-  primaryButton: {
+  primaryWrapper: {
     marginTop: 24,
-    minHeight: 56,
-    borderRadius: 9999,
-    backgroundColor: colors.primaryNavyDeep,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    ...shadows.tier2,
-  },
-  primaryButtonDisabled: { opacity: 0.7 },
-  primaryButtonText: {
-    fontSize: 18,
-    color: colors.white,
-    ...font('heading', 700),
   },
   errorText: {
     marginTop: 12,
     fontSize: 14,
     textAlign: 'center',
-    color: colors.secondary,
+    color: colors.error,
     ...font('body', 600),
   },
-  linkButton: {
+  linkWrapper: {
     marginTop: 16,
-    minHeight: 48,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  linkText: {
-    fontSize: 16,
-    color: colors.primaryNavyDeep,
-    ...font('heading', 700),
   },
 });
