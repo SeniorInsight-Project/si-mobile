@@ -91,3 +91,14 @@
   - Modal de novo contato em `src/screens/EmergencyContactsScreen.tsx` (o restante da tela permanece para a Etapa 6c)
 - **Pendências para próximas etapas:**
   - Etapas 6a–6e: migração das telas principais e componentes restantes.
+
+---
+
+## Etapa 6a — Rede Familiar (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos alterados/removidos:**
+  - `src/screens/FamilyScreen.tsx`: hex/rgba migrados para tokens (`176 → 0`), `fontSize < 14` corrigidos (`31 → 0`), raios e sombras migrados para `rounded.*` e `shadows.tier1`/`tier2`, CTAs de convite unificados em `<Button variant="primary">`, limites RN-012 com `disabled` (opacidade) e texto explicativo em `14 px colors.textSecondary`, ações pendentes em `<IconButton>` 48 px (`neutral`/`neutral`/`danger`), botões debug atrás de `__DEV__` com `variant="outline"`, `doctorRejectedBtn*` em `secondary`/`ghost` e `retryButton` em `secondary` com ícone `refresh`.
+  - `src/components/FamilyMemberCard.tsx`: removido após confirmar com `grep` que não era importado em nenhum arquivo.
+- **Pendências para próximas etapas:**
+  - Etapas 6b–6e: Home, Remédios/Contatos, Modo Idoso/SOS e telas/componentes restantes.

@@ -16,6 +16,8 @@ import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
 import {
   listarMembrosRede,
   gerarConvite,
@@ -33,7 +35,7 @@ import {
   MembroRede,
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
-import { typography, font } from '../theme';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 
 export interface FamilyScreenProps {
@@ -313,7 +315,7 @@ export default function FamilyScreen({
             activeOpacity={0.85}
           >
             <View style={styles.onDutyIconCircle}>
-              <Icon name="shield_check" size={18} color="#031753" />
+              <Icon name="shield_check" size={18} color={colors.primary} />
             </View>
             <View style={styles.onDutyTexts}>
               <Text style={styles.onDutyTitle}>
@@ -409,7 +411,7 @@ export default function FamilyScreen({
             activeOpacity={0.85}
           >
             <View style={styles.adminMainDoctorIconCircle}>
-              <Icon name="stethoscope" size={20} color="#031753" />
+              <Icon name="stethoscope" size={20} color={colors.primary} />
             </View>
             <View style={styles.adminMainDoctorTexts}>
               <Text style={styles.adminMainDoctorTitle}>
@@ -430,7 +432,7 @@ export default function FamilyScreen({
               <Icon
                 name={limiteMedicosAtingido ? 'block' : 'add'}
                 size={16}
-                color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
+                color={limiteMedicosAtingido ? colors.error : colors.white}
               />
               <Text
                 style={[
@@ -450,7 +452,7 @@ export default function FamilyScreen({
             {convitesPendentes.length === 0 ? (
               <View style={styles.emptyPendingCard}>
                 <View style={styles.emptyPendingIconCircle}>
-                  <Icon name="mail" size={32} color="#94A3B8" />
+                  <Icon name="mail" size={32} color={colors.textMuted} />
                 </View>
                 <Text style={styles.emptyPendingTitle}>Nenhum Convite Pendente</Text>
                 <Text style={styles.emptyPendingSubtitle}>
@@ -464,7 +466,7 @@ export default function FamilyScreen({
                   <View style={styles.pendingHeaderRow}>
                     <View style={styles.pendingAvatarWrapper}>
                       <View style={styles.pendingAvatar}>
-                        <Icon name="mail" size={20} color="#0284C7" />
+                        <Icon name="mail" size={20} color={colors.sky.text} />
                       </View>
                     </View>
 
@@ -478,47 +480,39 @@ export default function FamilyScreen({
                     </View>
 
                     <View style={styles.pendingStatusBadge}>
-                      <Icon name="schedule" size={11} color="#B45309" style={{ marginRight: 3 }} />
+                      <Icon name="schedule" size={11} color={colors.amber.textDark} style={{ marginRight: 3 }} />
                       <Text style={styles.pendingStatusText}>Aguardando</Text>
                     </View>
                   </View>
 
                   {/* Detalhes de Expiração */}
                   <View style={styles.pendingInfoRow}>
-                    <Icon name="hourglass_top" size={13} color="#64748B" style={{ marginRight: 6 }} />
+                    <Icon name="hourglass_top" size={13} color={colors.textSecondary} style={{ marginRight: 6 }} />
                     <Text style={styles.pendingInfoText}>
                       Expira em {convite.validadeHorasRestantes || 48}h • Link de uso único
                     </Text>
                   </View>
 
                   {/* Ações: Editar, Reenviar Link e Cancelar */}
-                  <View style={styles.pendingActionsRow}>
-                    <TouchableOpacity
-                      style={styles.pendingBtnEdit}
+                  <View style={styles.pendingIconActionsRow}>
+                    <IconButton
+                      icon="edit"
+                      variant="neutral"
+                      accessibilityLabel={`Editar convite de ${convite.emailDestinatario}`}
                       onPress={() => handleEditarConvite(convite)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="edit" size={14} color="#031753" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnEditText}>Editar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.pendingBtnShare}
+                    />
+                    <IconButton
+                      icon="share"
+                      variant="neutral"
+                      accessibilityLabel={`Reenviar convite de ${convite.emailDestinatario}`}
                       onPress={() => handleCompartilharConvite(convite)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="share" size={14} color="#0284C7" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnShareText}>Reenviar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.pendingBtnCancel}
+                    />
+                    <IconButton
+                      icon="delete"
+                      variant="danger"
+                      accessibilityLabel={`Cancelar convite de ${convite.emailDestinatario}`}
                       onPress={() => handleCancelarConvite(convite)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="delete" size={14} color="#DC2626" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnCancelText}>Cancelar</Text>
-                    </TouchableOpacity>
+                    />
                   </View>
                 </View>
               ))
@@ -531,7 +525,7 @@ export default function FamilyScreen({
               <View style={styles.doctorHeaderCard}>
                 <View style={styles.doctorHeaderTopRow}>
                   <View style={styles.doctorHeaderIconBadge}>
-                    <Icon name="stethoscope" size={22} color="#031753" />
+                    <Icon name="stethoscope" size={22} color={colors.primary} />
                   </View>
                   <View style={styles.doctorHeaderTexts}>
                     <Text style={styles.doctorHeaderTitle}>Corpo Clínico & Médicos</Text>
@@ -547,29 +541,20 @@ export default function FamilyScreen({
                 </View>
 
                 {isAdmin && (
-                  <TouchableOpacity
-                    style={[
-                      styles.doctorInviteTopButton,
-                      limiteMedicosAtingido && styles.doctorInviteTopButtonDisabled,
-                    ]}
-                    onPress={handleConvidarMedico}
-                    activeOpacity={0.85}
-                  >
-                    <Icon
-                      name={limiteMedicosAtingido ? 'block' : 'add'}
-                      size={16}
-                      color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
-                      style={{ marginRight: 6 }}
+                  <View style={styles.doctorInviteTopWrapper}>
+                    <Button
+                      title="Convidar Novo Médico"
+                      onPress={handleConvidarMedico}
+                      variant="primary"
+                      iconLeft="stethoscope"
+                      disabled={limiteMedicosAtingido}
                     />
-                    <Text
-                      style={[
-                        styles.doctorInviteTopButtonText,
-                        limiteMedicosAtingido && styles.doctorInviteTopButtonTextDisabled,
-                      ]}
-                    >
-                      {limiteMedicosAtingido ? 'Limite de 2 médicos atingido' : '+ Convidar Novo Médico'}
-                    </Text>
-                  </TouchableOpacity>
+                    {limiteMedicosAtingido ? (
+                      <Text style={styles.limitReasonText}>
+                        Limite de 2 médicos atingido (RN-012)
+                      </Text>
+                    ) : null}
+                  </View>
                 )}
               </View>
             )}
@@ -580,7 +565,7 @@ export default function FamilyScreen({
                 <View key={convite.id} style={styles.doctorRejectedCard}>
                   <View style={styles.doctorRejectedHeader}>
                     <View style={styles.doctorRejectedAvatar}>
-                      <Icon name="person_off" size={20} color="#DC2626" />
+                      <Icon name="person_off" size={20} color={colors.error} />
                     </View>
                     <View style={styles.doctorRejectedInfo}>
                       <Text style={styles.doctorRejectedName}>
@@ -591,14 +576,14 @@ export default function FamilyScreen({
                       </Text>
                     </View>
                     <View style={styles.doctorRejectedBadge}>
-                      <Icon name="cancel" size={11} color="#DC2626" style={{ marginRight: 3 }} />
+                      <Icon name="cancel" size={11} color={colors.error} style={{ marginRight: 3 }} />
                       <Text style={styles.doctorRejectedBadgeText}>Recusado</Text>
                     </View>
                   </View>
 
                   {/* ALERTA OBRIGATÓRIO HU-017: O MÉDICO RECUSOU O CONVITE */}
                   <View style={styles.doctorRejectedAlertBox}>
-                    <Icon name="error" size={16} color="#B91C1C" style={{ marginRight: 8 }} />
+                    <Icon name="error" size={16} color={colors.error} style={{ marginRight: 8 }} />
                     <Text style={styles.doctorRejectedAlertText}>
                       O médico recusou o convite
                     </Text>
@@ -610,30 +595,32 @@ export default function FamilyScreen({
 
                   <View style={styles.doctorRejectedActions}>
                     {isAdmin && (
-                      <TouchableOpacity
-                        style={styles.doctorRejectedBtnReinvite}
-                        onPress={() => {
-                          if (limiteMedicosAtingido) {
-                            Alert.alert('Limite de Médicos', 'Limite de 2 médicos atingido');
-                            return;
-                          }
-                          setModalDoctorInviteVisible(true);
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Icon name="refresh" size={14} color="#031753" style={{ marginRight: 4 }} />
-                        <Text style={styles.doctorRejectedBtnReinviteText}>Convidar Outro</Text>
-                      </TouchableOpacity>
+                      <View style={styles.doctorRejectedActionCol}>
+                        <Button
+                          title="Convidar Outro"
+                          variant="secondary"
+                          size="md"
+                          iconLeft="refresh"
+                          onPress={() => {
+                            if (limiteMedicosAtingido) {
+                              Alert.alert('Limite de Médicos', 'Limite de 2 médicos atingido');
+                              return;
+                            }
+                            setModalDoctorInviteVisible(true);
+                          }}
+                        />
+                      </View>
                     )}
 
-                    <TouchableOpacity
-                      style={styles.doctorRejectedBtnDismiss}
-                      onPress={() => handleDescartarRecusado(convite.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="delete" size={14} color="#64748B" style={{ marginRight: 4 }} />
-                      <Text style={styles.doctorRejectedBtnDismissText}>Descartar Aviso</Text>
-                    </TouchableOpacity>
+                    <View style={styles.doctorRejectedActionCol}>
+                      <Button
+                        title="Descartar Aviso"
+                        variant="ghost"
+                        size="md"
+                        iconLeft="delete"
+                        onPress={() => handleDescartarRecusado(convite.id)}
+                      />
+                    </View>
                   </View>
                 </View>
               ))}
@@ -645,7 +632,7 @@ export default function FamilyScreen({
                   <View style={styles.pendingHeaderRow}>
                     <View style={styles.doctorPendingAvatarWrapper}>
                       <View style={styles.doctorPendingAvatar}>
-                        <Icon name="stethoscope" size={20} color="#D97706" />
+                        <Icon name="stethoscope" size={20} color={colors.amber.text} />
                       </View>
                     </View>
                     <View style={styles.pendingHeaderInfo}>
@@ -657,84 +644,82 @@ export default function FamilyScreen({
                       </Text>
                     </View>
                     <View style={styles.pendingStatusBadge}>
-                      <Icon name="hourglass_top" size={11} color="#B45309" style={{ marginRight: 3 }} />
+                      <Icon name="hourglass_top" size={11} color={colors.amber.textDark} style={{ marginRight: 3 }} />
                       <Text style={styles.pendingStatusText}>Pendente</Text>
                     </View>
                   </View>
 
                   <View style={styles.pendingInfoRow}>
-                    <Icon name="schedule" size={13} color="#64748B" style={{ marginRight: 6 }} />
+                    <Icon name="schedule" size={13} color={colors.textSecondary} style={{ marginRight: 6 }} />
                     <Text style={styles.pendingInfoText}>
                       Expira em {convite.validadeHorasRestantes || 72}h • Link de uso único
                     </Text>
                   </View>
 
-                  <View style={styles.pendingActionsRow}>
-                    {simulacaoPermitida && (
-                      <>
-                        <TouchableOpacity
-                          style={styles.pendingBtnDebug}
-                          onPress={async () => {
-                            if (!idosoId) return;
-                            try {
-                              const novoVinculado = {
-                                id: `med-${Date.now()}`,
-                                nome: convite.nomeMedico || 'Dr. Convidado',
-                                nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
-                                crm: convite.crm || '123456/SP',
-                                grauParentesco: 'Médico',
-                                papelAcesso: 'MEDICO',
-                                tipoMembro: 'MEDICO',
-                                categoria: 'saude',
-                                badgeTexto: 'Médico Vinculado',
-                                badgeTipo: 'especialista',
-                                online: true,
-                                telefone: '+55 11 98888-7777',
-                                email: convite.emailDestinatario,
-                                acoes: ['call', 'prontuario'],
-                              };
-                              await cancelarConvite(idosoId, convite.id);
-                              setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
-                              await carregarDados();
-                              Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
-                            } catch (e: any) {
-                              Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
-                            }
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <Icon name="check" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                          <Text style={styles.pendingBtnDebugText}>[Debug] Aceitar</Text>
-                        </TouchableOpacity>
-    
-                        <TouchableOpacity
-                          style={styles.pendingBtnRejectDebug}
-                          onPress={() => handleSimularRecusaMedico(convite.id)}
-                          activeOpacity={0.8}
-                        >
-                          <Icon name="close" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                          <Text style={styles.pendingBtnDebugText}>[Debug] Recusar</Text>
-                        </TouchableOpacity>
-                      </>
+                  <View style={styles.pendingDoctorActionsContainer}>
+                    {__DEV__ && simulacaoPermitida && (
+                      <View style={styles.pendingDebugRow}>
+                        <View style={styles.pendingDebugCol}>
+                          <Button
+                            title="[Debug] Aceitar"
+                            variant="outline"
+                            size="md"
+                            iconLeft="check"
+                            onPress={async () => {
+                              if (!idosoId) return;
+                              try {
+                                const novoVinculado = {
+                                  id: `med-${Date.now()}`,
+                                  nome: convite.nomeMedico || 'Dr. Convidado',
+                                  nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
+                                  crm: convite.crm || '123456/SP',
+                                  grauParentesco: 'Médico',
+                                  papelAcesso: 'MEDICO',
+                                  tipoMembro: 'MEDICO',
+                                  categoria: 'saude',
+                                  badgeTexto: 'Médico Vinculado',
+                                  badgeTipo: 'especialista',
+                                  online: true,
+                                  telefone: '+55 11 98888-7777',
+                                  email: convite.emailDestinatario,
+                                  acoes: ['call', 'prontuario'],
+                                };
+                                await cancelarConvite(idosoId, convite.id);
+                                setMembros((prev) => [novoVinculado as MembroRede, ...prev]);
+                                await carregarDados();
+                                Alert.alert('Sucesso', 'Médico aceitou o convite e agora está vinculado à rede!');
+                              } catch (e: any) {
+                                Alert.alert('Erro', e?.message || 'Falha ao aceitar convite.');
+                              }
+                            }}
+                          />
+                        </View>
+                        <View style={styles.pendingDebugCol}>
+                          <Button
+                            title="[Debug] Recusar"
+                            variant="outline"
+                            size="md"
+                            iconLeft="close"
+                            onPress={() => handleSimularRecusaMedico(convite.id)}
+                          />
+                        </View>
+                      </View>
                     )}
 
-                    <TouchableOpacity
-                      style={styles.pendingBtnShare}
-                      onPress={() => handleCompartilharConvite(convite)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="share" size={14} color="#0284C7" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnShareText}>Reenviar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.pendingBtnCancel}
-                      onPress={() => handleCancelarConvite(convite)}
-                      activeOpacity={0.8}
-                    >
-                      <Icon name="delete" size={14} color="#DC2626" style={{ marginRight: 4 }} />
-                      <Text style={styles.pendingBtnCancelText}>Cancelar</Text>
-                    </TouchableOpacity>
+                    <View style={styles.pendingIconActionsRow}>
+                      <IconButton
+                        icon="share"
+                        variant="neutral"
+                        accessibilityLabel={`Reenviar convite de ${convite.nomeMedico || convite.emailDestinatario}`}
+                        onPress={() => handleCompartilharConvite(convite)}
+                      />
+                      <IconButton
+                        icon="delete"
+                        variant="danger"
+                        accessibilityLabel={`Cancelar convite de ${convite.nomeMedico || convite.emailDestinatario}`}
+                        onPress={() => handleCancelarConvite(convite)}
+                      />
+                    </View>
                   </View>
                 </View>
               ))}
@@ -742,15 +727,15 @@ export default function FamilyScreen({
             {/* ESTADO DE ERRO */}
             {erroCarregamento && (
               <View style={styles.errorCardContainer}>
-                <Icon name="error" size={24} color="#DC2626" />
+                <Icon name="error" size={24} color={colors.error} />
                 <Text style={styles.errorCardTitle}>Não foi possível carregar a rede</Text>
-                <TouchableOpacity
-                  style={styles.retryButton}
+                <Button
+                  title="Tentar novamente"
                   onPress={carregarDados}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.retryButtonText}>Tentar novamente</Text>
-                </TouchableOpacity>
+                  variant="secondary"
+                  iconLeft="refresh"
+                  fullWidth={false}
+                />
               </View>
             )}
 
@@ -773,7 +758,7 @@ export default function FamilyScreen({
                         styles.memberAvatar,
                         {
                           backgroundColor: membro.avatarBg,
-                          borderColor: membro.online ? '#E8F8F0' : '#F2F4F7',
+                          borderColor: membro.online ? colors.mint.background : colors.surfaceSubtle,
                           justifyContent: 'center',
                           alignItems: 'center',
                         },
@@ -794,8 +779,8 @@ export default function FamilyScreen({
                         styles.presenceDot,
                         {
                           backgroundColor: membro.online
-                            ? '#10B981'
-                            : '#CBD5E1',
+                            ? colors.success
+                            : colors.outlineVariant,
                         },
                       ]}
                     />
@@ -827,7 +812,7 @@ export default function FamilyScreen({
                   <Icon
                     name={membro.infoIcon ?? ''}
                     size={15}
-                    color={membro.infoDestaque ? '#031753' : '#64748B'}
+                    color={membro.infoDestaque ? colors.primary : colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -848,7 +833,7 @@ export default function FamilyScreen({
                           key={acao}
                           style={[
                             styles.actionCircle,
-                            { backgroundColor: '#10B981' },
+                            { backgroundColor: colors.success },
                           ]}
                           onPress={() =>
                             Alert.alert(
@@ -858,7 +843,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="call" size={16} color="#FFFFFF" />
+                          <Icon name="call" size={16} color={colors.white} />
                         </TouchableOpacity>
                       );
                     }
@@ -868,7 +853,7 @@ export default function FamilyScreen({
                           key={acao}
                           style={[
                             styles.actionCircle,
-                            { backgroundColor: '#2D418A' },
+                            { backgroundColor: colors.primaryNavy },
                           ]}
                           onPress={() =>
                             Alert.alert(
@@ -878,7 +863,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="chat" size={16} color="#FFFFFF" />
+                          <Icon name="chat" size={16} color={colors.white} />
                         </TouchableOpacity>
                       );
                     }
@@ -895,7 +880,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="history" size={16} color="#031753" />
+                          <Icon name="history" size={16} color={colors.primary} />
                         </TouchableOpacity>
                       );
                     }
@@ -912,7 +897,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="call" size={16} color="#059669" />
+                          <Icon name="call" size={16} color={colors.successDark} />
                         </TouchableOpacity>
                       );
                     }
@@ -929,7 +914,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="chat" size={16} color="#2D418A" />
+                          <Icon name="chat" size={16} color={colors.primaryNavy} />
                         </TouchableOpacity>
                       );
                     }
@@ -943,7 +928,7 @@ export default function FamilyScreen({
                           }
                           activeOpacity={0.8}
                         >
-                          <Icon name="assignment" size={16} color="#031753" />
+                          <Icon name="assignment" size={16} color={colors.primary} />
                         </TouchableOpacity>
                       );
                     }
@@ -963,7 +948,7 @@ export default function FamilyScreen({
         activeOpacity={0.85}
       >
         <View style={styles.sosSequenceIconCircle}>
-          <Icon name="crisis_alert" size={18} color="#B51C13" />
+          <Icon name="crisis_alert" size={18} color={colors.coralDark} />
         </View>
         <View style={styles.sosSequenceTexts}>
           <Text style={styles.sosSequenceTitle}>
@@ -977,61 +962,53 @@ export default function FamilyScreen({
 
       {/* BOTÕES DE CONVITE INFERIORES (FAMILIAR E MÉDICO HU-016) */}
       {isAdmin ? (
-        <View style={styles.inviteButtonsRow}>
-          <TouchableOpacity
-            style={[
-              styles.inviteCtaHalfButton,
-              styles.inviteCtaFamily,
-              limiteAtingido && styles.inviteCtaButtonDisabled,
-            ]}
-            onPress={handleConvidar}
-            activeOpacity={0.85}
-          >
-            <Icon name="person_add" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-            <Text style={styles.inviteCtaHalfText}>
-              {limiteAtingido ? 'Limite Família' : '+ Familiar'}
+        <View style={styles.inviteButtonsContainer}>
+          <View style={styles.inviteButtonsRow}>
+            <View style={styles.inviteButtonCol}>
+              <Button
+                title="Familiar"
+                iconLeft="person_add"
+                variant="primary"
+                disabled={limiteAtingido}
+                onPress={handleConvidar}
+              />
+            </View>
+            <View style={styles.inviteButtonCol}>
+              <Button
+                title="Médico (CRM)"
+                iconLeft="stethoscope"
+                variant="primary"
+                disabled={limiteMedicosAtingido}
+                onPress={handleConvidarMedico}
+              />
+            </View>
+          </View>
+          {limiteAtingido ? (
+            <Text style={styles.limitReasonText}>
+              Limite de 5 familiares atingido (RN-012)
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.inviteCtaHalfButton,
-              styles.inviteCtaDoctor,
-              limiteMedicosAtingido && styles.doctorInviteCtaButtonDisabled,
-            ]}
-            onPress={handleConvidarMedico}
-            activeOpacity={0.85}
-          >
-            <Icon
-              name="stethoscope"
-              size={18}
-              color={limiteMedicosAtingido ? '#DC2626' : '#FFFFFF'}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                styles.inviteCtaHalfText,
-                limiteMedicosAtingido && styles.doctorInviteCtaButtonTextDisabled,
-              ]}
-            >
-              {limiteMedicosAtingido ? 'Limite 2 Médicos' : '+ Médico (CRM)'}
+          ) : null}
+          {limiteMedicosAtingido ? (
+            <Text style={styles.limitReasonText}>
+              Limite de 2 médicos atingido (RN-012)
             </Text>
-          </TouchableOpacity>
+          ) : null}
         </View>
       ) : (
-        <TouchableOpacity
-          style={[
-            styles.inviteCtaButton,
-            limiteAtingido && styles.inviteCtaButtonDisabled,
-          ]}
-          onPress={handleConvidar}
-          activeOpacity={0.85}
-        >
-          <Icon name="person_add" size={20} color="#FFFFFF" />
-          <Text style={styles.inviteCtaText}>
-            {limiteAtingido ? 'Limite de 5 Familiares Atingido' : 'Convidar Novo Membro'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.inviteButtonsContainer}>
+          <Button
+            title="Convidar Novo Membro"
+            iconLeft="person_add"
+            variant="primary"
+            disabled={limiteAtingido}
+            onPress={handleConvidar}
+          />
+          {limiteAtingido ? (
+            <Text style={styles.limitReasonText}>
+              Limite de 5 familiares atingido (RN-012)
+            </Text>
+          ) : null}
+        </View>
       )}
 
       {/* PRIVACIDADE (HU-022): exclusão da conta e dos dados */}
@@ -1042,7 +1019,7 @@ export default function FamilyScreen({
         accessibilityRole="button"
         testID="familia-excluir-conta"
       >
-        <Icon name="delete" size={18} color="#64748B" />
+        <Icon name="delete" size={18} color={colors.textSecondary} />
         <Text style={styles.deleteAccountText}>Excluir minha conta e meus dados</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -1099,22 +1076,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  deleteAccountText: { fontSize: 14, ...font('body', 600), color: '#64748B' },
+  deleteAccountText: { fontSize: 14, ...font('body', 600), color: colors.textSecondary },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 105,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   summaryTopRow: {
     flexDirection: 'row',
@@ -1130,35 +1103,35 @@ const styles = StyleSheet.create({
   connectedDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.success,
   },
   circleConnectedLabel: {
-    fontSize: 11,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     letterSpacing: 0.4,
     ...font('heading', 700),
   },
   activeMembersPill: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   activeMembersText: {
-    fontSize: 11,
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     ...font('heading', 700),
   },
   summaryTitle: {
     fontSize: 22,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 4,
     ...font('heading', 800),
   },
   summarySubtitle: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     lineHeight: 19,
     marginBottom: 16,
     ...font('body', 500),
@@ -1166,16 +1139,16 @@ const styles = StyleSheet.create({
   onDutyBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
-    borderRadius: 20,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.xl,
     padding: 12,
     gap: 12,
   },
   onDutyIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1183,14 +1156,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   onDutyTitle: {
-    fontSize: 13,
-    color: '#031753',
+    fontSize: 14,
+    color: colors.primary,
     marginBottom: 2,
     ...font('heading', 700),
   },
   onDutySub: {
-    fontSize: 11,
-    color: '#1E2E69',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('body', 600),
   },
   filtersRow: {
@@ -1201,26 +1174,22 @@ const styles = StyleSheet.create({
   filterPill: {
     height: 36,
     paddingHorizontal: 16,
-    borderRadius: 9999,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    ...shadows.tier1,
   },
   filterPillActive: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
   },
   filterPillText: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('heading', 600),
   },
   filterPillTextActive: {
-    color: '#FFFFFF',
+    color: colors.white,
     ...font('body', 700),
   },
   membersList: {
@@ -1228,14 +1197,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   memberCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 16,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   memberHeaderRow: {
     flexDirection: 'row',
@@ -1256,7 +1221,7 @@ const styles = StyleSheet.create({
   memberAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: rounded.card,
     borderWidth: 2,
   },
   presenceDot: {
@@ -1265,37 +1230,37 @@ const styles = StyleSheet.create({
     right: 0,
     width: 14,
     height: 14,
-    borderRadius: 7,
+    borderRadius: rounded.sm,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
   },
   memberTexts: {
     flex: 1,
   },
   memberName: {
     fontSize: 17,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 2,
     ...font('heading', 800),
   },
   memberSub: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   roleBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   roleBadgeText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('heading', 800),
   },
   memberBottomBar: {
     height: 52,
-    backgroundColor: '#F2F4F7',
-    borderRadius: 20,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: rounded.xl,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1309,13 +1274,13 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   memberInfoText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     flex: 1,
     ...font('body', 600),
   },
   memberInfoTextHighlight: {
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('body', 700),
   },
   memberActionsRight: {
@@ -1326,28 +1291,24 @@ const styles = StyleSheet.create({
   actionCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: rounded.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionCircleWhite: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    ...shadows.tier1,
   },
   sosSequenceCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF1EC',
-    borderRadius: 28,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.card,
     padding: 16,
     gap: 12,
     marginBottom: 16,
@@ -1355,8 +1316,8 @@ const styles = StyleSheet.create({
   sosSequenceIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1364,52 +1325,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sosSequenceTitle: {
-    fontSize: 13,
-    color: '#B51C13',
+    fontSize: 14,
+    color: colors.coralDark,
     marginBottom: 2,
     ...font('heading', 800),
   },
   sosSequenceSub: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     lineHeight: 16,
     ...font('body', 600),
   },
   inviteCtaButton: {
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#D83729',
+    borderRadius: rounded.card,
+    backgroundColor: colors.coralDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 5,
+    ...shadows.tier2,
   },
   inviteCtaText: {
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.white,
     ...font('heading', 800),
   },
   inviteCtaButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    shadowColor: '#94A3B8',
+    backgroundColor: colors.textMuted,
+    shadowColor: colors.textMuted,
     shadowOpacity: 0.1,
   },
   pendingInviteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    borderColor: colors.border,
+    ...shadows.tier1,
     marginBottom: 4,
   },
   pendingHeaderRow: {
@@ -1423,8 +1376,8 @@ const styles = StyleSheet.create({
   pendingAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E0F2FE',
+    borderRadius: rounded.card,
+    backgroundColor: colors.sky.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1435,39 +1388,39 @@ const styles = StyleSheet.create({
   pendingName: {
     fontSize: 14,
     ...font('body', 700),
-    color: '#0F172A',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   pendingSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   pendingStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.amber.background,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: rounded.input,
   },
   pendingStatusText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#B45309',
+    color: colors.amber.textDark,
   },
   pendingInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: colors.canvasBase,
+    borderRadius: rounded.input,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 12,
   },
   pendingInfoText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   pendingActionsRow: {
@@ -1478,61 +1431,61 @@ const styles = StyleSheet.create({
   pendingBtnEdit: {
     flex: 1,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.surfaceSubtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingBtnEditText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#031753',
+    color: colors.primary,
   },
   pendingBtnShare: {
     flex: 1,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E0F2FE',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.sky.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingBtnShareText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#0369A1',
+    color: colors.sky.textDark,
   },
   pendingBtnCancel: {
     height: 36,
     paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: '#FEE2E2',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.peach.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingBtnCancelText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#DC2626',
+    color: colors.error,
   },
   emptyPendingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderStyle: 'dashed',
     marginVertical: 12,
   },
   emptyPendingIconCircle: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#F1F5F9',
+    borderRadius: rounded.full,
+    backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -1540,23 +1493,23 @@ const styles = StyleSheet.create({
   emptyPendingTitle: {
     fontSize: 16,
     ...font('body', 700),
-    color: '#1E293B',
+    color: colors.textPrimary,
     marginBottom: 6,
     textAlign: 'center',
   },
   emptyPendingSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
   doctorHeaderCard: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 24,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1.5,
-    borderColor: '#BAE6FD',
+    borderColor: colors.sky.border,
   },
   doctorHeaderTopRow: {
     flexDirection: 'row',
@@ -1565,8 +1518,8 @@ const styles = StyleSheet.create({
   doctorHeaderIconBadge: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.infoSurface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -1577,127 +1530,115 @@ const styles = StyleSheet.create({
   doctorHeaderTitle: {
     fontSize: 15,
     ...font('body', 700),
-    color: '#031753',
+    color: colors.primary,
   },
   doctorHeaderSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   doctorCountBadge: {
-    backgroundColor: '#E0F2FE',
-    borderRadius: 12,
+    backgroundColor: colors.sky.background,
+    borderRadius: rounded.input,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   doctorCountBadgeAlert: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.peach.background,
   },
   doctorCountBadgeText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#0369A1',
+    color: colors.sky.textDark,
   },
   doctorCountBadgeTextAlert: {
-    color: '#DC2626',
+    color: colors.error,
   },
   doctorInviteTopButton: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
     height: 40,
-    borderRadius: 20,
+    borderRadius: rounded.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadows.tier2,
   },
   doctorInviteTopButtonDisabled: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.peach.background,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: colors.peach.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   doctorInviteTopButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
   },
   doctorInviteTopButtonTextDisabled: {
-    color: '#DC2626',
+    color: colors.error,
   },
   doctorInviteCtaButton: {
-    backgroundColor: '#031753',
-    shadowColor: '#031753',
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
   },
   doctorPendingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1.5,
-    borderColor: '#FDE68A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.amber.border,
+    ...shadows.tier1,
   },
   doctorPendingAvatarWrapper: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FEF3C7',
+    borderRadius: rounded.card,
+    backgroundColor: colors.amber.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorPendingAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FEF3C7',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.amber.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingBtnDebug: {
     flex: 1.1,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#059669',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.successDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingBtnDebugText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
   },
   pendingBtnRejectDebug: {
     flex: 1.1,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#DC2626',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.error,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorRejectedCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1.5,
-    borderColor: '#FECDD3',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.peach.border,
+    ...shadows.tier2,
   },
   doctorRejectedHeader: {
     flexDirection: 'row',
@@ -1707,8 +1648,8 @@ const styles = StyleSheet.create({
   doctorRejectedAvatar: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FEE2E2',
+    borderRadius: rounded.card,
+    backgroundColor: colors.peach.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -1719,45 +1660,45 @@ const styles = StyleSheet.create({
   doctorRejectedName: {
     fontSize: 15,
     ...font('body', 700),
-    color: '#1E293B',
+    color: colors.textPrimary,
   },
   doctorRejectedSub: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   doctorRejectedBadge: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.input,
     paddingVertical: 3,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
   doctorRejectedBadgeText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#DC2626',
+    color: colors.error,
   },
   doctorRejectedAlertBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF1F2',
-    borderRadius: 12,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.input,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: colors.peach.border,
     marginBottom: 8,
   },
   doctorRejectedAlertText: {
-    fontSize: 13,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#B91C1C',
+    color: colors.error,
   },
   doctorRejectedHelpText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     lineHeight: 17,
     marginBottom: 12,
   },
@@ -1768,51 +1709,47 @@ const styles = StyleSheet.create({
   doctorRejectedBtnReinvite: {
     flex: 1.2,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.infoSurface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorRejectedBtnReinviteText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#031753',
+    color: colors.primary,
   },
   doctorRejectedBtnDismiss: {
     flex: 1,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.surfaceSubtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorRejectedBtnDismissText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 600),
-    color: '#64748B',
+    color: colors.textSecondary,
   },
   adminMainDoctorBanner: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 20,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.xl,
     padding: 14,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#BAE6FD',
-    shadowColor: '#0369A1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.sky.border,
+    ...shadows.tier2,
   },
   adminMainDoctorIconCircle: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.infoSurface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -1823,34 +1760,34 @@ const styles = StyleSheet.create({
   adminMainDoctorTitle: {
     fontSize: 14,
     ...font('body', 700),
-    color: '#031753',
+    color: colors.primary,
   },
   adminMainDoctorSub: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   adminMainDoctorBtn: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   adminMainDoctorBtnDisabled: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.peach.background,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: colors.peach.border,
   },
   adminMainDoctorBtnText: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
   },
   adminMainDoctorBtnTextDisabled: {
-    color: '#DC2626',
+    color: colors.error,
   },
   inviteButtonsRow: {
     flexDirection: 'row',
@@ -1860,68 +1797,64 @@ const styles = StyleSheet.create({
   inviteCtaHalfButton: {
     flex: 1,
     height: 54,
-    borderRadius: 27,
+    borderRadius: rounded.card,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadows.tier2,
   },
   inviteCtaFamily: {
-    backgroundColor: '#D83729',
-    shadowColor: '#D83729',
+    backgroundColor: colors.coralDark,
+    shadowColor: colors.coralDark,
   },
   inviteCtaDoctor: {
-    backgroundColor: '#031753',
-    shadowColor: '#031753',
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
   },
   inviteCtaHalfText: {
-    fontSize: 13,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
     letterSpacing: 0.2,
   },
   doctorInviteCtaButtonDisabled: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.peach.background,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: colors.peach.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   doctorInviteCtaButtonTextDisabled: {
-    color: '#DC2626',
+    color: colors.error,
   },
   errorCardContainer: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 16,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.lg,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 12,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: colors.peach.border,
   },
   errorCardTitle: {
     fontSize: 15,
     ...font('body', 700),
-    color: '#991B1B',
+    color: colors.peach.text,
     marginTop: 8,
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.error,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: rounded.xl,
     minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     ...font('body', 700),
     fontSize: 14,
   },
@@ -1932,6 +1865,41 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
+  },
+  pendingIconActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  doctorInviteTopWrapper: {
+    gap: 8,
+  },
+  limitReasonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    ...font('body', 500),
+  },
+  doctorRejectedActionCol: {
+    flex: 1,
+  },
+  pendingDoctorActionsContainer: {
+    gap: 10,
+  },
+  pendingDebugRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pendingDebugCol: {
+    flex: 1,
+  },
+  inviteButtonsContainer: {
+    gap: 8,
+    marginTop: 8,
+  },
+  inviteButtonCol: {
+    flex: 1,
   },
 });
