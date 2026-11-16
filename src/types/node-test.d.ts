@@ -7,6 +7,10 @@ declare module 'node:test' {
   export default test;
 }
 
+declare module 'node:fs' {
+  export function readFileSync(path: string, encoding: 'utf8'): string;
+}
+
 declare module 'node:assert/strict' {
   const assert: {
     ok(value: unknown, message?: string): asserts value;
