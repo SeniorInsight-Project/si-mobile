@@ -107,11 +107,19 @@ describe('Pareamento do idoso pelo contrato identity-v1 (HU-007 / RF-006)', () =
 
   test('resgate: salva os tokens recebidos e o papel vem do token', async () => {
     let salvo: any = null;
+    let pareado: any = null;
     const r = await parearComCodigo('K7P2QX', APARELHO, {
       cliente: clienteFalso(RESGATE_OK),
       salvar: async (t) => { salvo = t; },
+      marcarPareado: async (d) => { pareado = d; },
     });
     assert.deepEqual(salvo, { accessToken: RESGATE_OK.tokens.accessToken, refreshToken: 'r1', expiresIn: 300 });
+    assert.deepEqual(pareado, {
+      perfilId: 'perfil-1',
+      nome: 'Maria Aparecida Silva',
+      idosoId: undefined,
+      sessaoAparelhoId: 'sessao-9',
+    });
     assert.deepEqual(r.papeis, ['idoso']);
     assert.equal(r.nomeIdoso, 'Maria Aparecida Silva');
     assert.equal(r.perfilId, 'perfil-1');

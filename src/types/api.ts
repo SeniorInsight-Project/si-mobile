@@ -55,6 +55,8 @@ export type GerarCodigoPareamentoRequest = IdentitySchemas['GerarCodigoPareament
 export type CodigoPareamento = IdentitySchemas['CodigoPareamento'];
 export type ResgatarCodigoPareamentoRequest = IdentitySchemas['ResgatarCodigoPareamentoRequest'];
 export type ResultadoPareamentoApi = IdentitySchemas['ResultadoPareamento'];
+export type RenovarSessaoAparelhoRequest = IdentitySchemas['RenovarSessaoAparelhoRequest'];
+export type TokensIdentityApi = IdentitySchemas['Tokens'];
 
 // notification-v1: alertas e push
 export type AlertaApi = NotificationSchemas['Alerta'];

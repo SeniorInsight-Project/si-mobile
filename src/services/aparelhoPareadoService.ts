@@ -16,6 +16,8 @@ export interface AparelhoPareado {
   nome: string;
   /** Id do idoso no care-service, devolvido no resgate; ausente se o código foi gerado sem idoso. */
   idosoId?: string;
+  /** Id da sessão do aparelho no identity-service, usado para renovar os tokens do idoso. */
+  sessaoAparelhoId?: string;
   /** Epoch ms do pareamento. */
   pareadoEm: number;
 }
@@ -49,6 +51,7 @@ export async function marcarAparelhoPareado(dados: {
   perfilId: string;
   nome: string;
   idosoId?: string;
+  sessaoAparelhoId?: string;
 }): Promise<boolean> {
   const store = await obterArmazenamento();
   if (!store) return false;
@@ -56,6 +59,7 @@ export async function marcarAparelhoPareado(dados: {
     perfilId: dados.perfilId,
     nome: dados.nome,
     ...(dados.idosoId ? { idosoId: dados.idosoId } : {}),
+    ...(dados.sessaoAparelhoId ? { sessaoAparelhoId: dados.sessaoAparelhoId } : {}),
     pareadoEm: Date.now(),
   };
   try {
@@ -80,6 +84,9 @@ export async function obterAparelhoPareado(): Promise<AparelhoPareado | null> {
       perfilId: r.perfilId,
       nome: r.nome,
       ...(typeof r.idosoId === 'string' && r.idosoId ? { idosoId: r.idosoId } : {}),
+      ...(typeof r.sessaoAparelhoId === 'string' && r.sessaoAparelhoId
+        ? { sessaoAparelhoId: r.sessaoAparelhoId }
+        : {}),
       pareadoEm: typeof r.pareadoEm === 'number' ? r.pareadoEm : 0,
     };
   } catch {
