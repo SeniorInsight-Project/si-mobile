@@ -380,8 +380,7 @@ export default function ElderlyModeScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Modo Idoso Alarme Sos"
-        subtitle="CUIDADO ATIVO"
+        title="SOS e remédios"
         onNavigate={onNavigate}
         onLogout={onLogout}
       />

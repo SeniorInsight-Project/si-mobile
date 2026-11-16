@@ -57,7 +57,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
   if (comprovante) {
     return (
       <ScreenWrapper>
-        <AppHeader title="Excluir Conta" onNavigate={onNavigate} />
+        <AppHeader title="Excluir conta" onNavigate={onNavigate} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.card} testID="exclusao-concluida">
             <View style={[styles.badge, { backgroundColor: colors.mintBg }]}>
@@ -89,7 +89,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Excluir Conta" onNavigate={onNavigate} />
+      <AppHeader title="Excluir conta" onNavigate={onNavigate} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={[styles.badge, { backgroundColor: colors.peach.background }]}>

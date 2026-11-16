@@ -305,8 +305,7 @@ export default function HomeScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Início Monitoramento"
-        subtitle="CUIDADO ATIVO"
+        title="Início"
         onNavigate={onNavigate}
         onLogout={onLogout}
       />

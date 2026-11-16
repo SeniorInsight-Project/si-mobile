@@ -485,8 +485,7 @@ export default function EmergencyContactsScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO */}
       <AppHeader
-        title="Contatos de Emergência"
-        subtitle="ESCALONAMENTO SOS"
+        title="Contatos de emergência"
         onNavigate={onNavigate}
       />
 

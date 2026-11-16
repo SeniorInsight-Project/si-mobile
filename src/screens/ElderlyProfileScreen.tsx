@@ -353,8 +353,7 @@ export default function ElderlyProfileScreen({
     return (
       <ScreenWrapper>
         <AppHeader
-          title="Família Perfil"
-          subtitle="CUIDADO ATIVO"
+          title="Perfil do idoso"
           onNavigate={onNavigate}
         />
         <View style={styles.loadingContainer}>
@@ -370,8 +369,7 @@ export default function ElderlyProfileScreen({
     <ScreenWrapper>
       {/* HEADER PADRONIZADO GLOBAL */}
       <AppHeader
-        title="Família Perfil"
-        subtitle="CUIDADO ATIVO"
+        title="Perfil do idoso"
         onNavigate={onNavigate}
       />
 

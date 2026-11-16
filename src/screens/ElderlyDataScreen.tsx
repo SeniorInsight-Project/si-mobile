@@ -98,7 +98,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 
   return (
     <ScreenWrapper>
-      <AppHeader title="Meus Dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
+      <AppHeader title="Meus dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
       <ScrollView contentContainerStyle={styles.content}>
         {isFamiliar && (
           <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
