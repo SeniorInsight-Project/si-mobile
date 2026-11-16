@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import InputField from '../components/InputField';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
+import ChoiceChip from '../components/ChoiceChip';
 import { colors, typography, shadows, font } from '../theme';
 import type { Idoso } from '../services/elderlyService';
 import { CadastroIdosoError, cadastrarIdoso } from '../services/idosoCadastroService';
@@ -102,21 +104,14 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
             <Text style={styles.fieldLabel}>Sexo</Text>
             <View style={styles.sexoRow}>
-              {SEXOS.map((sexo) => {
-                const ativo = form.sexo === sexo;
-                return (
-                  <TouchableOpacity
-                    key={sexo}
-                    style={[styles.sexoChip, ativo && styles.sexoChipActive]}
-                    onPress={() => alterar('sexo', sexo)}
-                    accessibilityRole="radio"
-                    aria-checked={ativo}
-                    testID={`cadastro-sexo-${sexo.toLowerCase()}`}
-                  >
-                    <Text style={[styles.sexoText, ativo && styles.sexoTextActive]}>{sexo.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {SEXOS.map((sexo) => (
+                <ChoiceChip
+                  key={sexo}
+                  label={sexo.toUpperCase()}
+                  selected={form.sexo === sexo}
+                  onPress={() => alterar('sexo', sexo)}
+                />
+              ))}
             </View>
             {erros.sexo && <Text style={styles.error}>{erros.sexo}</Text>}
 
@@ -146,23 +141,16 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
           {Boolean(erroGeral) && <Text style={styles.error}>{erroGeral}</Text>}
 
-          <TouchableOpacity
-            style={[styles.submit, salvando && styles.submitDisabled]}
-            onPress={salvar}
+          <Button
+            title="Salvar e gerar código"
+            iconLeft="qr_code"
+            variant="primary"
+            size="lg"
+            loading={salvando}
             disabled={salvando}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            onPress={salvar}
             testID="cadastro-salvar"
-          >
-            {salvando ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Icon name="qr_code" size={22} color={colors.white} />
-                <Text style={styles.submitText}>Salvar e gerar código</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          />
           <Text style={styles.footnote}>Campos obrigatórios: nome, data de nascimento, sexo e celular.</Text>
         </ScrollView>
       </KeyboardAvoidingView>

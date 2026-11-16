@@ -4,13 +4,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
 import { colors, rounded, shadows, typography, font } from '../theme';
 import {
   comparativoPlanos,
@@ -67,9 +67,13 @@ export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
           <View style={styles.errorCard}>
             <Icon name="warning" size={24} color={colors.coralDark} />
             <Text style={styles.errorText}>{erro}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={carregar} activeOpacity={0.85}>
-              <Text style={styles.retryBtnText}>Tentar novamente</Text>
-            </TouchableOpacity>
+            <Button
+              title="Tentar novamente"
+              variant="secondary"
+              iconLeft="refresh"
+              fullWidth={false}
+              onPress={carregar}
+            />
           </View>
         ) : (
           <>
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.onSurface,
+    color: colors.textPrimary,
     ...font('body', 400),
   },
   bodyCenter: {

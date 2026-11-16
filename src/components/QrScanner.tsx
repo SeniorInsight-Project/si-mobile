@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import Button from './Button';
 import { colors, typography, font } from '../theme';
 
 export interface QrScannerProps {
@@ -39,25 +40,22 @@ export default function QrScanner({ onScanned, pausado = false, onUsarCodigo }: 
             : 'A câmera está bloqueada. Libere nas configurações do celular ou digite o código.'}
         </Text>
         {podePedir && (
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            title="Permitir a câmera"
+            variant="success"
+            size="xl"
             onPress={pedirPermissao}
-            accessibilityRole="button"
             accessibilityLabel="Permitir o uso da câmera para ler o QR Code"
             testID="qr-pedir-permissao"
-          >
-            <Text style={styles.buttonText}>Permitir a câmera</Text>
-          </TouchableOpacity>
+          />
         )}
-        <TouchableOpacity
-          style={styles.link}
+        <Button
+          title="Digitar o código"
+          variant="ghost"
           onPress={onUsarCodigo}
-          accessibilityRole="button"
           accessibilityLabel="Digitar o código em vez de usar a câmera"
           testID="qr-sem-camera-digitar"
-        >
-          <Text style={styles.linkText}>Digitar o código</Text>
-        </TouchableOpacity>
+        />
       </View>
     );
   }

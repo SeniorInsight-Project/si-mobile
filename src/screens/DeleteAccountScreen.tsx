@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
+import TextField from '../components/TextField';
 import { colors, typography, shadows, font } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import {
@@ -73,9 +75,13 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
               </Text>
             )}
           </View>
-          <TouchableOpacity style={styles.danger} onPress={() => onNavigate('Logout')} accessibilityRole="button" testID="exclusao-concluir">
-            <Text style={styles.dangerTexto}>Concluir</Text>
-          </TouchableOpacity>
+          <Button
+            title="Concluir"
+            variant="danger"
+            size="lg"
+            onPress={() => onNavigate('Logout')}
+            testID="exclusao-concluir"
+          />
         </ScrollView>
       </ScreenWrapper>
     );
@@ -86,7 +92,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
       <AppHeader title="Excluir Conta" onNavigate={onNavigate} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
-          <View style={[styles.badge, { backgroundColor: colors.peachBg }]}>
+          <View style={[styles.badge, { backgroundColor: colors.peach.background }]}>
             <Icon name="delete" size={28} color={colors.coralDark} />
           </View>
           <Text style={styles.title}>Excluir a conta e os dados</Text>
@@ -100,7 +106,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
           <Text style={styles.subtitle}>O que será apagado</Text>
           {O_QUE_SERA_APAGADO.map((item) => (
             <View key={item.titulo} style={styles.linha}>
-              <View style={[styles.badge, styles.badgePequeno, { backgroundColor: colors.peachBg }]}>
+              <View style={[styles.badge, styles.badgePequeno, { backgroundColor: colors.peach.background }]}>
                 <Icon name={item.icon} size={22} color={colors.coralDark} />
               </View>
               <View style={styles.flex}>
@@ -119,53 +125,42 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
         )}
 
         <View style={styles.card}>
-          <Text style={styles.label}>Digite {FRASE_CONFIRMACAO} para confirmar</Text>
-          <View style={styles.campo}>
-            <Icon name="keyboard" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={styles.input}
-              value={texto}
-              onChangeText={(t) => {
-                setTexto(t);
-                if (erro) setErro('');
-              }}
-              placeholder={FRASE_CONFIRMACAO}
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!assinaturaAtiva && !enviando}
-              accessibilityLabel={`Digite ${FRASE_CONFIRMACAO} para confirmar`}
-              testID="exclusao-campo"
-            />
-          </View>
+          <TextField
+            label={`Digite ${FRASE_CONFIRMACAO} para confirmar`}
+            icon="keyboard"
+            value={texto}
+            onChangeText={(t) => {
+              setTexto(t);
+              if (erro) setErro('');
+            }}
+            placeholder={FRASE_CONFIRMACAO}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            editable={!assinaturaAtiva && !enviando}
+            accessibilityLabel={`Digite ${FRASE_CONFIRMACAO} para confirmar`}
+            error={erro || undefined}
+            testID="exclusao-campo"
+            style={{ marginBottom: 0 }}
+          />
 
-          {Boolean(erro) && (
-            <Text style={styles.erro} accessibilityRole="alert" testID="exclusao-erro">
-              {erro}
-            </Text>
-          )}
-
-          <TouchableOpacity
-            style={[styles.danger, !habilitado && styles.desabilitado]}
-            onPress={excluir}
+          <Button
+            title="Excluir definitivamente"
+            iconLeft="delete"
+            variant="danger"
+            size="lg"
+            loading={enviando}
             disabled={!habilitado}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !habilitado }}
+            onPress={excluir}
             testID="exclusao-confirmar"
-          >
-            {enviando ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Icon name="delete" size={22} color={colors.white} />
-                <Text style={styles.dangerTexto}>Excluir definitivamente</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity style={styles.cancelar} onPress={voltar} accessibilityRole="button" testID="exclusao-cancelar">
-            <Text style={styles.cancelarTexto}>Cancelar</Text>
-          </TouchableOpacity>
+          <Button
+            title="Cancelar"
+            variant="secondary"
+            size="lg"
+            onPress={voltar}
+            testID="exclusao-cancelar"
+          />
         </View>
       </ScrollView>
       <BottomNavBar currentScreen="DeleteAccount" onNavigate={onNavigate} />
@@ -181,7 +176,7 @@ const styles = StyleSheet.create({
   badgePequeno: { width: 48, height: 48, borderRadius: 24 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
   subtitle: { fontSize: 18,  color: colors.primary, ...font('heading', 800) },
-  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
+  body: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linhaTitulo: { fontSize: 16,  color: colors.primary, ...font('heading', 800) },
   linhaSub: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, ...font('body', 400) },
@@ -189,7 +184,7 @@ const styles = StyleSheet.create({
   assinaturaTexto: { flex: 1, fontSize: 14, lineHeight: 20,  color: colors.amber.textDark, ...font('body', 600) },
   label: { fontSize: 16,  color: colors.primary, ...font('body', 700) },
   campo: { minHeight: 56, borderRadius: 16, backgroundColor: colors.surfaceSubtle, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
-  input: { flex: 1, minHeight: 52, fontSize: 18,  color: colors.onSurface, ...font('body', 700) },
+  input: { flex: 1, minHeight: 52, fontSize: 18,  color: colors.textPrimary, ...font('body', 700) },
   erro: { fontSize: 14, lineHeight: 20,  color: colors.coralDark, ...font('body', 700) },
   danger: { minHeight: 56, borderRadius: 9999, backgroundColor: colors.coralDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   dangerTexto: { fontSize: 18,  color: colors.white, ...font('heading', 700) },

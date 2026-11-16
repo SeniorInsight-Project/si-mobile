@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   sectionTitle: {
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   contactLeft: {
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     borderRadius: rounded.card,
     padding: 18,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   formHeaderRow: {
@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     borderRadius: rounded.input,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     height: 52,
   },
   textInput: {
@@ -1008,7 +1008,7 @@ const styles = StyleSheet.create({
     borderRadius: rounded.full,
     backgroundColor: colors.canvasBase,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
   },
   chipSelected: {
     backgroundColor: colors.primary,
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: rounded.card,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     overflow: 'hidden',
     marginTop: 16,
     ...shadows.tier1,
@@ -1122,7 +1122,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopColor: colors.border,
   },
   accordionBodyText: {
     fontSize: 14,

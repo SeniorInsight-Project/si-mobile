@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
 import { colors, typography, shadows, font } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { CONSENTIMENTO_PADRAO, Consentimentos, obterConsentimentos } from '../services/consentimentoService';
@@ -108,16 +109,14 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
           </Text>
         )}
 
-        <TouchableOpacity
-          style={styles.primary}
+        <Button
+          title="Abrir o Health Connect"
+          iconLeft="open_in_new"
+          variant="primary"
+          size="lg"
           onPress={abrir}
-          activeOpacity={0.85}
-          accessibilityRole="button"
           testID="relogio-abrir"
-        >
-          <Icon name="open_in_new" size={22} color={colors.white} />
-          <Text style={styles.primaryText}>Abrir o Health Connect</Text>
-        </TouchableOpacity>
+        />
 
         <View style={styles.info}>
           <Icon name="help" size={18} color={colors.primary} />
@@ -125,15 +124,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
         </View>
 
         {primeiroUso && (
-          <TouchableOpacity
-            style={styles.secondary}
+          <Button
+            title="Concluir e ir para o início"
+            variant="success"
+            size="xl"
             onPress={() => onNavigate('ElderlyMode')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
             testID="relogio-concluir"
-          >
-            <Text style={styles.secondaryText}>Concluir e ir para o início</Text>
-          </TouchableOpacity>
+          />
         )}
       </ScrollView>
       <BottomNavBar currentScreen="ElderlyWatch" onNavigate={onNavigate} />
@@ -145,7 +142,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 120, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 16, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
-  body: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
+  body: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   stepIconDone: { backgroundColor: colors.mintBg },

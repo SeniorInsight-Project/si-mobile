@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import PairingCodeInput from '../components/PairingCodeInput';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
 import { colors, typography, font } from '../theme';
 import {
   MENSAGENS_PAREAMENTO,
@@ -80,15 +82,13 @@ export default function ElderlyEnterCodeScreen({
     <ScreenWrapper hasHeader={false}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => onNavigate('EntryApp')}
-            accessibilityRole="button"
+          <IconButton
+            icon="arrow_back"
+            variant="ghost"
             accessibilityLabel="Voltar"
+            onPress={() => onNavigate('EntryApp')}
             testID="codigo-voltar"
-          >
-            <Icon name="arrow_back" size={28} color={colors.primary} />
-          </TouchableOpacity>
+          />
           <Text style={styles.topTitle} accessibilityRole="header">
             Entrar com código
           </Text>
@@ -114,41 +114,30 @@ export default function ElderlyEnterCodeScreen({
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.enterButton, carregando && styles.enterButtonDisabled]}
-          onPress={() => entrar(codigo)}
-          disabled={carregando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={carregando ? 'Conectando' : 'Entrar com o código'}
-          accessibilityState={{ disabled: carregando, busy: carregando }}
-          testID="codigo-entrar"
-        >
-          {carregando ? (
-            <>
-              <ActivityIndicator color={colors.white} />
-              <Text style={styles.enterButtonText}>Conectando...</Text>
-            </>
-          ) : (
-            <>
-              <Icon name="login" size={24} color={colors.white} />
-              <Text style={styles.enterButtonText}>Entrar</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.actionsWrapper}>
+          <Button
+            title={carregando ? 'Conectando...' : 'Entrar'}
+            iconLeft="login"
+            variant="success"
+            size="xl"
+            loading={carregando}
+            disabled={carregando}
+            onPress={() => entrar(codigo)}
+            accessibilityLabel={carregando ? 'Conectando' : 'Entrar com o código'}
+            testID="codigo-entrar"
+          />
 
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={() => onNavigate('ElderlyQrScan')}
-          disabled={carregando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Ler QR Code com a câmera"
-          testID="codigo-ler-qr"
-        >
-          <Icon name="qr_code_scanner" size={24} color={colors.primary} />
-          <Text style={styles.qrButtonText}>Ler QR Code</Text>
-        </TouchableOpacity>
+          <Button
+            title="Ler QR Code"
+            iconLeft="qr_code_scanner"
+            variant="outline"
+            size="lg"
+            disabled={carregando}
+            onPress={() => onNavigate('ElderlyQrScan')}
+            accessibilityLabel="Ler QR Code com a câmera"
+            testID="codigo-ler-qr"
+          />
+        </View>
 
         <Text style={styles.footnote}>O código vale por pouco tempo e só pode ser usado uma vez.</Text>
       </ScrollView>
@@ -201,21 +190,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  enterButtonDisabled: { opacity: 0.7 },
-  enterButtonText: { fontSize: 20,  color: colors.white, ...font('heading', 700) },
-  qrButton: {
-    marginTop: 12,
-    minHeight: 64,
-    borderRadius: 9999,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+  actionsWrapper: {
+    marginTop: 24,
+    gap: 12,
   },
-  qrButtonText: { fontSize: 20,  color: colors.primary, ...font('heading', 700) },
   footnote: {
     marginTop: 20,
     fontSize: 18,

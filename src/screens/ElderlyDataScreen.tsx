@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
 import { colors, typography, shadows, font } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 import { usePapel } from '../context/PapelContext';
@@ -122,9 +123,14 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
           ) : erroCarga ? (
             <View style={styles.erroCarga} testID="dados-erro">
               <Text style={styles.erroCargaTexto}>{erroCarga}</Text>
-              <TouchableOpacity style={styles.tentar} onPress={carregar} accessibilityRole="button" testID="dados-tentar-de-novo">
-                <Text style={styles.tentarTexto}>Tentar de novo</Text>
-              </TouchableOpacity>
+              <Button
+                title="Tentar de novo"
+                variant="secondary"
+                iconLeft="refresh"
+                fullWidth={false}
+                onPress={carregar}
+                testID="dados-tentar-de-novo"
+              />
             </View>
           ) : (
             LINHAS_SAUDE.map((linha) => (
@@ -204,40 +210,31 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
           </Text>
         )}
 
-        <TouchableOpacity
-          style={[styles.primary, salvando && styles.disabled]}
-          onPress={confirmar}
+        <Button
+          title={primeiroUso ? 'Confirmar e continuar' : 'Salvar escolhas'}
+          variant="success"
+          size="xl"
+          loading={salvando}
           disabled={salvando || carregando || Boolean(erroCarga)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={confirmar}
           testID="dados-confirmar"
-        >
-          {salvando ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.primaryText}>{primeiroUso ? 'Confirmar e continuar' : 'Salvar escolhas'}</Text>
-          )}
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={styles.logout}
+        <Button
+          title="Excluir minha conta e meus dados"
+          variant="ghost"
+          iconLeft="delete"
           onPress={() => onNavigate('DeleteAccount')}
-          accessibilityRole="button"
           testID="dados-excluir-conta"
-        >
-          <Icon name="delete" size={20} color={colors.textSecondary} />
-          <Text style={styles.logoutText}>Excluir minha conta e meus dados</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity
-          style={styles.logout}
+        <Button
+          title="Sair deste celular"
+          variant="ghost"
+          iconLeft="logout"
           onPress={() => onNavigate('Logout')}
-          accessibilityRole="button"
           testID="dados-sair"
-        >
-          <Icon name="logout" size={20} color={colors.textSecondary} />
-          <Text style={styles.logoutText}>Sair deste celular</Text>
-        </TouchableOpacity>
+        />
       </ScrollView>
       <BottomNavBar currentScreen="ElderlyData" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -265,7 +262,7 @@ const styles = StyleSheet.create({
   },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 4, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
-  body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
+  body: { marginTop: 6, fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   eyebrow: { fontSize: 14,  color: colors.textSecondary, marginBottom: 8, ...font('body', 600) },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64 },
   rowIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

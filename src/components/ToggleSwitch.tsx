@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
-import { colors } from '../theme';
+import { colors, rounded } from '../theme';
 
 export interface ToggleSwitchProps {
   value: boolean;
@@ -32,10 +32,10 @@ export default function ToggleSwitch({ value, onValueChange, accessibilityLabel,
 
 const styles = StyleSheet.create({
   hitArea: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  track: { width: 56, height: 32, borderRadius: 16, justifyContent: 'center', padding: 3 },
+  track: { width: 56, height: 32, borderRadius: rounded.full, justifyContent: 'center', padding: 3 },
   trackOn: { backgroundColor: colors.successDark },
   trackOff: { backgroundColor: colors.outlineVariant },
-  thumb: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.white },
+  thumb: { width: 26, height: 26, borderRadius: rounded.full, backgroundColor: colors.white },
   thumbOn: { alignSelf: 'flex-end' },
   thumbOff: { alignSelf: 'flex-start' },
   disabled: { opacity: 0.5 },

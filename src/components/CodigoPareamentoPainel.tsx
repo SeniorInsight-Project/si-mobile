@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Share, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Share, StyleSheet } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Icon from './Icon';
+import Button from './Button';
 import { colors, typography, shadows, font } from '../theme';
 import { idosoIdDoServidor } from '../services/elderlyService';
 import {
@@ -155,52 +156,44 @@ export default function CodigoPareamentoPainel({
       {Boolean(erro) && (
         <View style={styles.errorBox} accessibilityRole="alert" testID="pareamento-erro">
           <Text style={styles.errorText}>{erro}</Text>
-          <TouchableOpacity
-            style={styles.retry}
-            onPress={gerar}
+          <Button
+            title="Tentar de novo"
+            iconLeft="refresh"
+            variant="secondary"
+            fullWidth={false}
             disabled={gerando}
-            accessibilityRole="button"
+            onPress={gerar}
             accessibilityLabel="Tentar de novo gerar o código"
             testID="pareamento-tentar-de-novo"
-          >
-            <Icon name="refresh" size={20} color={colors.white} />
-            <Text style={styles.retryText}>Tentar de novo</Text>
-          </TouchableOpacity>
+          />
         </View>
       )}
 
       {mostrarCompartilhar && (
-        <TouchableOpacity
-          style={[styles.primary, !valido && styles.disabled]}
-          onPress={compartilhar}
+        <Button
+          title="Compartilhar código"
+          iconLeft="share"
+          variant="primary"
+          size="lg"
           disabled={!valido}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={compartilhar}
           accessibilityLabel="Compartilhar código"
-          accessibilityState={{ disabled: !valido }}
           testID="pareamento-compartilhar"
-        >
-          <Icon name="share" size={22} color={colors.white} />
-          <Text style={styles.primaryText}>Compartilhar código</Text>
-        </TouchableOpacity>
+        />
       )}
 
       {!erro && (
-        <TouchableOpacity
-          style={[styles.secondary, gerando && styles.disabled]}
-          onPress={gerar}
+        <Button
+          title={gerando ? 'Gerando...' : gerado ? 'Gerar novo código' : 'Gerar código'}
+          iconLeft="refresh"
+          variant="secondary"
+          size="lg"
+          loading={gerando}
           disabled={gerando}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          onPress={gerar}
           accessibilityLabel={gerado ? 'Gerar novo código' : 'Gerar código'}
-          accessibilityState={{ disabled: gerando, busy: gerando }}
           testID="pareamento-gerar-novo"
-        >
-          <Icon name="refresh" size={22} color={colors.primary} />
-          <Text style={styles.secondaryText}>
-            {gerando ? 'Gerando...' : gerado ? 'Gerar novo código' : 'Gerar código'}
-          </Text>
-        </TouchableOpacity>
+        />
       )}
     </View>
   );

@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boxActive: { borderColor: colors.primaryNavy },
-  boxError: { borderColor: colors.errorBright },
+  boxError: { borderColor: colors.error },
   digit: { fontSize: 32,  color: colors.primary, ...font('heading', 800) },
   hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: 'transparent' },
 });

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosLocationMap from '../components/SosLocationMap';
 import Icon from '../components/Icon';
+import Button from '../components/Button';
 import { colors, typography, shadows, font } from '../theme';
 import {
   AlarmeRecebido,
@@ -124,9 +125,14 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
           <View style={styles.erroBox} testID="sos-erro-carga">
             <Icon name="error" size={22} color={colors.coralDark} />
             <Text style={styles.erroTexto}>{erroCarga}</Text>
-            <TouchableOpacity style={styles.tentar} onPress={carregar} accessibilityRole="button" testID="sos-tentar-de-novo">
-              <Text style={styles.tentarTexto}>Tentar de novo</Text>
-            </TouchableOpacity>
+            <Button
+              title="Tentar de novo"
+              variant="secondary"
+              iconLeft="refresh"
+              fullWidth={false}
+              onPress={carregar}
+              testID="sos-tentar-de-novo"
+            />
           </View>
         ) : !alarme ? (
           <View style={styles.erroBox} testID="sos-sem-chamado">
@@ -189,29 +195,27 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
             ) : (
               <>
                 {Boolean(telefoneIdoso) && (
-                  <TouchableOpacity style={styles.ligar} onPress={ligarParaIdoso} accessibilityRole="button" testID="sos-ligar-idoso">
-                    <Icon name="call" size={22} color={colors.white} />
-                    <Text style={styles.botaoTexto}>Ligar para {alarme.idosoNome}</Text>
-                  </TouchableOpacity>
+                  <Button
+                    title={`Ligar para ${alarme.idosoNome}`}
+                    iconLeft="call"
+                    variant="sos"
+                    size="xl"
+                    onPress={ligarParaIdoso}
+                    testID="sos-ligar-idoso"
+                  />
                 )}
 
                 {alarme.status === 'DISPARADO' && (
-                  <TouchableOpacity
-                    style={[styles.assumir, enviando && styles.desabilitado]}
-                    onPress={assumir}
+                  <Button
+                    title="Estou a caminho"
+                    iconLeft="directions_car"
+                    variant="primary"
+                    size="xl"
+                    loading={enviando}
                     disabled={enviando}
-                    accessibilityRole="button"
+                    onPress={assumir}
                     testID="sos-assumir"
-                  >
-                    {enviando ? (
-                      <ActivityIndicator color={colors.white} />
-                    ) : (
-                      <>
-                        <Icon name="directions_car" size={22} color={colors.white} />
-                        <Text style={styles.botaoTexto}>Estou a caminho</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+                  />
                 )}
 
                 {euAssumi && emAtendimento && (
@@ -235,30 +239,26 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
                 )}
 
                 {euAssumi && emAtendimento && !escolhendoDesfecho && (
-                  <TouchableOpacity
-                    style={styles.secundario}
+                  <Button
+                    title="Encerrar chamado"
+                    variant="outline"
                     onPress={() => setEscolhendoDesfecho(true)}
-                    accessibilityRole="button"
                     testID="sos-encerrar"
-                  >
-                    <Text style={styles.secundarioTexto}>Encerrar chamado</Text>
-                  </TouchableOpacity>
+                  />
                 )}
 
                 {euAssumi && emAtendimento && escolhendoDesfecho && (
                   <View style={styles.desfechos} testID="sos-desfechos">
                     <Text style={styles.desfechoPergunta}>Como terminou?</Text>
                     {(Object.keys(ROTULOS_DESFECHO) as DesfechoSos[]).map((d) => (
-                      <TouchableOpacity
+                      <Button
                         key={d}
-                        style={[styles.secundario, enviando && styles.desabilitado]}
-                        onPress={() => encerrar(d)}
+                        title={ROTULOS_DESFECHO[d]}
+                        variant="outline"
                         disabled={enviando}
-                        accessibilityRole="button"
+                        onPress={() => encerrar(d)}
                         testID={`sos-desfecho-${d.toLowerCase()}`}
-                      >
-                        <Text style={styles.secundarioTexto}>{ROTULOS_DESFECHO[d]}</Text>
-                      </TouchableOpacity>
+                      />
                     ))}
                   </View>
                 )}
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   chip: { alignSelf: 'flex-start', minHeight: 28, paddingHorizontal: 12, borderRadius: 9999, justifyContent: 'center' },
   chipTexto: { fontSize: 14,  color: colors.white, ...font('body', 700) },
   heroTitulo: { fontSize: 28, lineHeight: 34,  color: colors.primary, ...font('heading', 800) },
-  heroTexto: { fontSize: 16, lineHeight: 24, color: colors.onSurface, ...font('body', 400) },
+  heroTexto: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },
   card: { backgroundColor: colors.white, borderRadius: 24, padding: 20, gap: 14, ...shadows.tier1 },
   semMapa: { height: 200, borderRadius: 20, backgroundColor: colors.peachBg, alignItems: 'center', justifyContent: 'center', gap: 8 },
   semMapaTexto: { fontSize: 18,  color: colors.coralDark, ...font('heading', 800) },

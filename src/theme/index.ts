@@ -13,37 +13,20 @@ export const colors = {
   navyDark: '#0F1E36',
   coralBright: '#FF6B5B',
 
-  /** @deprecated use colors.primary */
-  navy: '#072369',
-  /** @deprecated use colors.primaryNavy */
-  navyLight: '#253B80',
-
   // Brand & Core (canônicos §2.1–2.3)
   primary: '#072369',
   primaryNavy: '#253B80',
   primaryNavyDeep: '#1E306E',
-  /** @deprecated use colors.primaryNavy */
-  primaryContainer: '#253B80',
   onPrimary: '#FFFFFF',
 
   // Secondary & Urgent (coral reservado para SOS, urgência e alertas críticos)
   coral: '#FA5D4B',
   coralDark: '#B32A1E',
   coralPressed: '#8C120A',
-  /** @deprecated use colors.coralDark */
-  secondary: '#B32A1E',
-  /** @deprecated use colors.coral */
-  secondaryCoral: '#FA5D4B',
-  /** @deprecated use colors.coralBright */
-  secondaryCoralBright: '#FF6B5B',
-  /** @deprecated use colors.coral */
-  secondaryContainer: '#FF614F',
   onSecondary: '#FFFFFF',
 
   // Neutrals & Surfaces
   canvasBase: '#F8FAFC',
-  /** @deprecated use colors.surface */
-  canvasCard: '#FFFFFF',
   background: '#FAF8FF',
   surface: '#FFFFFF',
   surfaceSubtle: '#F1F4F9',
@@ -56,20 +39,12 @@ export const colors = {
 
   // Text & Content
   textPrimary: '#151B2A',
-  /** @deprecated use colors.textPrimary */
-  onSurface: '#151B2A',
   onSurfaceVariant: '#444651',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
-  /** @deprecated use colors.textMuted */
-  slate400: '#94A3B8',
-  /** @deprecated use colors.surfaceSubtle */
-  slate100: '#F1F5F9',
 
   // Borders & Dividers
   border: '#E2E8F0',
-  /** @deprecated use colors.border */
-  borderLight: '#E2E8F0',
   outline: '#757682',
   outlineVariant: '#C5C5D2',
 
@@ -135,8 +110,6 @@ export const colors = {
   successDark: '#047857',
   warning: '#F59E0B',
   error: '#BA1A1A',
-  /** @deprecated use colors.error */
-  errorBright: '#DC2626',
 };
 
 export const fonts = {
@@ -202,11 +175,6 @@ export function font(
 }
 
 export const typography: {
-  /** @deprecated use font('heading'|'body', weight) */
-  fontFamily: {
-    heading: string;
-    body: string;
-  };
   displayLg: TextStyle;
   headlineLg: TextStyle;
   headlineMd: TextStyle;
@@ -226,10 +194,6 @@ export const typography: {
   bodySmall?: TextStyle;
   labelMedium?: TextStyle;
 } = {
-  fontFamily: {
-    heading: fonts.heading[700],
-    body: fonts.body[400],
-  },
   displayLg: {
     fontSize: 34,
     lineHeight: 42,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
 import { MsIcon, MsIconDefinition } from 'material-symbols-react-native';
+import { colors } from '../theme';
 import {
   msFavorite,
   msFavoriteFill,
@@ -263,7 +264,7 @@ export interface IconProps {
 export default function Icon({
   name,
   size = 20,
-  color = '#072369',
+  color = colors.primary,
   style,
 }: IconProps) {
   const iconDefinition = ICON_MAP[name] || msHelp;

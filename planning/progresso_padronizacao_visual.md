@@ -147,3 +147,16 @@
   - `src/components/ComorbidityChip.tsx`: botão fechar → `<IconButton variant="ghost">` 48 px, chip com `minHeight: 48`, hex `21 → 0`, `fontSize < 14`: `1 → 0`.
 - **Pendências para próximas etapas:**
   - Etapa 6e: revisão das telas novas e componentes restantes.
+
+---
+
+## Etapa 6e — Revisão das telas novas e componentes restantes (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos atualizados:**
+  - `src/components/Icon.tsx` (`color = colors.primary`) e `src/screens/ElderlyModeScreen.tsx` (`sosInnerButton` sem `rgba` literal).
+  - `src/components/Checkbox.tsx` e `src/components/ToggleSwitch.tsx`: alvo `>= 48 dp` e tokens do tema.
+  - `src/screens/PremiumScreen.tsx`, `AlertsCenterScreen.tsx`, `SosReceivedScreen.tsx`, `DeleteAccountScreen.tsx`, `ElderlyDataScreen.tsx`, `ElderlyWatchScreen.tsx`, `RegisterElderlyScreen.tsx`, `ElderlyConnectedScreen.tsx`, `ElderlyEnterCodeScreen.tsx`, `ElderlyQrScanScreen.tsx`, `src/components/CodigoPareamentoPainel.tsx`, `QrScanner.tsx`, `PairingCodeInput.tsx`: botões migrados para `<Button>`/`<IconButton>`/`<ChoiceChip>`, inputs migrados para `<TextField>` e aliases `@deprecated` substituídos.
+  - `src/theme/index.ts`: removidos todos os aliases `@deprecated` sem uso (`navy`, `navyLight`, `primaryContainer`, `secondary`, `secondaryCoral`, `secondaryCoralBright`, `secondaryContainer`, `canvasCard`, `onSurface`, `slate400`, `slate100`, `borderLight`, `errorBright`, `typography.fontFamily`).
+- **Pendências para próximas etapas:**
+  - Etapa 7: guarda-corpo automático (`lint:estilo`).

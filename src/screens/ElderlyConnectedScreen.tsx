@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
-import { colors, typography, shadows, font } from '../theme';
+import Button from '../components/Button';
+import { colors, shadows, font } from '../theme';
 import { ResultadoPareamento, mensagemBoasVindas } from '../services/pareamentoService';
 
 export interface ElderlyConnectedScreenProps {
@@ -30,7 +31,7 @@ export default function ElderlyConnectedScreen({ onNavigate, pareamento }: Elder
 
         <View style={styles.card}>
           <View style={styles.row}>
-            <View style={[styles.rowIcon, { backgroundColor: colors.mintBg }]}>
+            <View style={[styles.rowIcon, { backgroundColor: colors.mint.background }]}>
               <Icon name="shield_check" size={22} color={colors.successDark} />
             </View>
             <View style={styles.rowTexts}>
@@ -49,17 +50,15 @@ export default function ElderlyConnectedScreen({ onNavigate, pareamento }: Elder
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.button}
+        <Button
+          title="Continuar"
+          iconLeft="arrow_forward"
+          variant="success"
+          size="xl"
           onPress={() => onNavigate('ElderlyData')}
-          activeOpacity={0.85}
-          accessibilityRole="button"
           accessibilityLabel="Continuar"
           testID="conectado-continuar"
-        >
-          <Icon name="arrow_forward" size={22} color={colors.white} />
-          <Text style={styles.buttonText}>Continuar</Text>
-        </TouchableOpacity>
+        />
       </ScrollView>
     </ScreenWrapper>
   );
@@ -89,7 +88,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     textAlign: 'center',
-    color: colors.onSurface,
+    color: colors.textPrimary,
     ...font('body', 400),
   },
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 20, gap: 20, ...shadows.tier1 },
