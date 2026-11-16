@@ -3,13 +3,14 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Linking,
 } from 'react-native';
 import Icon from './Icon';
-import { typography, font } from '../theme';
+import IconButton from './IconButton';
+import Button from './Button';
+import { colors, font, rounded, shadows } from '../theme';
 import { ScoreBemEstar, FaixaScore, ExplicacaoMotivo } from '../services/riskScoreService';
 
 export interface SemaforoMotivoModalProps {
@@ -21,8 +22,7 @@ export interface SemaforoMotivoModalProps {
 
 /**
  * Modal explicativo do Semáforo do Bem-Estar (HU-033 e RN-017).
- * Apresenta os motivos da classificação em linguagem simples,
- * recomendações e o aviso médico obrigatório.
+ * Exceção §2.10: mantém layout de card central com colors.overlay, tokens de raio e IconButton 48.
  */
 export default function SemaforoMotivoModal({
   visible,
@@ -59,13 +59,13 @@ export default function SemaforoMotivoModal({
               <View
                 style={[
                   styles.headerIconCircle,
-                  { backgroundColor: faixa.corFundo || '#E8F8F0' },
+                  { backgroundColor: faixa.corFundo || colors.mint.background },
                 ]}
               >
                 <Icon
                   name={faixa.icone || 'check'}
                   size={20}
-                  color={faixa.cor || '#10B981'}
+                  color={faixa.cor || colors.success}
                 />
               </View>
               <View>
@@ -74,33 +74,31 @@ export default function SemaforoMotivoModal({
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
+            <IconButton
+              icon="close"
+              variant="neutral"
               accessibilityLabel="Fechar modal de explicação do semáforo"
-              accessibilityRole="button"
-            >
-              <Icon name="close" size={22} color="#64748B" />
-            </TouchableOpacity>
+              onPress={onClose}
+            />
           </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollBody}
           >
-            {/* CARD DE SCORE E FAIXA (Contemporary Tactile) */}
+            {/* CARD DE SCORE E FAIXA */}
             <View
               style={[
                 styles.scoreBannerCard,
                 {
-                  backgroundColor: faixa.corFundo || '#E8F8F0',
-                  borderColor: faixa.corBorda || '#B8ECD3',
+                  backgroundColor: faixa.corFundo || colors.mint.background,
+                  borderColor: faixa.corBorda || colors.mint.border,
                 },
               ]}
             >
               <View style={styles.scoreRow}>
                 <View>
-                  <Text style={[styles.scoreBadgeTitle, { color: faixa.corTexto || '#003B26' }]}>
+                  <Text style={[styles.scoreBadgeTitle, { color: faixa.corTexto || colors.mint.textDark }]}>
                     {faixa.titulo || 'Estável'}
                   </Text>
                   <Text style={styles.scoreBadgeSub}>{faixa.statusGeral || 'Sinais Estáveis'}</Text>
@@ -108,7 +106,7 @@ export default function SemaforoMotivoModal({
                 <View
                   style={[
                     styles.scorePill,
-                    { backgroundColor: faixa.cor || '#10B981' },
+                    { backgroundColor: faixa.cor || colors.successDark },
                   ]}
                 >
                   <Text style={styles.scorePillText}>Score {scoreData.score ?? 18}</Text>
@@ -129,8 +127,8 @@ export default function SemaforoMotivoModal({
                     <View style={styles.fatorDot}>
                       <Icon
                         name={isCritico ? 'emergency' : isAtencao ? 'warning' : 'check'}
-                        size={14}
-                        color={faixa.cor || '#10B981'}
+                        size={16}
+                        color={faixa.cor || colors.successDark}
                       />
                     </View>
                     <Text style={styles.fatorText}>{fator}</Text>
@@ -150,7 +148,7 @@ export default function SemaforoMotivoModal({
                 <Icon
                   name={isCritico ? 'crisis_alert' : 'info'}
                   size={18}
-                  color={isCritico ? '#B51C13' : '#1E3A8A'}
+                  color={isCritico ? colors.coralDark : colors.primaryNavy}
                 />
                 <Text
                   style={[
@@ -165,22 +163,19 @@ export default function SemaforoMotivoModal({
 
             {/* BOTÃO LIGAR SAMU 192 (EM CASO CRÍTICO - RN-017 / HU-035) */}
             {isCritico && (
-              <TouchableOpacity
-                style={styles.botaoLigarEmergencia}
+              <Button
+                title="Ligar para o SAMU (192)"
                 onPress={handleLigarEmergencia}
-                activeOpacity={0.85}
-                accessibilityRole="button"
+                variant="sos"
+                iconLeft="call"
                 accessibilityLabel="Acionar SAMU 192"
-              >
-                <Icon name="call" size={20} color="#FFFFFF" />
-                <Text style={styles.botaoLigarEmergenciaText}>Ligar para o SAMU (192)</Text>
-              </TouchableOpacity>
+              />
             )}
 
             {/* AVISO MÉDICO OBRIGATÓRIO (RN-017) */}
             <View style={styles.avisoMedicoBox}>
               <View style={styles.avisoMedicoHeader}>
-                <Icon name="stethoscope" size={16} color="#92400E" />
+                <Icon name="stethoscope" size={16} color={colors.amber.textDark} />
                 <Text style={styles.avisoMedicoTitle}>Aviso Regulatório</Text>
               </View>
               <Text style={styles.avisoMedicoText}>
@@ -192,15 +187,12 @@ export default function SemaforoMotivoModal({
 
           {/* BOTÃO FECHAR */}
           <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <Button
+              title="Entendi"
               onPress={onClose}
-              activeOpacity={0.85}
-              accessibilityRole="button"
+              variant="primary"
               accessibilityLabel="Entendido, fechar detalhes do semáforo"
-            >
-              <Text style={styles.primaryButtonText}>Entendi</Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </View>
@@ -211,7 +203,7 @@ export default function SemaforoMotivoModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 23, 83, 0.45)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -219,15 +211,11 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 440,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.card,
     maxHeight: '85%',
     overflow: 'hidden',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
+    ...shadows.tier3,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -237,7 +225,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.surfaceSubtle,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -247,33 +235,26 @@ const styles = StyleSheet.create({
   headerIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: rounded.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    color: '#131E3D',
+    fontSize: 17,
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 400),
-  },
-  closeButton: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 24,
   },
   scrollBody: {
     padding: 20,
     gap: 16,
   },
   scoreBannerCard: {
-    borderRadius: 20,
+    borderRadius: rounded.xl,
     borderWidth: 1.5,
     padding: 16,
   },
@@ -287,19 +268,19 @@ const styles = StyleSheet.create({
     ...font('heading', 800),
   },
   scoreBadgeSub: {
-    fontSize: 13,
-    color: '#475569',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     marginTop: 2,
     ...font('body', 400),
   },
   scorePill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   scorePillText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: colors.white,
+    fontSize: 14,
     ...font('heading', 800),
   },
   section: {
@@ -307,18 +288,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
     ...font('body', 400),
   },
   fatoresContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: colors.canvasBase,
+    borderRadius: rounded.lg,
     padding: 14,
     gap: 10,
     marginTop: 4,
@@ -334,7 +315,7 @@ const styles = StyleSheet.create({
   fatorText: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.textPrimary,
     lineHeight: 20,
     ...font('body', 500),
   },
@@ -342,50 +323,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.lg,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.sky.border,
   },
   recomendacaoCardCritico: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
+    backgroundColor: colors.peach.background,
+    borderColor: colors.peach.border,
   },
   recomendacaoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#1E3A8A',
-    lineHeight: 18,
+    fontSize: 14,
+    color: colors.primaryNavy,
+    lineHeight: 20,
     ...font('body', 600),
   },
   recomendacaoTextCritico: {
-    color: '#B91C1C',
-  },
-  botaoLigarEmergencia: {
-    backgroundColor: '#B51C13',
-    height: 52,
-    borderRadius: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    shadowColor: '#B51C13',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  botaoLigarEmergenciaText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    ...font('heading', 700),
+    color: colors.error,
   },
   avisoMedicoBox: {
-    backgroundColor: '#FFF8E7',
-    borderRadius: 16,
+    backgroundColor: colors.amber.background,
+    borderRadius: rounded.lg,
     borderWidth: 1,
-    borderColor: '#FFE8B3',
+    borderColor: colors.amber.border,
     padding: 14,
     gap: 6,
   },
@@ -395,32 +357,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   avisoMedicoTitle: {
-    fontSize: 12,
-    color: '#92400E',
+    fontSize: 14,
+    color: colors.amber.textDark,
     ...font('heading', 700),
   },
   avisoMedicoText: {
-    fontSize: 12,
-    color: '#78350F',
-    lineHeight: 17,
+    fontSize: 14,
+    color: colors.amber.textDark,
+    lineHeight: 20,
     fontStyle: 'italic',
     ...font('body', 400),
   },
   modalFooter: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  primaryButton: {
-    height: 52,
-    backgroundColor: '#031753',
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    ...font('heading', 700),
+    borderTopColor: colors.surfaceSubtle,
   },
 });

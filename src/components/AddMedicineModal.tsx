@@ -3,18 +3,16 @@ import {
   StyleSheet,
   Text,
   View,
-  Modal,
-  TextInput,
   TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import Icon from './Icon';
 import Checkbox from './Checkbox';
-import { colors, typography, shadows, rounded, font } from '../theme';
+import ModalSheet from './ModalSheet';
+import TextField from './TextField';
+import Button from './Button';
+import { colors, rounded, font } from '../theme';
 import { RotinaMedicamento } from '../services/medicamentoService';
 import { formatarHorarioInput, normalizarHorario } from '../services/timeFormat';
 
@@ -155,346 +153,207 @@ export default function AddMedicineModal({
   if (!visible) return null;
 
   return (
-    <Modal
+    <ModalSheet
       visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.sheetContainer}>
-          {/* Header do Modal */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.iconCircle}>
-                <Icon name="medication" size={20} color={colors.primary} />
-              </View>
-              <Text style={styles.title}>
-                {isEditing ? 'Editar Medicamento' : 'Novo Medicamento'}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeBtn}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Mensagem de Erro */}
-          {Boolean(errorMessage) && (
-            <View style={styles.errorContainer}>
-              <Icon name="shield_alert" size={16} color={colors.secondaryCoral} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          )}
-
-          <ScrollView
-            style={styles.body}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.bodyContent}
-          >
-            {/* Campo: Nome do Medicamento */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>
-                Nome do Medicamento <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: Losartana Potássica"
-                placeholderTextColor={colors.textMuted}
-                value={nome}
-                onChangeText={(text) => {
-                  setNome(text);
-                  if (errorMessage) setErrorMessage('');
-                }}
-              />
-            </View>
-
-            {/* Campo: Dosagem e Formato */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>
-                Dosagem <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: 50mg • 1 comprimido ou 10ml"
-                placeholderTextColor={colors.textMuted}
-                value={dosagem}
-                onChangeText={(text) => {
-                  setDosagem(text);
-                  if (errorMessage) setErrorMessage('');
-                }}
-              />
-            </View>
-
-            {/* Seleção do Formato */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Formato do Medicamento</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsScroll}
-              >
-                {FORMAT_OPTIONS.map((opt) => {
-                  const isSelected = formato === opt.id;
-                  return (
-                    <TouchableOpacity
-                      key={opt.id}
-                      style={[
-                        styles.chip,
-                        isSelected && styles.chipActive,
-                      ]}
-                      onPress={() => setFormato(opt.id)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ marginRight: 6 }}>
-                        <Icon
-                          name={opt.icon}
-                          size={16}
-                          color={isSelected ? colors.primary : colors.textSecondary}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          styles.chipLabel,
-                          isSelected && styles.chipLabelActive,
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Horário de Ingestão */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>
-                Horário da Dose (HH:mm) <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="08:00"
-                placeholderTextColor={colors.textMuted}
-                value={horario}
-                keyboardType="numeric"
-                onChangeText={(text) => {
-                  const formatado = formatarHorarioInput(horario, text);
-                  setHorario(formatado);
-                  if (errorMessage) setErrorMessage('');
-                }}
-                maxLength={5}
-              />
-              {/* Chips rápidos de horários comuns */}
-              <View style={styles.quickTimesRow}>
-                {QUICK_TIMES.map((time) => (
-                  <TouchableOpacity
-                    key={time}
-                    style={[
-                      styles.quickTimeChip,
-                      horario === time && styles.quickTimeChipActive,
-                    ]}
-                    onPress={() => setHorario(time)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.quickTimeText,
-                        horario === time && styles.quickTimeTextActive,
-                      ]}
-                    >
-                      {time}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Frequência */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Frequência de Uso</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsScroll}
-              >
-                {FREQUENCY_OPTIONS.map((freq) => {
-                  const isSelected = frequencia === freq;
-                  return (
-                    <TouchableOpacity
-                      key={freq}
-                      style={[
-                        styles.chip,
-                        isSelected && styles.chipActive,
-                      ]}
-                      onPress={() => setFrequencia(freq)}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.chipLabel,
-                          isSelected && styles.chipLabelActive,
-                        ]}
-                      >
-                        {freq}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Instruções de Ingestão */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Instruções Clínicas</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: Tomar com água após o café da manhã"
-                placeholderTextColor={colors.textMuted}
-                value={instrucoes}
-                onChangeText={setInstrucoes}
-              />
-            </View>
-
-            {/* Observações Opcionais */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Observações (Opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Ex: Medir pressão antes de tomar. Não ingerir em jejum."
-                placeholderTextColor={colors.textMuted}
-                value={observacoes}
-                onChangeText={setObservacoes}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-
-            {/* Caixa do Termo de Responsabilidade (RN-004 e HU-056 Cenário 3) */}
-            <View style={styles.termoBox}>
-              <Checkbox
-                isChecked={termoAceito}
-                onToggle={() => {
-                  setTermoAceito((prev) => !prev);
-                  if (errorMessage) setErrorMessage('');
-                }}
-              >
-                <Text style={styles.termoText}>
-                  Declaro que as informações e dosagens cadastradas foram prescritas por profissional médico habilitado e assumo total responsabilidade pela sua exatidão.
-                </Text>
-              </Checkbox>
-            </View>
-
-            {/* Botões de Ação */}
-            <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  (!termoAceito || loading) && styles.saveButtonDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={!termoAceito || loading}
-                activeOpacity={0.85}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <View style={styles.buttonInnerRow}>
-                    <Icon name="check" size={16} color="#FFFFFF" />
-                    <Text style={styles.saveButtonText}>
-                      {isEditing ? 'Atualizar Medicamento' : 'Salvar Medicamento'}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {isEditing && (
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={handleDelete}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.buttonInnerRow}>
-                    <Icon name="delete" size={16} color={colors.secondaryCoral} />
-                    <Text style={styles.deleteButtonText}>Excluir Medicamento</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.cancelButton}
+      onClose={onClose}
+      title={isEditing ? 'Editar Medicamento' : 'Novo Medicamento'}
+      footer={
+        <View style={styles.footerContainer}>
+          <View style={styles.footerRow}>
+            <View style={styles.footerButtonCol}>
+              <Button
+                title="Cancelar"
                 onPress={onClose}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.cancelButtonText}>Voltar</Text>
-              </TouchableOpacity>
+                variant="secondary"
+                disabled={loading}
+              />
             </View>
-          </ScrollView>
+            <View style={styles.footerButtonCol}>
+              <Button
+                title={isEditing ? 'Atualizar' : 'Salvar'}
+                onPress={handleSave}
+                variant="primary"
+                iconLeft="check"
+                loading={loading}
+                disabled={!termoAceito || loading}
+              />
+            </View>
+          </View>
+          {isEditing ? (
+            <Button
+              title="Excluir Medicamento"
+              onPress={handleDelete}
+              variant="danger"
+              iconLeft="delete"
+              disabled={loading}
+            />
+          ) : null}
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      }
+    >
+      {Boolean(errorMessage) && (
+        <View style={styles.errorContainer}>
+          <Icon name="shield_alert" size={18} color={colors.peach.text} />
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      )}
+
+      <TextField
+        label="Nome do Medicamento *"
+        placeholder="Ex: Losartana Potássica"
+        value={nome}
+        onChangeText={(text) => {
+          setNome(text);
+          if (errorMessage) setErrorMessage('');
+        }}
+      />
+
+      <TextField
+        label="Dosagem *"
+        placeholder="Ex: 50mg • 1 comprimido ou 10ml"
+        value={dosagem}
+        onChangeText={(text) => {
+          setDosagem(text);
+          if (errorMessage) setErrorMessage('');
+        }}
+      />
+
+      {/* Seleção do Formato */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Formato do Medicamento</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScroll}
+        >
+          {FORMAT_OPTIONS.map((opt) => {
+            const isSelected = formato === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                style={[styles.chip, isSelected && styles.chipActive]}
+                onPress={() => setFormato(opt.id)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                <View style={{ marginRight: 6 }}>
+                  <Icon
+                    name={opt.icon}
+                    size={16}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
+                </View>
+                <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Horário de Ingestão */}
+      <View style={styles.fieldGroup}>
+        <TextField
+          label="Horário da Dose (HH:mm) *"
+          placeholder="08:00"
+          value={horario}
+          keyboardType="numeric"
+          onChangeText={(text) => {
+            const formatado = formatarHorarioInput(horario, text);
+            setHorario(formatado);
+            if (errorMessage) setErrorMessage('');
+          }}
+          maxLength={5}
+          style={{ marginBottom: 8 }}
+        />
+        <View style={styles.quickTimesRow}>
+          {QUICK_TIMES.map((time) => (
+            <TouchableOpacity
+              key={time}
+              style={[
+                styles.quickTimeChip,
+                horario === time && styles.quickTimeChipActive,
+              ]}
+              onPress={() => setHorario(time)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.quickTimeText,
+                  horario === time && styles.quickTimeTextActive,
+                ]}
+              >
+                {time}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Frequência */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Frequência de Uso</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScroll}
+        >
+          {FREQUENCY_OPTIONS.map((freq) => {
+            const isSelected = frequencia === freq;
+            return (
+              <TouchableOpacity
+                key={freq}
+                style={[styles.chip, isSelected && styles.chipActive]}
+                onPress={() => setFrequencia(freq)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>
+                  {freq}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <TextField
+        label="Instruções Clínicas"
+        placeholder="Ex: Tomar com água após o café da manhã"
+        value={instrucoes}
+        onChangeText={setInstrucoes}
+      />
+
+      <TextField
+        label="Observações (Opcional)"
+        placeholder="Ex: Medir pressão antes de tomar. Não ingerir em jejum."
+        value={observacoes}
+        onChangeText={setObservacoes}
+        multiline
+        numberOfLines={3}
+      />
+
+      {/* Caixa do Termo de Responsabilidade (RN-004 e HU-056 Cenário 3) */}
+      <View style={styles.termoBox}>
+        <Checkbox
+          isChecked={termoAceito}
+          onToggle={() => {
+            setTermoAceito((prev) => !prev);
+            if (errorMessage) setErrorMessage('');
+          }}
+        >
+          <Text style={styles.termoText}>
+            Declaro que as informações e dosagens cadastradas foram prescritas por profissional médico habilitado e assumo total responsabilidade pela sua exatidão.
+          </Text>
+        </Checkbox>
+      </View>
+    </ModalSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(7, 35, 105, 0.45)',
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: rounded.card,
-    borderTopRightRadius: rounded.card,
-    maxHeight: '90%',
-    paddingBottom: 24,
-    ...shadows.tier3,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.sky.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.sky.border,
-  },
-  title: {
-    fontSize: 18,
-    color: colors.primary,
-    ...font('heading', 800),
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -502,52 +361,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.peach.background,
     borderWidth: 1,
     borderColor: colors.peach.border,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: rounded.md,
+    marginBottom: 16,
+    borderRadius: rounded.input,
   },
   errorText: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.peach.textDark,
     flex: 1,
     ...font('body', 600),
-  },
-  body: {
-    paddingHorizontal: 20,
-  },
-  bodyContent: {
-    paddingTop: 16,
-    paddingBottom: 40,
   },
   fieldGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 13,
-    color: colors.primary,
-    marginBottom: 8,
-    ...font('heading', 700),
-  },
-  required: {
-    color: colors.secondaryCoral,
-  },
-  input: {
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: rounded.md,
-    paddingHorizontal: 14,
     fontSize: 14,
-    color: colors.onSurface,
-    backgroundColor: colors.surface,
-    ...font('body', 400),
-  },
-  textArea: {
-    height: 70,
-    paddingTop: 10,
-    textAlignVertical: 'top',
+    color: colors.textPrimary,
+    marginBottom: 8,
+    ...font('body', 600),
   },
   chipsScroll: {
     gap: 8,
@@ -556,6 +388,7 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
     backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
     borderColor: colors.border,
@@ -568,7 +401,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
     ...font('body', 600),
   },
@@ -579,23 +412,25 @@ const styles = StyleSheet.create({
   quickTimesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
+    gap: 8,
   },
   quickTimeChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    minHeight: 48,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: rounded.sm,
     backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
     borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quickTimeChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   quickTimeText: {
-    fontSize: 11,
+    fontSize: 14,
     color: colors.textSecondary,
     ...font('body', 600),
   },
@@ -603,76 +438,29 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
     ...font('body', 700),
   },
-  actionButtonsContainer: {
-    marginTop: 20,
-    gap: 10,
-  },
-  saveButton: {
-    height: 52,
-    backgroundColor: colors.secondaryCoral,
-    borderRadius: rounded.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.tier2,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    opacity: 0.65,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
   termoBox: {
     backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: rounded.card,
+    borderColor: colors.border,
+    borderRadius: rounded.lg,
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 10,
-    marginBottom: 4,
+    paddingVertical: 8,
+    marginTop: 4,
   },
   termoText: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
     ...font('body', 400),
   },
-  buttonInnerRow: {
+  footerContainer: {
+    gap: 10,
+  },
+  footerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap: 12,
   },
-  saveButtonText: {
-    fontSize: 15,
-    color: colors.onPrimary,
-    ...font('heading', 700),
-  },
-  deleteButton: {
-    height: 48,
-    backgroundColor: colors.peach.background,
-    borderWidth: 1.5,
-    borderColor: colors.peach.border,
-    borderRadius: rounded.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 14,
-    color: colors.secondaryCoral,
-    ...font('heading', 700),
-  },
-  cancelButton: {
-    height: 48,
-    backgroundColor: colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: rounded.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    ...font('body', 600),
+  footerButtonCol: {
+    flex: 1,
   },
 });

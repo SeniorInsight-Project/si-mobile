@@ -74,3 +74,20 @@
 - **O que foi feito:** todos os hex/rgba substituídos por tokens do `src/theme`, CTAs migrados para `<Button variant="primary" size="lg">`, links para `<Button variant="ghost">`, voltar para `<IconButton>`, botão do idoso mantido em `variant="success" size="xl"`, títulos unificados em `typography.headlineLg` (26 px), nenhum texto < 14 px e nenhum `borderRadius` literal.
 - **Pendências para próximas etapas:**
   - Etapa 5: migrar os 8 modais para `<ModalSheet>` e componentes base.
+
+---
+
+## Etapa 5 — Modais (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos migrados:**
+  - `src/components/InviteMemberModal.tsx`
+  - `src/components/InviteDoctorModal.tsx`
+  - `src/components/AddMedicineModal.tsx`
+  - `src/components/AddComorbidityModal.tsx`
+  - `src/components/DeviceStatusModal.tsx`
+  - `src/components/SemaforoMotivoModal.tsx` (exceção §2.10: card central com `colors.overlay`, `rounded.card` e `IconButton` 48 px)
+  - `src/components/SosActiveModal.tsx` (exceção §2.10: tela cheia de emergência; "Ligar" em `primary`/`sos` `xl`, "Foi engano" em `outline` `xl`, sem alterar temporizadores)
+  - Modal de novo contato em `src/screens/EmergencyContactsScreen.tsx` (o restante da tela permanece para a Etapa 6c)
+- **Pendências para próximas etapas:**
+  - Etapas 6a–6e: migração das telas principais e componentes restantes.

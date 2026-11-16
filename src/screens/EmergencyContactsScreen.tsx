@@ -5,12 +5,9 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Alert,
   ActivityIndicator,
   Linking,
-  Modal,
-  KeyboardAvoidingView,
   Platform,
   PanResponder,
   LayoutAnimation,
@@ -23,6 +20,9 @@ import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
+import ModalSheet from '../components/ModalSheet';
+import TextField from '../components/TextField';
+import Button from '../components/Button';
 import { colors, typography, rounded, shadows, font } from '../theme';
 import {
   validarTelefone,
@@ -637,138 +637,82 @@ export default function EmergencyContactsScreen({
       </ScrollView>
 
       {/* MODAL DE NOVO CONTATO DE EMERGÊNCIA */}
-      <Modal
+      <ModalSheet
         visible={modalNovoContatoVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalNovoContatoVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeaderRow}>
-              <View style={styles.modalHeaderTitles}>
-                <Text style={styles.modalHeaderTitle}>Novo Contato de Emergência</Text>
-                <Text style={styles.modalHeaderSubtitle}>Adicione um familiar ou cuidador à cadeia SOS</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
+        onClose={() => setModalNovoContatoVisible(false)}
+        title="Novo Contato de Emergência"
+        subtitle="Adicione um familiar ou cuidador à cadeia SOS"
+        footer={
+          <View style={styles.modalButtonsRow}>
+            <View style={styles.modalButtonCol}>
+              <Button
+                title="Cancelar"
                 onPress={() => setModalNovoContatoVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Icon name="close" size={18} color="#64748B" />
-              </TouchableOpacity>
+                variant="secondary"
+                disabled={submitting}
+              />
             </View>
+            <View style={styles.modalButtonColPrimary}>
+              <Button
+                title="Salvar Contato"
+                onPress={handleAdicionarContato}
+                variant="primary"
+                iconLeft="add"
+                loading={submitting}
+                disabled={submitting}
+              />
+            </View>
+          </View>
+        }
+      >
+        <TextField
+          label="Nome Completo *"
+          icon="person"
+          placeholder="Ex: Mariana Silva"
+          value={nome}
+          onChangeText={setNome}
+        />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Campo Nome */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nome Completo *</Text>
-                <View style={styles.inputBox}>
-                  <Icon name="person" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ex: Mariana Silva"
-                    placeholderTextColor={colors.textMuted}
-                    value={nome}
-                    onChangeText={setNome}
-                  />
-                </View>
-              </View>
+        <TextField
+          label="Telefone Celular / WhatsApp *"
+          icon="phone"
+          placeholder="(11) 98765-4321"
+          keyboardType="phone-pad"
+          value={telefone}
+          onChangeText={(t) => {
+            if (erroTelefone) setErroTelefone(null);
+            handleTelefoneChange(t);
+          }}
+          error={erroTelefone || undefined}
+          testID="input-telefone-contato"
+        />
 
-              {/* Campo Telefone */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Telefone Celular / WhatsApp *</Text>
-                <View style={styles.inputBox}>
-                  <Icon name="phone" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="(11) 98765-4321"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                    value={telefone}
-                    onChangeText={(t) => {
-                      if (erroTelefone) setErroTelefone(null);
-                      handleTelefoneChange(t);
-                    }}
-                    testID="input-telefone-contato"
-                  />
-                </View>
-                {erroTelefone ? (
-                  <Text style={{ color: colors.coral, fontSize: 12, marginTop: 4, ...font('body', 600) }} testID="msg-erro-telefone">
-                    {erroTelefone}
-                  </Text>
-                ) : null}
-              </View>
-
-              {/* Seletor de Parentesco */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Grau de Parentesco / Vínculo</Text>
-                <View style={styles.chipsContainer}>
-                  {PARENTESCO_OPCOES.map((opcao) => {
-                    const isSelected = parentesco === opcao;
-                    return (
-                      <TouchableOpacity
-                        key={opcao}
-                        style={[
-                          styles.chip,
-                          isSelected && styles.chipSelected,
-                        ]}
-                        onPress={() => setParentesco(opcao)}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            isSelected && styles.chipTextSelected,
-                          ]}
-                        >
-                          {opcao}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Botões do Modal */}
-              <View style={styles.modalButtonsRow}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Grau de Parentesco / Vínculo</Text>
+          <View style={styles.chipsContainer}>
+            {PARENTESCO_OPCOES.map((opcao) => {
+              const isSelected = parentesco === opcao;
+              return (
                 <TouchableOpacity
-                  style={styles.modalCancelBtn}
-                  onPress={() => setModalNovoContatoVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalCancelBtnText}>Cancelar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.submitButton,
-                    { flex: 1, marginTop: 0 },
-                    submitting && { opacity: 0.7 },
-                  ]}
-                  onPress={handleAdicionarContato}
-                  disabled={submitting}
+                  key={opcao}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => setParentesco(opcao)}
                   activeOpacity={0.85}
                 >
-                  {submitting ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <>
-                      <Icon name="add" size={18} color={colors.white} style={{ marginRight: 6 }} />
-                      <Text style={styles.submitButtonText}>
-                        Salvar Contato
-                      </Text>
-                    </>
-                  )}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextSelected,
+                    ]}
+                  >
+                    {opcao}
+                  </Text>
                 </TouchableOpacity>
-              </View>
-            </ScrollView>
+              );
+            })}
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </View>
+      </ModalSheet>
 
       <BottomNavBar currentScreen="ElderlyMode" onNavigate={onNavigate} />
     </ScreenWrapper>
@@ -1226,64 +1170,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: 16,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalHeaderTitles: {
-    flex: 1,
-  },
-  modalHeaderTitle: {
-    fontSize: 16,
-    color: colors.navy,
-    ...font('heading', 800),
-  },
-  modalHeaderSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
   modalButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginTop: 16,
   },
-  modalCancelBtn: {
-    height: 52,
-    paddingHorizontal: 20,
-    borderRadius: rounded.button,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
+  modalButtonCol: {
+    flex: 1,
   },
-  modalCancelBtnText: {
-    fontSize: 14,
-    ...font('body', 600),
-    color: colors.textSecondary,
+  modalButtonColPrimary: {
+    flex: 1.4,
   },
 });
