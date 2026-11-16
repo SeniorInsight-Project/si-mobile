@@ -41,3 +41,19 @@
   - `scripts/codemod-fontes.mjs`: codemod AST em TypeScript que transformou 522 estilos em 48 arquivos `.tsx` (23 aproximações de peso anotadas, 0 casos ambíguos), adicionando `import { font } from '.../theme'`.
 - **Pendências para próximas etapas:**
   - Etapa 3: criar componentes base (`Button`, `IconButton`, `ModalSheet`, `TextField`).
+
+---
+
+## Etapa 3 — Componentes base (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos criados/alterados:**
+  - `src/components/buttonStyles.ts`: resolução pura de variantes (`primary`, `secondary`, `outline`, `ghost`, `danger`, `sos`, `success`), tamanhos (`md` 52, `lg` 56, `xl` 64, `ghost` >= 48) e estado `disabled` (`opacity: 0.5`).
+  - `src/components/Button.tsx`: botão em pílula (`rounded.full`), `activeOpacity: 0.85`, `accessibilityRole="button"`, suporte a `loading` sem perder largura, `iconLeft`/`iconRight`.
+  - `src/components/IconButton.tsx`: botão somente ícone `48×48` (`sizes.iconButton`), variantes `neutral`, `primary`, `danger`, `ghost`, `accessibilityLabel` obrigatório.
+  - `src/components/ModalSheet.tsx`: folha inferior padrão com `colors.overlay`, `rounded.sheet`, `shadows.tier3`, `IconButton` de fechar 48 px, `ScrollView`, `KeyboardAvoidingView` no iOS e `SafeAreaView`.
+  - `src/components/TextField.tsx`: campo de texto `52 dp` (`multiline` `minHeight: 96`), `rounded.input`, borda 1.5 (`colors.border` / foco `colors.primary` / erro `colors.error`), label `14 px` e texto `16 px`.
+  - `src/components/InputField.tsx`: mantido como re-export de `TextField` para preservar `RegisterElderlyScreen`.
+  - `src/services/__tests__/buttonStyles.test.ts`: testes de contraste WCAG AA (`>= 4.5:1`), alturas e comportamento de `disabled`.
+- **Pendências para próximas etapas:**
+  - Etapa 4: migrar as 7 telas de autenticação e onboarding.
