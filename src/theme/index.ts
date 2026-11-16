@@ -1,37 +1,47 @@
-import { TextStyle } from 'react-native';
+import type { TextStyle } from 'react-native';
 
 /**
  * SeniorInsight Design System Tokens
- * Conforme especificação em DESIGN.md
+ * Referência consolidada na Etapa 1 da padronização visual (planning/plano_padronizacao_visual.md).
+ * Nota: DESIGN.md não existe neste repositório; até decisão em contrário, este arquivo é a fonte da verdade.
  */
 
 export const colors = {
-  // Básicos & Aliases Diretos
+  // Básicos
   white: '#FFFFFF',
   black: '#000000',
-  navy: '#072369',
   navyDark: '#0F1E36',
-  navyLight: '#253B80',
-  coral: '#FA5D4B',
-  coralDark: '#B32A1E',
   coralBright: '#FF6B5B',
 
-  // Brand & Core
+  /** @deprecated use colors.primary */
+  navy: '#072369',
+  /** @deprecated use colors.primaryNavy */
+  navyLight: '#253B80',
+
+  // Brand & Core (canônicos §2.1–2.3)
   primary: '#072369',
   primaryNavy: '#253B80',
   primaryNavyDeep: '#1E306E',
+  /** @deprecated use colors.primaryNavy */
   primaryContainer: '#253B80',
   onPrimary: '#FFFFFF',
 
-  // Secondary & Urgent
+  // Secondary & Urgent (coral reservado para SOS, urgência e alertas críticos)
+  coral: '#FA5D4B',
+  coralDark: '#B32A1E',
+  /** @deprecated use colors.coralDark */
   secondary: '#B32A1E',
+  /** @deprecated use colors.coral */
   secondaryCoral: '#FA5D4B',
+  /** @deprecated use colors.coralBright */
   secondaryCoralBright: '#FF6B5B',
+  /** @deprecated use colors.coral */
   secondaryContainer: '#FF614F',
   onSecondary: '#FFFFFF',
 
   // Neutrals & Surfaces
   canvasBase: '#F8FAFC',
+  /** @deprecated use colors.surface */
   canvasCard: '#FFFFFF',
   background: '#FAF8FF',
   surface: '#FFFFFF',
@@ -39,37 +49,46 @@ export const colors = {
   surfaceContainer: '#E9EDFF',
   surfaceContainerLow: '#F2F3FF',
   surfaceContainerHigh: '#E2E8FC',
+  infoSurface: '#EBF5FF',
+  overlay: 'rgba(7, 35, 105, 0.45)',
+  disabled: '#CBD5E1',
 
   // Text & Content
+  textPrimary: '#151B2A',
+  /** @deprecated use colors.textPrimary */
   onSurface: '#151B2A',
   onSurfaceVariant: '#444651',
-  textPrimary: '#151B2A',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
+  /** @deprecated use colors.textMuted */
   slate400: '#94A3B8',
+  /** @deprecated use colors.surfaceSubtle */
   slate100: '#F1F5F9',
 
   // Borders & Dividers
   border: '#E2E8F0',
+  /** @deprecated use colors.border */
   borderLight: '#E2E8F0',
   outline: '#757682',
   outlineVariant: '#C5C5D2',
 
-  // Functional Pastels (Objetos + Aliases Planos para compatibilidade total)
+  // Functional Pastels (Objetos + Aliases Planos sincronizados, todos >= 4.5:1 WCAG AA sobre .background)
   mint: {
     background: '#E8F8F0',
     border: '#B8ECD3',
-    text: '#059669',
+    // #047857 atinge 4.99:1 sobre #E8F8F0 (o anterior #059669 tinha 3.43:1, reprovado em AA)
+    text: '#047857',
     textDark: '#003119',
   },
   mintBg: '#E8F8F0',
   mintBorder: '#B8ECD3',
-  mintText: '#059669',
+  mintText: '#047857',
 
   peach: {
     background: '#FFEBE5',
     border: '#FFCDC2',
-    text: '#E11D48',
+    // #991B1B atinge 7.23:1 sobre #FFEBE5 e resolve a divergência peach.text (#E11D48, 4.09:1) x peachText (#991B1B)
+    text: '#991B1B',
     textDark: '#650001',
   },
   peachBg: '#FFEBE5',
@@ -79,26 +98,29 @@ export const colors = {
   sky: {
     background: '#E6F3FA',
     border: '#C4E4F5',
-    text: '#0284C7',
+    // #0369A1 atinge 5.25:1 sobre #E6F3FA (o anterior #0284C7 tinha 3.62:1, reprovado em AA)
+    text: '#0369A1',
     textDark: '#0369A1',
   },
   skyBg: '#E6F3FA',
   skyBorder: '#C4E4F5',
-  skyText: '#0284C7',
+  skyText: '#0369A1',
 
   amber: {
     background: '#FFF8E7',
     border: '#FFE8B3',
-    text: '#D97706',
+    // #92400E atinge 6.70:1 sobre #FFF8E7 (o anterior #D97706 tinha 3.01:1, reprovado em AA)
+    text: '#92400E',
     textDark: '#78350F',
   },
   amberBg: '#FFF8E7',
   amberBorder: '#FFE8B3',
-  amberText: '#D97706',
+  amberText: '#92400E',
 
   lavender: {
     background: '#F0EEFC',
     border: '#D9D4F8',
+    // #7C3AED atinge 4.98:1 sobre #F0EEFC (WCAG AA)
     text: '#7C3AED',
     textDark: '#4C1D95',
   },
@@ -108,9 +130,11 @@ export const colors = {
 
   // Status & Feedback
   success: '#10B981',
-  successDark: '#059669',
+  // #047857 atinge 5.48:1 com texto branco (o anterior #059669 tinha 3.77:1, reprovado em AA)
+  successDark: '#047857',
   warning: '#F59E0B',
   error: '#BA1A1A',
+  /** @deprecated use colors.error */
   errorBright: '#DC2626',
 };
 
@@ -183,14 +207,16 @@ export const typography: {
     lineHeight: 20,
   },
   labelMd: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   labelSm: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 18,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   metricDisplay: {
     fontSize: 28,
@@ -200,15 +226,16 @@ export const typography: {
 };
 
 export const rounded = {
-  sm: 10,      // Micro-elementos, checkboxes, tags inline
-  md: 14,      // Inputs, pequenos botões
-  button: 14,  // Botões padrão
-  input: 14,   // Campos de texto
-  lg: 16,      // Cards médios, caixas de diálogo
-  xl: 20,      // Dashboard tiles, modal sheet
-  card: 24,    // Cards principais
-  pill: 28,    // Botões pill
-  full: 9999,  // Botões circulares, chips, avatares
+  sm: 8,       // Tag, micro-elementos, checkboxes
+  md: 14,      // Input, elementos médios
+  button: 14,  // Botão legado (novos botões usam rounded.full em pílula)
+  input: 14,   // Input (TextField)
+  lg: 16,      // Card médio, caixa de diálogo
+  xl: 20,      // Folha inferior de modal e tiles de dashboard
+  sheet: 20,   // Folha de modal (igual a rounded.xl)
+  card: 24,    // Card principal
+  pill: 28,    // Pílula de destaque e badges grandes
+  full: 9999,  // Pílula de botão, chip, avatar circular
 };
 
 export const shadows = {
@@ -220,26 +247,44 @@ export const shadows = {
     elevation: 0,
   },
   tier1: {
-    shadowColor: '#0F172A',
+    shadowColor: '#072369',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   tier2: {
-    shadowColor: '#0F172A',
+    shadowColor: '#072369',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.09,
     shadowRadius: 12,
     elevation: 3,
   },
   tier3: {
-    shadowColor: '#0F172A',
+    shadowColor: '#072369',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.14,
     shadowRadius: 20,
     elevation: 6,
   },
+  sos: {
+    shadowColor: '#FA5D4B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+};
+
+export const sizes = {
+  touchMin: 48,
+  button: {
+    md: 52,
+    lg: 56,
+    xl: 64,
+  },
+  iconButton: 48,
+  input: 52,
 };
 
 export default {
@@ -247,4 +292,5 @@ export default {
   typography,
   rounded,
   shadows,
+  sizes,
 };
