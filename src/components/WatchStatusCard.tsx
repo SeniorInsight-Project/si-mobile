@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import type { StatusRelogioIdoso } from '../services/relogioStatusService';
-import { typography, shadows, font } from '../theme';
+import { colors, font, rounded, shadows } from '../theme';
 
 export interface WatchStatusCardProps {
   status: StatusRelogioIdoso | null;
@@ -33,7 +33,7 @@ export default function WatchStatusCard({ status, onPress }: WatchStatusCardProp
       testID="watch-status-card"
     >
       <View style={[styles.iconCircle, { backgroundColor: status.cor }]}>
-        <Icon name={status.icone} size={26} color="#FFFFFF" />
+        <Icon name={status.icone} size={26} color={colors.white} />
       </View>
 
       <View style={styles.textContainer}>
@@ -45,10 +45,20 @@ export default function WatchStatusCard({ status, onPress }: WatchStatusCardProp
         </View>
 
         {/* Texto grande conforme HU-025 e RNF-006 (>= 18sp) */}
-        <Text style={[styles.title, { color: status.funcionando ? '#065F46' : '#92400E' }]}>
+        <Text
+          style={[
+            styles.title,
+            { color: status.funcionando ? colors.mint.textDark : colors.amber.textDark },
+          ]}
+        >
           {status.titulo}
         </Text>
-        <Text style={[styles.subtitle, { color: status.funcionando ? '#047857' : '#B45309' }]}>
+        <Text
+          style={[
+            styles.subtitle,
+            { color: status.funcionando ? colors.mint.text : colors.amber.textDark },
+          ]}
+        >
           {status.subtitulo}
         </Text>
       </View>
@@ -56,7 +66,7 @@ export default function WatchStatusCard({ status, onPress }: WatchStatusCardProp
       <Icon
         name="chevron_right"
         size={22}
-        color={status.funcionando ? '#047857' : '#B45309'}
+        color={status.funcionando ? colors.mint.text : colors.amber.textDark}
       />
     </TouchableOpacity>
   );
@@ -65,7 +75,7 @@ export default function WatchStatusCard({ status, onPress }: WatchStatusCardProp
 const styles = StyleSheet.create({
   card: {
     minHeight: 74,
-    borderRadius: 24,
+    borderRadius: rounded.card,
     borderWidth: 1.5,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -78,7 +88,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: rounded.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -94,10 +104,10 @@ const styles = StyleSheet.create({
   liveDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: rounded.full,
   },
   badgeLabel: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('body', 700),
     letterSpacing: 0.8,
   },
@@ -107,7 +117,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     ...font('body', 400),
     marginTop: 2,
   },

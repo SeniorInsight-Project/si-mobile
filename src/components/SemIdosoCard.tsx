@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Icon from './Icon';
-import { colors, typography, shadows, font } from '../theme';
+import Button from './Button';
+import { colors, font, rounded, shadows } from '../theme';
 
 export interface SemIdosoCardProps {
   onNavigate?: (screen: string) => void;
@@ -26,25 +27,19 @@ export default function SemIdosoCard({
 
       {onNavigate && (
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.primaryButton}
+          <Button
+            title="Cadastrar idoso"
             onPress={() => onNavigate('RegisterElderly')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
+            variant="primary"
+            iconLeft="person_add"
             testID="btn-cadastrar-idoso-vazio"
-          >
-            <Icon name="person_add" size={18} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Cadastrar idoso</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
+          <Button
+            title="Ir para o início"
             onPress={() => onNavigate('Home')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-          >
-            <Text style={styles.secondaryButtonText}>Ir para o início</Text>
-          </TouchableOpacity>
+            variant="ghost"
+          />
         </View>
       )}
     </View>
@@ -53,21 +48,21 @@ export default function SemIdosoCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.lg,
     padding: 24,
     alignItems: 'center',
     marginHorizontal: 16,
     marginVertical: 24,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     ...shadows.tier1,
   },
   iconCircle: {
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.skyBg,
+    borderRadius: rounded.full,
+    backgroundColor: colors.sky.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -90,32 +85,5 @@ const styles = StyleSheet.create({
   actions: {
     width: '100%',
     gap: 12,
-  },
-  primaryButton: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    ...font('body', 600),
-  },
-  secondaryButton: {
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  secondaryButtonText: {
-    color: colors.primary,
-    fontSize: 15,
-    ...font('body', 600),
   },
 });

@@ -9,7 +9,8 @@ import {
   PanResponder,
 } from 'react-native';
 import Icon from './Icon';
-import { typography, font } from '../theme';
+import IconButton from './IconButton';
+import { colors, font, rounded, shadows, sizes } from '../theme';
 import {
   obterLocalizacaoAtual,
   DEFAULT_COORDS,
@@ -186,7 +187,7 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
           <View style={styles.radarInnerCircle} />
           <View style={styles.elderlyMapPinWrapper}>
             <View style={styles.elderlyMapPin}>
-              <Icon name="person" size={24} color="#FFFFFF" />
+              <Icon name="person" size={24} color={colors.white} />
             </View>
             <View style={styles.pinBaseShadow} />
           </View>
@@ -201,7 +202,7 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
       {/* Barra Branca de Endereço Sobreposta dentro do Mapa */}
       <View style={styles.mapAddressBar}>
         <View style={styles.addressLeft}>
-          <Icon name="shield_check" size={18} color="#059669" />
+          <Icon name="shield_check" size={18} color={colors.successDark} />
           <View style={{ marginLeft: 8, flex: 1 }}>
             <Text style={styles.addressText} numberOfLines={1}>
               {addressTitle}
@@ -211,18 +212,18 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
             </Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={styles.targetButton}
-          activeOpacity={0.8}
-          onPress={atualizarPosicao}
-          disabled={loadingGps}
-        >
-          {loadingGps ? (
-            <ActivityIndicator size="small" color="#031753" />
-          ) : (
-            <Icon name="my_location" size={16} color="#031753" />
-          )}
-        </TouchableOpacity>
+        {loadingGps ? (
+          <View style={styles.targetLoading}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        ) : (
+          <IconButton
+            icon="my_location"
+            variant="neutral"
+            accessibilityLabel="Atualizar localização"
+            onPress={atualizarPosicao}
+          />
+        )}
       </View>
     </View>
   );
@@ -230,9 +231,9 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
 
 const styles = StyleSheet.create({
   mapVisualContainer: {
-    height: 196,
-    backgroundColor: '#E8F1F5',
-    borderRadius: 24,
+    height: 204,
+    backgroundColor: colors.sky.background,
+    borderRadius: rounded.card,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 54,
+    bottom: 62,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 6,
@@ -278,9 +279,10 @@ const styles = StyleSheet.create({
     width: RADAR_BOX_SIZE,
     height: RADAR_BOX_SIZE,
     borderRadius: RADAR_BOX_SIZE / 2,
-    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    backgroundColor: colors.success,
+    opacity: 0.16,
     borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.45)',
+    borderColor: colors.mint.border,
   },
   radarInnerCircle: {
     position: 'absolute',
@@ -288,8 +290,9 @@ const styles = StyleSheet.create({
     left: (RADAR_BOX_SIZE - 62) / 2,
     width: 62,
     height: 62,
-    borderRadius: 31,
-    backgroundColor: 'rgba(16, 185, 129, 0.26)',
+    borderRadius: rounded.full,
+    backgroundColor: colors.success,
+    opacity: 0.26,
   },
   elderlyMapPinWrapper: {
     alignItems: 'center',
@@ -299,39 +302,41 @@ const styles = StyleSheet.create({
   elderlyMapPin: {
     width: 46,
     height: 46,
-    borderRadius: 23,
-    backgroundColor: '#031753',
+    borderRadius: rounded.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     overflow: 'hidden',
   },
   elderlyPinAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: rounded.full,
   },
   pinBaseShadow: {
     width: 16,
     height: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(3, 23, 83, 0.3)',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.primary,
+    opacity: 0.3,
     marginTop: 2,
   },
   osmAttributionBadge: {
     position: 'absolute',
     top: 8,
     right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.78)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: rounded.sm,
     zIndex: 8,
   },
   osmAttributionText: {
-    fontSize: 9,
-    color: '#475467',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     ...font('body', 600),
   },
   mapAddressBar: {
@@ -339,18 +344,16 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: 10,
     right: 10,
-    height: 54,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    minHeight: 62,
+    backgroundColor: colors.surface,
+    borderRadius: rounded.lg,
     paddingHorizontal: 12,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 6,
+    gap: 8,
+    ...shadows.tier2,
     zIndex: 10,
   },
   addressLeft: {
@@ -359,22 +362,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressText: {
-    fontSize: 13,
-    color: '#131E3D',
+    fontSize: 14,
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   safeZoneText: {
-    fontSize: 11,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     ...font('body', 600),
   },
-  targetButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F2F4F7',
+  targetLoading: {
+    width: sizes.iconButton,
+    height: sizes.iconButton,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
 });

@@ -42,7 +42,8 @@ import {
   obterDireitoPremium,
 } from '../services/premiumService';
 import SemaforoMotivoModal from '../components/SemaforoMotivoModal';
-import { colors, typography, font } from '../theme';
+import Button from '../components/Button';
+import { colors, font, rounded, shadows, typography } from '../theme';
 
 function calcularIdade(dataNascimento?: string): number | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataNascimento || '');
@@ -237,7 +238,7 @@ export default function HomeScreen({
               }
 
               Alert.alert(
-                'Comando Assumido! 🚨',
+                'Comando Assumido!',
                 `Você assumiu o socorro de ${nomeIdoso}. Escolha a ação imediata:`,
                 [
                   {
@@ -315,7 +316,7 @@ export default function HomeScreen({
         showsVerticalScrollIndicator={false}
       >
         {loadingIdosos ? (
-          <ActivityIndicator color="#031753" size="small" style={{ marginVertical: 24 }} />
+          <ActivityIndicator color={colors.primary} size="small" style={{ marginVertical: 24 }} />
         ) : idosos.length === 0 ? (
           <SemIdosoCard onNavigate={onNavigate} />
         ) : (
@@ -330,13 +331,13 @@ export default function HomeScreen({
             accessibilityRole="button"
           >
             <View style={styles.dataLossIconCircle}>
-              <Icon name="warning" size={20} color="#B51C13" />
+              <Icon name="warning" size={20} color={colors.coralDark} />
             </View>
             <View style={styles.dataLossTextWrapper}>
               <Text style={styles.dataLossTitle}>Aviso de Conexão</Text>
               <Text style={styles.dataLossMessage}>{perdaDados.mensagem}</Text>
             </View>
-            <Icon name="chevron_right" size={20} color="#B51C13" />
+            <Icon name="chevron_right" size={20} color={colors.coralDark} />
           </TouchableOpacity>
         )}
 
@@ -353,8 +354,8 @@ export default function HomeScreen({
             >
               <View style={styles.elderlyLeft}>
                 <View style={styles.avatarContainer}>
-                  <View style={[styles.elderlyAvatar, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Icon name="person" size={26} color="#031753" />
+                  <View style={[styles.elderlyAvatar, { backgroundColor: colors.infoSurface, justifyContent: 'center', alignItems: 'center' }]}>
+                    <Icon name="person" size={26} color={colors.primary} />
                   </View>
                   <View style={styles.onlineBadgeDot} />
                 </View>
@@ -384,12 +385,12 @@ export default function HomeScreen({
                   <Icon
                     name="wifi"
                     size={13}
-                    color={perdaDados?.semDados ? '#D97706' : '#10B981'}
+                    color={perdaDados?.semDados ? colors.amber.text : colors.success}
                   />
                   <Text
                     style={[
                       styles.telemetryText,
-                      perdaDados?.semDados && { color: '#92400E' },
+                      perdaDados?.semDados && { color: colors.amber.textDark },
                     ]}
                   >
                     {perdaDados?.semDados ? 'Atrasado' : 'Conectado'}
@@ -399,12 +400,12 @@ export default function HomeScreen({
                   <Icon
                     name="battery_full"
                     size={13}
-                    color={bateriaBaixa ? '#B51C13' : '#10B981'}
+                    color={bateriaBaixa ? colors.coralDark : colors.success}
                   />
                   <Text
                     style={[
                       styles.telemetryText,
-                      bateriaBaixa && { color: '#B51C13' },
+                      bateriaBaixa && { color: colors.coralDark },
                     ]}
                   >
                     {deviceStatus?.nivelBateria ?? '--'}%
@@ -414,24 +415,23 @@ export default function HomeScreen({
             </TouchableOpacity>
           ))}
 
-        <TouchableOpacity
-          style={styles.addElderlyButton}
-          onPress={() => onNavigate && onNavigate('RegisterElderly')}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          testID="home-cadastrar-idoso"
-        >
-          <Icon name="person_add" size={20} color="#031753" />
-          <Text style={styles.addElderlyButtonText}>Cadastrar novo idoso</Text>
-        </TouchableOpacity>
+        <View style={styles.addElderlyWrapper}>
+          <Button
+            title="Cadastrar novo idoso"
+            iconLeft="person_add"
+            variant="outline"
+            onPress={() => onNavigate && onNavigate('RegisterElderly')}
+            testID="home-cadastrar-idoso"
+          />
+        </View>
 
         {/* FAIXA DE PLANO / TRIAL / ERRO DE PLANO (HU-040 a 042) */}
         {erroPlano ? (
-          <View style={{ backgroundColor: colors.peachBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.peachBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ backgroundColor: colors.peach.background, borderRadius: rounded.lg, padding: 14, borderWidth: 1, borderColor: colors.peach.border, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <Text style={{ flex: 1, fontSize: 14, color: colors.coralDark, ...font('body', 600) }}>{erroPlano}</Text>
             <TouchableOpacity
               onPress={carregarPlano}
-              style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9999, minHeight: 48, justifyContent: 'center' }}
+              style={{ backgroundColor: colors.primaryNavy, paddingHorizontal: 14, paddingVertical: 10, borderRadius: rounded.full, minHeight: 48, justifyContent: 'center' }}
               activeOpacity={0.85}
             >
               <Text style={{ color: colors.white, fontSize: 14, ...font('body', 700) }}>Tentar novamente</Text>
@@ -440,7 +440,7 @@ export default function HomeScreen({
         ) : (faixaTrial || avisoTrial) ? (
           <TouchableOpacity
             onPress={() => onNavigate && onNavigate('Premium')}
-            style={{ backgroundColor: colors.amberBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.amberBorder, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
+            style={{ backgroundColor: colors.amber.background, borderRadius: rounded.lg, padding: 14, borderWidth: 1, borderColor: colors.amber.border, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
             activeOpacity={0.85}
           >
             <Text style={{ flex: 1, fontSize: 14, color: colors.amber.textDark, ...font('body', 700) }}>
@@ -456,7 +456,7 @@ export default function HomeScreen({
           <View style={styles.paywallCard}>
             <View style={styles.paywallHeader}>
               <View style={styles.paywallIconCircle}>
-                <Icon name="vital_signs" size={20} color="#7C3AED" />
+                <Icon name="vital_signs" size={20} color={colors.lavender.text} />
               </View>
               <View style={styles.paywallTag}>
                 <Text style={styles.paywallTagText}>PLANO PREMIUM</Text>
@@ -464,23 +464,20 @@ export default function HomeScreen({
             </View>
             <Text style={styles.paywallTitle}>Semáforo do Bem-Estar com IA</Text>
             <Text style={styles.paywallMessage}>{scoreData.beneficioPaywall}</Text>
-            <TouchableOpacity
-              style={styles.paywallButton}
+            <Button
+              title="Conhecer o Premium"
+              iconRight="chevron_right"
+              variant="primary"
               onPress={() => onNavigate && onNavigate('Premium')}
-              activeOpacity={0.85}
-              accessibilityRole="button"
               accessibilityLabel="Conhecer o Premium"
-            >
-              <Text style={styles.paywallButtonText}>Conhecer o Premium</Text>
-              <Icon name="chevron_right" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            />
           </View>
         ) : scoreData?.rotinaEmConstrucao ? (
           /* POUCO HISTÓRICO - CONHECENDO A ROTINA (HU-032 Cenário 3 / RN-016) */
           <View style={styles.rotinaCard}>
             <View style={styles.rotinaHeader}>
               <View style={styles.rotinaIconCircle}>
-                <Icon name="psychology" size={20} color="#1E40AF" />
+                <Icon name="psychology" size={20} color={colors.primaryNavy} />
               </View>
               <View style={styles.rotinaBadge}>
                 <Text style={styles.rotinaBadgeText}>CALIBRANDO IA</Text>
@@ -509,15 +506,15 @@ export default function HomeScreen({
             style={[
               styles.semaforoCard,
               {
-                backgroundColor: scoreData?.faixa?.corFundo || '#E8F8F0',
-                borderColor: scoreData?.faixa?.corBorda || '#B8ECD3',
+                backgroundColor: scoreData?.faixa?.corFundo || colors.mint.background,
+                borderColor: scoreData?.faixa?.corBorda || colors.mint.border,
               },
             ]}
           >
             <View
               style={[
                 styles.semaforoGlow,
-                { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                { backgroundColor: scoreData?.faixa?.cor || colors.success },
               ]}
             />
 
@@ -527,13 +524,13 @@ export default function HomeScreen({
                   <Icon
                     name="vital_signs"
                     size={18}
-                    color={scoreData?.faixa?.corTexto || '#003B26'}
+                    color={scoreData?.faixa?.corTexto || colors.mint.textDark}
                   />
                 </View>
                 <Text
                   style={[
                     styles.semaforoTitle,
-                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                    { color: scoreData?.faixa?.corTexto || colors.mint.textDark },
                   ]}
                 >
                   Semáforo do Bem-Estar
@@ -543,7 +540,7 @@ export default function HomeScreen({
                 <Text
                   style={[
                     styles.tempoRealTag,
-                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                    { color: scoreData?.faixa?.corTexto || colors.mint.textDark },
                   ]}
                 >
                   TEMPO REAL
@@ -562,19 +559,19 @@ export default function HomeScreen({
               <View
                 style={[
                   styles.statusOuterCircle,
-                  { backgroundColor: scoreData?.faixa?.corFundo || '#E8F8F0' },
+                  { backgroundColor: scoreData?.faixa?.corFundo || colors.mint.background },
                 ]}
               >
                 <View
                   style={[
                     styles.statusInnerCircle,
-                    { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                    { backgroundColor: scoreData?.faixa?.cor || colors.success },
                   ]}
                 >
                   <Icon
                     name={scoreData?.faixa?.icone || 'check'}
                     size={20}
-                    color="#FFFFFF"
+                    color={colors.white}
                   />
                 </View>
               </View>
@@ -584,14 +581,14 @@ export default function HomeScreen({
                   <View
                     style={[
                       styles.statusLiveDot,
-                      { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                      { backgroundColor: scoreData?.faixa?.cor || colors.success },
                     ]}
                   />
                   <Text style={styles.statusTagLabel}>STATUS ATUAL</Text>
                   <View
                     style={[
                       styles.scoreInlinePill,
-                      { backgroundColor: scoreData?.faixa?.cor || '#10B981' },
+                      { backgroundColor: scoreData?.faixa?.cor || colors.success },
                     ]}
                   >
                     <Text style={styles.scoreInlinePillText}>
@@ -602,7 +599,7 @@ export default function HomeScreen({
                 <Text
                   style={[
                     styles.statusMainLabel,
-                    { color: scoreData?.faixa?.corTexto || '#003B26' },
+                    { color: scoreData?.faixa?.corTexto || colors.mint.textDark },
                   ]}
                 >
                   {resgateAtivo
@@ -622,7 +619,7 @@ export default function HomeScreen({
 
                 <View style={styles.touchHintRow}>
                   <Text style={styles.touchHintText}>Toque para ver o motivo</Text>
-                  <Icon name="chevron_right" size={14} color="#64748B" />
+                  <Icon name="chevron_right" size={14} color={colors.textSecondary} />
                 </View>
               </View>
             </TouchableOpacity>
@@ -631,7 +628,7 @@ export default function HomeScreen({
             <View style={styles.semaforoSubCards}>
               <View style={styles.semaforoSubCard}>
                 <View style={styles.subCardHeader}>
-                  <Icon name="favorite" size={14} color="#D83729" />
+                  <Icon name="favorite" size={14} color={colors.coralDark} />
                   <Text style={styles.subCardTitle}>Batimentos</Text>
                 </View>
                 <View style={styles.subCardValueRow}>
@@ -644,7 +641,7 @@ export default function HomeScreen({
 
               <View style={styles.semaforoSubCard}>
                 <View style={styles.subCardHeader}>
-                  <Icon name="schedule" size={14} color="#2D418A" />
+                  <Icon name="schedule" size={14} color={colors.primaryNavy} />
                   <Text style={styles.subCardTitle}>Último Remédio</Text>
                 </View>
                 <View style={styles.subCardValueRow}>
@@ -661,7 +658,7 @@ export default function HomeScreen({
           <View style={styles.mapHeader}>
             <View style={styles.mapTitleGroup}>
               <View style={styles.mapPinBadge}>
-                <Icon name="location_on" size={18} color="#031753" />
+                <Icon name="location_on" size={18} color={colors.primary} />
               </View>
               <Text style={styles.mapTitle}>Localização em Tempo Real</Text>
             </View>
@@ -691,7 +688,7 @@ export default function HomeScreen({
         <View style={styles.telemetrySection}>
           <View style={styles.telemetrySectionHeader}>
             <View style={styles.telemetrySectionTitleRow}>
-              <Icon name="monitor_heart" size={18} color="#031753" />
+              <Icon name="monitor_heart" size={18} color={colors.primary} />
               <Text style={styles.telemetrySectionTitle}>Estado Atual do Dia</Text>
             </View>
             <View
@@ -704,7 +701,7 @@ export default function HomeScreen({
               <Icon
                 name={telemetria?.semDadosRecentes ? 'warning' : 'schedule'}
                 size={12}
-                color={telemetria?.semDadosRecentes ? '#92400E' : '#047857'}
+                color={telemetria?.semDadosRecentes ? colors.amber.textDark : colors.successDark}
               />
               <Text
                 style={[
@@ -729,7 +726,7 @@ export default function HomeScreen({
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
-                  <Icon name="walk" size={18} color="#B51C13" />
+                  <Icon name="walk" size={18} color={colors.coralDark} />
                 </View>
                 {telemetria?.metaPassos ? (
                   <View style={styles.metaBadge}>
@@ -758,7 +755,7 @@ export default function HomeScreen({
                         styles.progressBarFill,
                         {
                           width: `${Math.min(100, Math.round((telemetria?.progressoPassos ?? 0) * 100))}%`,
-                          backgroundColor: '#D83729',
+                          backgroundColor: colors.coralDark,
                         },
                       ]}
                     />
@@ -778,7 +775,7 @@ export default function HomeScreen({
             >
               <View style={styles.metricHeaderRow}>
                 <View style={styles.metricIconCircleWhite}>
-                  <Icon name="favorite" size={18} color="#031753" />
+                  <Icon name="favorite" size={18} color={colors.primary} />
                 </View>
               </View>
               <Text style={styles.metricLabelSky}>Último Batimento</Text>
@@ -798,7 +795,7 @@ export default function HomeScreen({
                   </View>
                   {telemetria?.frequenciaCardiacaRepouso !== undefined && (
                     <View style={styles.repousoRow}>
-                      <Icon name="vital_signs" size={12} color="#475569" />
+                      <Icon name="vital_signs" size={12} color={colors.onSurfaceVariant} />
                       <Text style={styles.repousoText}>
                         Repouso: {telemetria.frequenciaCardiacaRepouso} bpm
                       </Text>
@@ -844,19 +841,9 @@ export default function HomeScreen({
 }
 
 const styles = StyleSheet.create({
-  addElderlyButton: {
-    minHeight: 52,
+  addElderlyWrapper: {
     marginBottom: 18,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
   },
-  addElderlyButtonText: { fontSize: 16, ...font('body', 700), color: '#031753' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -865,10 +852,10 @@ const styles = StyleSheet.create({
   dataLossAlertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBE5',
+    backgroundColor: colors.peach.background,
     borderWidth: 1.5,
-    borderColor: '#FFCDC2',
-    borderRadius: 20,
+    borderColor: colors.peach.border,
+    borderRadius: rounded.xl,
     padding: 14,
     marginBottom: 16,
     gap: 12,
@@ -876,8 +863,8 @@ const styles = StyleSheet.create({
   dataLossIconCircle: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -885,13 +872,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dataLossTitle: {
-    fontSize: 13,
-    color: '#991B1B',
+    fontSize: 14,
+    color: colors.peach.text,
     ...font('heading', 700),
   },
   dataLossMessage: {
-    fontSize: 12,
-    color: '#650001',
+    fontSize: 14,
+    color: colors.peach.textDark,
     ...font('body', 400),
     marginTop: 2,
     lineHeight: 16,
@@ -900,15 +887,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 16,
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   elderlyLeft: {
     flexDirection: 'row',
@@ -922,9 +905,9 @@ const styles = StyleSheet.create({
   elderlyAvatar: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: rounded.full,
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: colors.success,
   },
   onlineBadgeDot: {
     position: 'absolute',
@@ -932,10 +915,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.input,
+    backgroundColor: colors.success,
     borderWidth: 2.5,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
   },
   elderlyTexts: {
     flex: 1,
@@ -948,23 +931,23 @@ const styles = StyleSheet.create({
   },
   elderlyName: {
     fontSize: 20,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 800),
   },
   ageBadge: {
-    backgroundColor: '#F2F4F7',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   ageBadgeText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('heading', 700),
   },
   monitoredBy: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   elderlyBadgesRight: {
@@ -974,29 +957,25 @@ const styles = StyleSheet.create({
   telemetryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 5,
   },
   telemetryText: {
-    fontSize: 11,
-    color: '#131E3D',
+    fontSize: 14,
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   semaforoCard: {
-    backgroundColor: '#E8F8F0',
-    borderRadius: 32,
+    backgroundColor: colors.mint.background,
+    borderRadius: rounded.full,
     padding: 20,
     marginBottom: 18,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 3,
+    ...shadows.tier2,
   },
   semaforoGlow: {
     position: 'absolute',
@@ -1004,8 +983,8 @@ const styles = StyleSheet.create({
     right: -32,
     width: 128,
     height: 128,
-    borderRadius: 64,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.full,
+    backgroundColor: colors.success,
     opacity: 0.1,
   },
   semaforoHeader: {
@@ -1022,33 +1001,33 @@ const styles = StyleSheet.create({
   semaforoIconBadge: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   semaforoTitle: {
     fontSize: 18,
-    color: '#003B26',
+    color: colors.mint.textDark,
     ...font('heading', 700),
   },
   tempoRealBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   tempoRealTag: {
-    fontSize: 11,
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     letterSpacing: 0.5,
     ...font('heading', 800),
   },
   statusInnerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: colors.white,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 12,
     gap: 14,
@@ -1056,16 +1035,16 @@ const styles = StyleSheet.create({
   statusOuterCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E8F8F0',
+    borderRadius: rounded.card,
+    backgroundColor: colors.mint.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusInnerCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1081,35 +1060,35 @@ const styles = StyleSheet.create({
   statusLiveDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.success,
   },
   statusTagLabel: {
-    fontSize: 11,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     letterSpacing: 0.5,
     ...font('heading', 700),
   },
   statusMainLabel: {
     fontSize: 20,
-    color: '#003B26',
+    color: colors.mint.textDark,
     marginBottom: 2,
     ...font('heading', 800),
   },
   statusSubLabel: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 500),
   },
   scoreInlinePill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginLeft: 6,
   },
   scoreInlinePillText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+    color: colors.white,
+    fontSize: 14,
     ...font('heading', 800),
   },
   touchHintRow: {
@@ -1119,17 +1098,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   touchHintText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   paywallCard: {
-    backgroundColor: '#F5F3FF',
-    borderRadius: 32,
+    backgroundColor: colors.lavender.background,
+    borderRadius: rounded.full,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1.5,
-    borderColor: '#DDD6FE',
+    borderColor: colors.lavender.border,
   },
   paywallHeader: {
     flexDirection: 'row',
@@ -1140,56 +1119,56 @@ const styles = StyleSheet.create({
   paywallIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   paywallTag: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.lavender.background,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   paywallTagText: {
-    fontSize: 11,
-    color: '#6D28D9',
+    fontSize: 14,
+    color: colors.lavender.text,
     ...font('heading', 800),
   },
   paywallTitle: {
     fontSize: 18,
-    color: '#4C1D95',
+    color: colors.lavender.textDark,
     marginBottom: 6,
     ...font('heading', 800),
   },
   paywallMessage: {
-    fontSize: 13,
-    color: '#6D28D9',
+    fontSize: 14,
+    color: colors.lavender.text,
     lineHeight: 18,
     marginBottom: 16,
     ...font('body', 400),
   },
   paywallButton: {
     height: 52,
-    backgroundColor: '#6D28D9',
-    borderRadius: 26,
+    backgroundColor: colors.lavender.text,
+    borderRadius: rounded.card,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
   },
   paywallButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 14,
     ...font('heading', 700),
   },
   rotinaCard: {
-    backgroundColor: '#E6F3FA',
-    borderRadius: 32,
+    backgroundColor: colors.sky.background,
+    borderRadius: rounded.full,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1.5,
-    borderColor: '#C4E4F5',
+    borderColor: colors.sky.border,
   },
   rotinaHeader: {
     flexDirection: 'row',
@@ -1200,50 +1179,50 @@ const styles = StyleSheet.create({
   rotinaIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   rotinaBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   rotinaBadgeText: {
-    fontSize: 11,
-    color: '#1E40AF',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('heading', 800),
   },
   rotinaTitle: {
     fontSize: 17,
-    color: '#1E3A8A',
+    color: colors.primaryNavy,
     marginBottom: 6,
     ...font('heading', 800),
   },
   rotinaSubtext: {
-    fontSize: 12,
-    color: '#3B82F6',
+    fontSize: 14,
+    color: colors.primaryNavy,
     lineHeight: 17,
     marginBottom: 14,
     ...font('body', 400),
   },
   rotinaProgressTrack: {
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DBEAFE',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.infoSurface,
     overflow: 'hidden',
     marginBottom: 8,
   },
   rotinaProgressFill: {
     height: '100%',
-    backgroundColor: '#2563EB',
-    borderRadius: 4,
+    backgroundColor: colors.primaryNavy,
+    borderRadius: rounded.sm,
   },
   rotinaDaysLabel: {
-    fontSize: 11,
-    color: '#1E40AF',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('body', 600),
   },
   semaforoSubCards: {
@@ -1252,8 +1231,8 @@ const styles = StyleSheet.create({
   },
   semaforoSubCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderRadius: rounded.xl,
     padding: 12,
   },
   subCardHeader: {
@@ -1263,8 +1242,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subCardTitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   subCardValueRow: {
@@ -1274,29 +1253,25 @@ const styles = StyleSheet.create({
   },
   subCardValue: {
     fontSize: 18,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 800),
   },
   subCardUnit: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   remedioStatusTag: {
-    fontSize: 11,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     ...font('heading', 700),
   },
   mapCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 16,
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   mapHeader: {
     flexDirection: 'row',
@@ -1313,40 +1288,40 @@ const styles = StyleSheet.create({
   mapPinBadge: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EBF5FF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.infoSurface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   mapTitle: {
     fontSize: 16,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   gpsAtivoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   gpsDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.success,
   },
   gpsAtivoText: {
-    fontSize: 11,
-    color: '#003B26',
+    fontSize: 14,
+    color: colors.mint.textDark,
     ...font('heading', 700),
   },
   mapVisualContainer: {
     height: 176,
-    backgroundColor: '#EBF5FF',
-    borderRadius: 24,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
     overflow: 'hidden',
     position: 'relative',
     justifyContent: 'center',
@@ -1367,18 +1342,18 @@ const styles = StyleSheet.create({
     top: 12,
     width: 112,
     height: 112,
-    borderRadius: 56,
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    borderRadius: rounded.full,
+    backgroundColor: colors.mint.background,
     borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: colors.mint.background,
   },
   radarInnerCircle: {
     position: 'absolute',
     top: 36,
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(16, 185, 129, 0.22)',
+    borderRadius: rounded.full,
+    backgroundColor: colors.mint.background,
   },
   elderlyMapPinWrapper: {
     position: 'absolute',
@@ -1389,24 +1364,24 @@ const styles = StyleSheet.create({
   elderlyMapPin: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#031753',
+    borderRadius: rounded.card,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     overflow: 'hidden',
   },
   elderlyPinAvatar: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: rounded.card,
   },
   pinBaseShadow: {
     width: 16,
     height: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(3, 23, 83, 0.3)',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.primary,
     marginTop: 2,
   },
   mapAddressBar: {
@@ -1415,17 +1390,13 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     height: 54,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderRadius: rounded.lg,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    ...shadows.tier2,
   },
   addressLeft: {
     flexDirection: 'row',
@@ -1433,20 +1404,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressText: {
-    fontSize: 13,
-    color: '#131E3D',
+    fontSize: 14,
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   safeZoneText: {
-    fontSize: 11,
-    color: '#059669',
+    fontSize: 14,
+    color: colors.successDark,
     ...font('body', 600),
   },
   targetButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F2F4F7',
+    borderRadius: rounded.lg,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -1468,31 +1439,31 @@ const styles = StyleSheet.create({
   },
   telemetrySectionTitle: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   telemetrySyncBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: colors.mint.border,
   },
   telemetrySyncBadgeAlerta: {
-    backgroundColor: '#FFF8E7',
-    borderColor: '#FDE68A',
+    backgroundColor: colors.amber.background,
+    borderColor: colors.amber.border,
   },
   telemetrySyncText: {
-    fontSize: 12,
-    color: '#047857',
+    fontSize: 14,
+    color: colors.successDark,
     ...font('heading', 700),
   },
   telemetrySyncTextAlerta: {
-    color: '#92400E',
+    color: colors.amber.textDark,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -1500,24 +1471,24 @@ const styles = StyleSheet.create({
   },
   passosCard: {
     flex: 1,
-    backgroundColor: '#FFF1EC',
-    borderRadius: 28,
+    backgroundColor: colors.peach.background,
+    borderRadius: rounded.card,
     padding: 16,
     minHeight: 148,
     justifyContent: 'space-between',
   },
   batimentosCard: {
     flex: 1,
-    backgroundColor: '#EBF5FF',
-    borderRadius: 28,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
     padding: 16,
     minHeight: 148,
     justifyContent: 'space-between',
   },
   glicemiaCard: {
     flex: 1,
-    backgroundColor: '#EBF5FF',
-    borderRadius: 28,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
     padding: 16,
   },
   semDadosWrapper: {
@@ -1526,12 +1497,12 @@ const styles = StyleSheet.create({
   },
   semDadosText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     ...font('heading', 700),
   },
   semDadosSubtext: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: 14,
+    color: colors.textMuted,
     marginTop: 2,
     ...font('body', 400),
   },
@@ -1542,8 +1513,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   repousoText: {
-    fontSize: 11,
-    color: '#475569',
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     ...font('body', 600),
   },
   metricHeaderRow: {
@@ -1555,30 +1526,30 @@ const styles = StyleSheet.create({
   metricIconCircleWhite: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.xl,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   metaBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   metaBadgeText: {
-    fontSize: 11,
-    color: '#B51C13',
+    fontSize: 14,
+    color: colors.coralDark,
     ...font('heading', 700),
   },
   metricLabelPeach: {
-    fontSize: 12,
-    color: '#9A3412',
+    fontSize: 14,
+    color: colors.amber.textDark,
     ...font('body', 600),
   },
   metricLabelSky: {
-    fontSize: 12,
-    color: '#1E2E69',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('body', 600),
   },
   metricValueRow: {
@@ -1589,28 +1560,28 @@ const styles = StyleSheet.create({
   },
   metricValueLarge: {
     fontSize: 22,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 800),
   },
   metricUnitPeach: {
-    fontSize: 11,
-    color: '#9A3412',
+    fontSize: 14,
+    color: colors.amber.textDark,
     ...font('body', 700),
   },
   metricUnitSky: {
-    fontSize: 11,
-    color: '#1E2E69',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('body', 700),
   },
   progressBarTrack: {
     height: 6,
-    borderRadius: 9999,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.white,
     marginTop: 8,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
 });

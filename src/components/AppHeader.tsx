@@ -10,8 +10,8 @@ import {
   StatusBar,
 } from 'react-native';
 import Constants from 'expo-constants';
-import Icon from './Icon';
-import { typography, shadows, font } from '../theme';
+import IconButton from './IconButton';
+import { colors, font, rounded, shadows, sizes, typography } from '../theme';
 import { usePapel } from '../context/PapelContext';
 
 const TOP_INSET =
@@ -34,9 +34,6 @@ export interface AppHeaderProps {
 
 /**
  * Header Padronizado do SeniorInsight para as telas logadas.
- * - Preenche continuamente até o topo físico da tela (Safe Area / Status Bar).
- * - Sem botões de coração ou voltar.
- * - Alinhado às especificações do Senior APP(2).fig.
  */
 export default function AppHeader({
   title = 'Início Monitoramento',
@@ -81,7 +78,6 @@ export default function AppHeader({
   return (
     <View style={styles.safeAreaHeader}>
       <View style={styles.headerContainer}>
-        {/* Subtítulo e Título alinhados à esquerda conforme o .fig (sem coração/voltar) */}
         <View style={styles.leftTitleContainer}>
           <Text style={styles.headerSubtitle}>{subtitle}</Text>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -89,33 +85,32 @@ export default function AppHeader({
           </Text>
         </View>
 
-        {/* Botões da Direita (Notificação 44x44 + Logo Circular 36x36) */}
         <View style={styles.rightActionsRow}>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={handleNotificationPress}
-            activeOpacity={0.75}
-          >
-            <Icon name="notifications" size={20} color="#031753" />
-            {hasNotification && <View style={styles.notificationDot} />}
-          </TouchableOpacity>
+          <View style={styles.notificationWrapper}>
+            <IconButton
+              icon="notifications"
+              variant="neutral"
+              accessibilityLabel="Notificações"
+              onPress={handleNotificationPress}
+            />
+            {hasNotification && <View style={styles.notificationDot} pointerEvents="none" />}
+          </View>
 
           {onLogout ? (
-            <TouchableOpacity
-              style={[styles.notificationButton, styles.logoutButton]}
-              onPress={handleLogoutPress}
-              activeOpacity={0.75}
-              accessibilityRole="button"
+            <IconButton
+              icon="logout"
+              variant="neutral"
               accessibilityLabel="Sair da conta"
-            >
-              <Icon name="logout" size={20} color="#031753" />
-            </TouchableOpacity>
+              onPress={handleLogoutPress}
+            />
           ) : null}
 
           <TouchableOpacity
             style={styles.logoButton}
             onPress={handleLogoPress}
-            activeOpacity={0.75}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Perfil do idoso"
           >
             <Image
               source={require('../../assets/logo.png')}
@@ -131,10 +126,10 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   safeAreaHeader: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingTop: TOP_INSET,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border,
     ...shadows.tier1,
     zIndex: 20,
   },
@@ -144,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   leftTitleContainer: {
     flex: 1,
@@ -152,37 +147,22 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    ...typography.labelSm,
+    color: colors.textSecondary,
     marginBottom: 2,
-    ...font('heading', 600),
   },
   headerTitle: {
     fontSize: 18,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   rightActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  notificationWrapper: {
     position: 'relative',
-    borderWidth: 1,
-    borderColor: '#EEF2F6',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   notificationDot: {
     position: 'absolute',
@@ -190,34 +170,25 @@ const styles = StyleSheet.create({
     right: 8,
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#B51C13',
+    borderRadius: rounded.full,
+    backgroundColor: colors.coralDark,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  logoutButton: {
-    marginLeft: 8,
+    borderColor: colors.white,
   },
   logoButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    width: sizes.iconButton,
+    height: sizes.iconButton,
+    minWidth: sizes.touchMin,
+    minHeight: sizes.touchMin,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#EEF2F6',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
     overflow: 'hidden',
   },
   logoImage: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: rounded.full,
   },
 });

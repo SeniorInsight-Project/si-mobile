@@ -102,3 +102,19 @@
   - `src/components/FamilyMemberCard.tsx`: removido após confirmar com `grep` que não era importado em nenhum arquivo.
 - **Pendências para próximas etapas:**
   - Etapas 6b–6e: Home, Remédios/Contatos, Modo Idoso/SOS e telas/componentes restantes.
+
+---
+
+## Etapa 6b — Home e navegação (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos migrados:**
+  - `src/screens/HomeScreen.tsx` (`paywallButton` → `<Button variant="primary">`, `addElderlyButton` → `<Button variant="outline">`, removido emoji `🚨` de "Comando Assumido!", hex/rgba `142 → 0`, `fontSize < 14`: `29 → 0`).
+  - `src/components/AppHeader.tsx` (`notificationButton` e `logoutButton` → `<IconButton>` 48 px, `logoButton` 48×48, subtítulo com `typography.labelSm`, hex `15 → 0`).
+  - `src/components/BottomNavBar.tsx` (abas com toque >= 48×48, rótulos `14 px`, cor ativa `colors.primary` e inativa `colors.textMuted`, hex/rgba `9 → 0`).
+  - `src/components/LiveGpsMap.tsx` e `src/components/LiveGpsMap.native.tsx` (`targetButton` → `<IconButton>` 48 px, hex/rgba `18 → 0`, `fontSize < 14`: `3 → 0`).
+  - `src/components/RescueCommandCard.tsx` (`rescueButton` → `<Button size="xl" variant={resgateAtivo ? 'sos' : 'primary'}>`, hex `24 → 0`, `fontSize < 14`: `5 → 0`).
+  - `src/components/SemIdosoCard.tsx` (botões → `<Button variant="primary">` + `<Button variant="ghost">`, hex `4 → 0`).
+  - `src/components/WatchStatusCard.tsx` (hex `7 → 0`, `fontSize < 14`: `2 → 0`).
+- **Pendências para próximas etapas:**
+  - Etapas 6c–6e: Remédios/Contatos, Modo Idoso/SOS e telas/componentes restantes.
