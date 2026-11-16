@@ -29,6 +29,7 @@ export const colors = {
   // Secondary & Urgent (coral reservado para SOS, urgência e alertas críticos)
   coral: '#FA5D4B',
   coralDark: '#B32A1E',
+  coralPressed: '#8C120A',
   /** @deprecated use colors.coralDark */
   secondary: '#B32A1E',
   /** @deprecated use colors.coral */

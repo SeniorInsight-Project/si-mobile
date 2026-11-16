@@ -132,3 +132,18 @@
   - `src/screens/EmergencyContactsScreen.tsx` (`actionCallButton`/`actionDeleteButton` → `<IconButton>` 48 px `primary`/`danger`, `samuCallBtn` → `<Button variant="sos">`, `btnHeaderNovoContato` → `<Button variant="primary" size="md">`, ordenação/escalonamento SOS preservados, hex `20 → 0`, `fontSize < 14`: `19 → 0`).
 - **Pendências para próximas etapas:**
   - Etapas 6d–6e: Modo Idoso/SOS e telas/componentes restantes.
+
+---
+
+## Etapa 6d — Modo Idoso, Perfil do Idoso e SOS (`16/11/2026`)
+
+- **Status:** Concluída
+- **Arquivos criados/alterados:**
+  - `src/theme/index.ts`: adicionado `colors.coralPressed` (`#8C120A`).
+  - `src/components/ChoiceChip.tsx`: componente reutilizável de seleção (48 dp, `rounded.full`, `colors.primary`/`colors.white`), usado em `TolerancePicker.tsx` e `ElderlyProfileScreen.tsx`.
+  - `src/screens/ElderlyModeScreen.tsx`: `takenButton` → `<Button variant="success" size="xl">`, `viewRoutineButton` → `<Button variant="primary" size="xl">`, `audioButton` → `<IconButton>` 48 px, removidos emojis `🎉` e `🗣️`, hex/rgba `82 → 0`, `fontSize < 14`: `16 → 0`.
+  - `src/components/SosHoldButton.tsx`: apenas cores e tamanhos via token (`coralDark`, `coralPressed`, `shadows.sos`, `disabled` via `opacity: 0.5`), sem alterar duração de 2 s, feedback tátil nem animação; hex/rgba `16 → 0`, `fontSize < 14`: `1 → 0`.
+  - `src/screens/ElderlyProfileScreen.tsx`: `primarySaveButton` → `<Button variant="primary" size="lg">`, `secondaryHistoryButton` → `<Button variant="outline" size="lg">`, `addPillButton` (Adicionar/Editar) → `<Button variant="secondary" size="md">`, `sexButton` → `<ChoiceChip>`, inputs → `<TextField>`, hex/rgba `90 → 0`, `fontSize < 14`: `16 → 0`.
+  - `src/components/ComorbidityChip.tsx`: botão fechar → `<IconButton variant="ghost">` 48 px, chip com `minHeight: 48`, hex `21 → 0`, `fontSize < 14`: `1 → 0`.
+- **Pendências para próximas etapas:**
+  - Etapa 6e: revisão das telas novas e componentes restantes.

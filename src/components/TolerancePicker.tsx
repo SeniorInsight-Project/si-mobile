@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Icon from './Icon';
-import { colors, font, rounded, shadows, sizes } from '../theme';
+import ChoiceChip from './ChoiceChip';
+import { colors, font, rounded, shadows } from '../theme';
 
 export interface TolerancePickerProps {
   selectedTolerance?: number;
@@ -29,29 +30,14 @@ export default function TolerancePicker({
       </View>
 
       <View style={styles.pillTray}>
-        {options.map((mins) => {
-          const isSelected = selectedTolerance === mins;
-
-          return (
-            <TouchableOpacity
-              key={mins}
-              style={[styles.pillButton, isSelected && styles.pillButtonActive]}
-              onPress={() => onSelectTolerance && onSelectTolerance(mins)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-            >
-              <Text
-                style={[
-                  styles.pillButtonText,
-                  isSelected && styles.pillButtonTextActive,
-                ]}
-              >
-                {mins} min
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {options.map((mins) => (
+          <ChoiceChip
+            key={mins}
+            label={`${mins} min`}
+            selected={selectedTolerance === mins}
+            onPress={() => onSelectTolerance && onSelectTolerance(mins)}
+          />
+        ))}
       </View>
 
       <Text style={styles.footerHint}>
@@ -105,29 +91,6 @@ const styles = StyleSheet.create({
     padding: 6,
     gap: 8,
     marginBottom: 10,
-  },
-  pillButton: {
-    flex: 1,
-    minHeight: sizes.touchMin,
-    borderRadius: rounded.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  pillButtonText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    ...font('heading', 600),
-  },
-  pillButtonTextActive: {
-    color: colors.white,
-    ...font('body', 700),
   },
   footerHint: {
     fontSize: 14,

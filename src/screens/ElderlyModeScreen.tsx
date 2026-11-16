@@ -22,7 +22,9 @@ import {
 } from '../services/relogioStatusService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
-import { colors, typography, font } from '../theme';
+import Button from '../components/Button';
+import IconButton from '../components/IconButton';
+import { colors, font, rounded, shadows, typography } from '../theme';
 import {
   listarRotinas,
   confirmarIngestao,
@@ -246,7 +248,7 @@ export default function ElderlyModeScreen({
           'o medicamento';
 
         Alert.alert(
-          nomeIdoso ? `Muito Bem, ${nomeIdoso}! 🎉` : 'Muito Bem! 🎉',
+          nomeIdoso ? `Muito Bem, ${nomeIdoso}!` : 'Muito Bem!',
           `Registramos que você tomou ${nomeMedicamento}. Sua família já foi avisada!`
         );
       }
@@ -260,17 +262,17 @@ export default function ElderlyModeScreen({
   const handleAudioPrompt = () => {
     if (remedioAtual) {
       Alert.alert(
-        'Voz Ativa 🗣️',
+        'Voz Ativa',
         `"${saudacao} São ${remedioAtual.horario}. Está na hora de tomar seu remédio: ${remedioAtual.medicamentoNome || remedioAtual.nomeMedicamento || 'seu remédio'}, ${remedioAtual.dosagem}. ${remedioAtual.instrucoes || 'Tome com um copo d\'água.'}"`
       );
     } else if (todosTomados) {
       Alert.alert(
-        'Voz Ativa 🗣️',
+        'Voz Ativa',
         `"${saudacao} Todos os seus remédios de hoje já foram tomados. Continue se cuidando e tenha um ótimo dia!"`
       );
     } else {
       Alert.alert(
-        'Voz Ativa 🗣️',
+        'Voz Ativa',
         `"${saudacao} Não há medicamentos pendentes para este horário."`
       );
     }
@@ -392,8 +394,8 @@ export default function ElderlyModeScreen({
         <View style={styles.greetingCard}>
           <View style={styles.greetingLeft}>
             <View style={styles.avatarWrapper}>
-              <View style={[styles.avatarImage, { backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }]}>
-                <Icon name="person" size={26} color="#031753" />
+              <View style={[styles.avatarImage, { backgroundColor: colors.infoSurface, justifyContent: 'center', alignItems: 'center' }]}>
+                <Icon name="person" size={26} color={colors.primary} />
               </View>
               <View style={styles.onlineDot} />
             </View>
@@ -403,13 +405,13 @@ export default function ElderlyModeScreen({
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.audioButton}
+          <IconButton
+            icon="volume_up"
+            variant="neutral"
+            accessibilityLabel="Ouvir lembrete de remédio em voz alta"
             onPress={handleAudioPrompt}
-            activeOpacity={0.8}
-          >
-            <Icon name="volume_up" size={22} color="#003B26" />
-          </TouchableOpacity>
+            style={{ backgroundColor: colors.mint.background }}
+          />
         </View>
 
 {/* STATUS DO RELÓGIO (HU-025 / RNF-006) */}
@@ -433,7 +435,7 @@ export default function ElderlyModeScreen({
             {/* Linha superior: HORA DO REMÉDIO + Hoje */}
             <View style={styles.medicineHeader}>
               <View style={styles.medicineTag}>
-                <Icon name="schedule" size={14} color="#031753" />
+                <Icon name="schedule" size={14} color={colors.primary} />
                 <Text style={styles.medicineTagText}>
                   HORA DO REMÉDIO • {remedioAtual.horario}
                 </Text>
@@ -454,7 +456,7 @@ export default function ElderlyModeScreen({
                 </Text>
 
                 <View style={styles.instructionBubble}>
-                  <Icon name="water_drop" size={15} color="#2D418A" />
+                  <Icon name="water_drop" size={15} color={colors.primaryNavy} />
                   <Text style={styles.instructionText}>
                     {remedioAtual.instrucoes || 'Tomar com 1 copo de água'}
                   </Text>
@@ -463,28 +465,19 @@ export default function ElderlyModeScreen({
 
               <View style={styles.medicineImageContainer}>
                 <View style={styles.yellowCornerDot} />
-                <Icon name="medication" size={34} color="#031753" />
+                <Icon name="medication" size={34} color={colors.primary} />
               </View>
             </View>
 
-            {/* BOTÃO JÁ TOMEI (#10B981, height 64, rx=32) */}
-            <TouchableOpacity
-              style={styles.takenButton}
+            <Button
+              title="JÁ TOMEI"
+              iconLeft="check_circle"
+              variant="success"
+              size="xl"
               onPress={handleConfirmarDose}
-              activeOpacity={0.85}
+              loading={actionLoading}
               disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <>
-                  <View style={styles.checkmarkCircle}>
-                    <Icon name="check" size={18} color="#10B981" />
-                  </View>
-                  <Text style={styles.takenButtonText}>JÁ TOMEI</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            />
           </View>
         ) : todosTomados ? (
           <View style={styles.allTakenCard}>
@@ -495,15 +488,12 @@ export default function ElderlyModeScreen({
             <Text style={styles.allTakenSubtitle}>
               Todos os seus medicamentos de hoje já foram tomados com sucesso.
             </Text>
-            <TouchableOpacity
-              style={styles.viewRoutineButton}
+            <Button
+              title="Ver Linha do Tempo de Remédios"
+              variant="primary"
+              size="xl"
               onPress={() => onNavigate && onNavigate('Medicines')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.viewRoutineButtonText}>
-                Ver Linha do Tempo de Remédios
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         ) : (
           <View style={styles.emptyCard}>
@@ -514,15 +504,12 @@ export default function ElderlyModeScreen({
             <Text style={styles.emptySubtitle}>
               Peça a um familiar para cadastrar sua rotina na aba Remédios.
             </Text>
-            <TouchableOpacity
-              style={styles.viewRoutineButton}
+            <Button
+              title="Cadastrar Medicamento"
+              variant="primary"
+              size="xl"
               onPress={() => onNavigate && onNavigate('Medicines')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.viewRoutineButtonText}>
-                Cadastrar Medicamento
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         )}
 
@@ -534,7 +521,7 @@ export default function ElderlyModeScreen({
         >
           <View style={styles.nextCardLeft}>
             <View style={styles.clockIconBg}>
-              <Icon name="schedule" size={20} color="#B51C13" />
+              <Icon name="schedule" size={20} color={colors.coralDark} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.nextSubLabel}>
@@ -553,7 +540,7 @@ export default function ElderlyModeScreen({
               </Text>
             </View>
           </View>
-          <Icon name="chevron_right" size={20} color="#64748B" />
+          <Icon name="chevron_right" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
         {/* CARD 3: SOS EMERGÊNCIA (HU-063 / RN-009) */}
@@ -561,7 +548,7 @@ export default function ElderlyModeScreen({
           <View style={styles.sosTopGlow} />
 
           <View style={styles.sosBannerTag}>
-            <Icon name="shield_alert" size={14} color="#B51C13" />
+            <Icon name="shield_alert" size={14} color={colors.coralDark} />
             <Text style={styles.sosBannerText}>AJUDA DE EMERGÊNCIA</Text>
           </View>
           <Text style={styles.sosWarningSubtitle}>
@@ -584,7 +571,7 @@ export default function ElderlyModeScreen({
           >
             <View style={styles.caregiversAvatars}>
               {contatosEmergencia.length === 0 ? (
-                <View style={[styles.miniAvatar, { backgroundColor: colors.navy }]}>
+                <View style={[styles.miniAvatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.avatarTxt}>
                     {primeiroContato?.iniciais || 'SOS'}
                   </Text>
@@ -595,7 +582,7 @@ export default function ElderlyModeScreen({
                     key={c.id || i}
                     style={[
                       styles.miniAvatar,
-                      { backgroundColor: c.corAvatar || colors.navy, marginLeft: i > 0 ? -6 : 0 },
+                      { backgroundColor: c.corAvatar || colors.primary, marginLeft: i > 0 ? -6 : 0 },
                     ]}
                   >
                     <Text style={[styles.avatarTxt, { color: c.corTexto || colors.white }]}>
@@ -642,18 +629,14 @@ const styles = StyleSheet.create({
   greetingCard: {
     width: '100%',
     height: 80,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     paddingHorizontal: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...shadows.tier2,
   },
   greetingLeft: {
     flexDirection: 'row',
@@ -665,9 +648,9 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: rounded.card,
     borderWidth: 2,
-    borderColor: '#E8F8F0',
+    borderColor: colors.mint.background,
   },
   onlineDot: {
     position: 'absolute',
@@ -675,37 +658,37 @@ const styles = StyleSheet.create({
     right: 0,
     width: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
   },
   greetingTexts: {
     marginLeft: 12,
   },
   greetingSub: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 2,
     ...font('body', 600),
   },
   greetingTitle: {
     fontSize: 20,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 800),
   },
   audioButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E8F8F0',
+    borderRadius: rounded.card,
+    backgroundColor: colors.mint.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 30,
     alignItems: 'center',
     justifyContent: 'center',
@@ -713,23 +696,19 @@ const styles = StyleSheet.create({
   },
   loadingCardText: {
     marginTop: 12,
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
   medicineCard: {
     width: '100%',
-    backgroundColor: '#EBF5FF',
-    borderRadius: 32,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.full,
     padding: 24,
     marginBottom: 18,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 4,
+    ...shadows.tier2,
   },
   medicineGlowCircle: {
     position: 'absolute',
@@ -737,8 +716,8 @@ const styles = StyleSheet.create({
     right: -32,
     width: 144,
     height: 144,
-    borderRadius: 72,
-    backgroundColor: '#D0E8FF',
+    borderRadius: rounded.full,
+    backgroundColor: colors.infoSurface,
     opacity: 0.5,
   },
   medicineHeader: {
@@ -750,27 +729,27 @@ const styles = StyleSheet.create({
   medicineTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     gap: 6,
   },
   medicineTagText: {
-    fontSize: 12,
-    color: '#031753',
+    fontSize: 14,
+    color: colors.primary,
     letterSpacing: 0.4,
     ...font('heading', 800),
   },
   todayBadge: {
-    backgroundColor: '#D0E8FF',
+    backgroundColor: colors.infoSurface,
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   todayBadgeText: {
-    fontSize: 12,
-    color: '#1E2E69',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('heading', 700),
   },
   medicineBody: {
@@ -785,14 +764,14 @@ const styles = StyleSheet.create({
   },
   medicineName: {
     fontSize: 24,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 4,
     lineHeight: 28,
     ...font('heading', 800),
   },
   medicineDosage: {
     fontSize: 16,
-    color: '#1E2E69',
+    color: colors.primaryNavy,
     marginBottom: 12,
     ...font('body', 600),
   },
@@ -800,30 +779,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: rounded.lg,
     gap: 6,
   },
   instructionText: {
-    fontSize: 13,
-    color: '#2D418A',
+    fontSize: 14,
+    color: colors.primaryNavy,
     ...font('heading', 700),
   },
   medicineImageContainer: {
     width: 80,
     height: 80,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.card,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    ...shadows.tier2,
   },
   yellowCornerDot: {
     position: 'absolute',
@@ -831,98 +806,94 @@ const styles = StyleSheet.create({
     right: 8,
     width: 14,
     height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F59E0B',
+    borderRadius: rounded.sm,
+    backgroundColor: colors.warning,
   },
   takenButton: {
     height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    borderRadius: 32,
+    backgroundColor: colors.success,
+    borderRadius: rounded.full,
     gap: 12,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 5,
+    ...shadows.tier2,
   },
   checkmarkCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: rounded.lg,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   takenButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 20,
     letterSpacing: 0.5,
     ...font('heading', 800),
   },
   allTakenCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 24,
     alignItems: 'center',
     marginBottom: 18,
   },
   allTakenBadge: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: colors.mint.background,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginBottom: 10,
   },
   allTakenBadgeText: {
-    fontSize: 11,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#003B26',
+    color: colors.mint.textDark,
   },
   allTakenTitle: {
     fontSize: 18,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 4,
     ...font('heading', 800),
   },
   allTakenSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     ...font('body', 400),
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 24,
     alignItems: 'center',
     marginBottom: 18,
   },
   emptyTitle: {
     fontSize: 16,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 4,
     ...font('heading', 800),
   },
   emptySubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     ...font('body', 400),
   },
   viewRoutineButton: {
-    backgroundColor: '#031753',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 22,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   viewRoutineButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: colors.white,
+    fontSize: 14,
     ...font('heading', 700),
   },
   nextCard: {
@@ -930,15 +901,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     paddingHorizontal: 18,
     marginBottom: 18,
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
+    ...shadows.tier1,
   },
   nextCardLeft: {
     flexDirection: 'row',
@@ -948,63 +915,59 @@ const styles = StyleSheet.create({
   clockIconBg: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFF1EC',
+    borderRadius: rounded.card,
+    backgroundColor: colors.peach.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   nextSubLabel: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 2,
     ...font('body', 600),
   },
   nextMainLabel: {
     fontSize: 15,
-    color: '#131E3D',
+    color: colors.textPrimary,
     ...font('heading', 700),
   },
   sosCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    backgroundColor: colors.white,
+    borderRadius: rounded.full,
     padding: 24,
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#031753',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 4,
+    ...shadows.tier2,
   },
   sosTopGlow: {
     position: 'absolute',
     top: -40,
     width: 240,
     height: 112,
-    borderRadius: 120,
-    backgroundColor: '#FFEBE7',
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.background,
     opacity: 0.5,
   },
   sosBannerTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBE7',
+    backgroundColor: colors.peach.background,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginBottom: 8,
     gap: 6,
   },
   sosBannerText: {
-    fontSize: 12,
-    color: '#B51C13',
+    fontSize: 14,
+    color: colors.coralDark,
     ...font('heading', 800),
   },
   sosWarningSubtitle: {
     fontSize: 18,
-    color: '#131E3D',
+    color: colors.textPrimary,
     marginBottom: 20,
     textAlign: 'center',
     ...font('heading', 700),
@@ -1017,48 +980,44 @@ const styles = StyleSheet.create({
   sosOuterRing: {
     width: 208,
     height: 208,
-    borderRadius: 104,
-    backgroundColor: '#FFEBE7',
+    borderRadius: rounded.full,
+    backgroundColor: colors.peach.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sosInnerButton: {
     width: 192,
     height: 192,
-    borderRadius: 96,
-    backgroundColor: '#D83729',
+    borderRadius: rounded.full,
+    backgroundColor: colors.coralDark,
     borderWidth: 4,
-    borderColor: '#EF4444',
+    borderColor: colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#D83729',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 8,
+    ...shadows.tier2,
   },
   sosButtonContainerPressing: {
     transform: [{ scale: 0.96 }],
   },
   sosMainButtonText: {
     fontSize: 22,
-    color: '#FFFFFF',
+    color: colors.white,
     marginTop: 6,
     letterSpacing: 0.5,
     ...font('heading', 800),
   },
   sosSubPill: {
-    backgroundColor: '#B51C13',
+    backgroundColor: colors.coralDark,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
     marginTop: 6,
   },
   sosSubPillText: {
-    fontSize: 13,
-    color: '#FFCECB',
+    fontSize: 14,
+    color: colors.peach.border,
     ...font('heading', 700),
   },
   pressingOverlay: {
@@ -1070,31 +1029,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(181, 28, 19, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 96,
+    borderRadius: rounded.full,
   },
   countdownNumber: {
     fontSize: 52,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
   },
   countdownSub: {
-    fontSize: 12,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
     textTransform: 'uppercase',
   },
   progressTrack: {
     width: 170,
     height: 8,
-    backgroundColor: '#FECACA',
-    borderRadius: 4,
+    backgroundColor: colors.peach.border,
+    borderRadius: rounded.sm,
     marginTop: 10,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#D83729',
-    borderRadius: 4,
+    backgroundColor: colors.coralDark,
+    borderRadius: rounded.sm,
   },
   sosInstructionRow: {
     flexDirection: 'row',
@@ -1104,12 +1063,12 @@ const styles = StyleSheet.create({
   },
   sosFooterInstruction: {
     fontSize: 14,
-    color: '#B51C13',
+    color: colors.coralDark,
     ...font('heading', 700),
   },
   sosFooterSub: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 16,
@@ -1118,10 +1077,10 @@ const styles = StyleSheet.create({
   caregiversRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F4F7',
+    backgroundColor: colors.surfaceSubtle,
     height: 36,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    borderRadius: rounded.full,
   },
   caregiversAvatars: {
     flexDirection: 'row',
@@ -1130,20 +1089,20 @@ const styles = StyleSheet.create({
   miniAvatar: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: rounded.input,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
   },
   avatarTxt: {
-    fontSize: 9,
+    fontSize: 14,
     ...font('body', 700),
-    color: '#FFFFFF',
+    color: colors.white,
   },
   caregiversText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 14,
+    color: colors.textSecondary,
     ...font('body', 600),
   },
 });

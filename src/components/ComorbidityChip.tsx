@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Icon from './Icon';
-import { typography, font } from '../theme';
+import IconButton from './IconButton';
+import { colors, font, rounded, sizes } from '../theme';
 
 function getComorbidityTheme(name = '') {
   const lower = name.toLowerCase();
 
-  // Cardíaco / Pressão -> Coral (#FFEBE7)
+  // Cardíaco / Pressão -> Peach
   if (
     lower.includes('hipertens') ||
     lower.includes('press') ||
@@ -15,13 +16,12 @@ function getComorbidityTheme(name = '') {
   ) {
     return {
       icon: 'favorite',
-      bgColor: '#FFEBE7',
-      textColor: '#B51C13',
-      closeColor: '#B51C13',
+      bgColor: colors.peach.background,
+      textColor: colors.peach.text,
     };
   }
 
-  // Diabetes / Glicemia -> Sky (#EBF5FF)
+  // Diabetes / Glicemia -> Info/Primary
   if (
     lower.includes('diabet') ||
     lower.includes('glicem') ||
@@ -30,13 +30,12 @@ function getComorbidityTheme(name = '') {
   ) {
     return {
       icon: 'water_drop',
-      bgColor: '#EBF5FF',
-      textColor: '#031753',
-      closeColor: '#031753',
+      bgColor: colors.infoSurface,
+      textColor: colors.primary,
     };
   }
 
-  // Mobilidade / Osteoporose -> Mint (#E8F8F0)
+  // Mobilidade / Osteoporose -> Mint
   if (
     lower.includes('osteo') ||
     lower.includes('artr') ||
@@ -46,13 +45,12 @@ function getComorbidityTheme(name = '') {
   ) {
     return {
       icon: 'walk',
-      bgColor: '#E8F8F0',
-      textColor: '#003B26',
-      closeColor: '#003B26',
+      bgColor: colors.mint.background,
+      textColor: colors.mint.textDark,
     };
   }
 
-  // Alergias / Alertas -> Lavender (#F3EEFF)
+  // Alergias / Alertas -> Lavender
   if (
     lower.includes('alerg') ||
     lower.includes('asma') ||
@@ -61,18 +59,16 @@ function getComorbidityTheme(name = '') {
   ) {
     return {
       icon: 'shield_alert',
-      bgColor: '#F3EEFF',
-      textColor: '#5B21B6',
-      closeColor: '#5B21B6',
+      bgColor: colors.lavender.background,
+      textColor: colors.lavender.textDark,
     };
   }
 
-  // Padrão / Outros -> Peach (#FFF1EC)
+  // Padrão / Outros -> Amber
   return {
     icon: 'vital_signs',
-    bgColor: '#FFF1EC',
-    textColor: '#9A3412',
-    closeColor: '#9A3412',
+    bgColor: colors.amber.background,
+    textColor: colors.amber.textDark,
   };
 }
 
@@ -92,7 +88,7 @@ export default function ComorbidityChip({
   return (
     <View style={[styles.chip, { backgroundColor: theme.bgColor }]}>
       <View style={styles.iconContainer}>
-        <Icon name={theme.icon} size={15} color={theme.textColor} />
+        <Icon name={theme.icon} size={16} color={theme.textColor} />
       </View>
 
       <Text
@@ -103,14 +99,14 @@ export default function ComorbidityChip({
       </Text>
 
       {onRemove && (
-        <TouchableOpacity
+        <IconButton
+          icon="close"
+          variant="ghost"
+          iconSize={16}
+          accessibilityLabel={`Remover ${name}`}
           onPress={() => onRemove(name)}
-          style={styles.closeButton}
-          activeOpacity={0.75}
           disabled={disabled}
-        >
-          <Icon name="close" size={12} color={theme.closeColor} />
-        </TouchableOpacity>
+        />
       )}
     </View>
   );
@@ -118,12 +114,12 @@ export default function ComorbidityChip({
 
 const styles = StyleSheet.create({
   chip: {
-    height: 44,
+    minHeight: sizes.touchMin,
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: 14,
-    paddingRight: 8,
-    borderRadius: 9999,
+    paddingRight: 4,
+    borderRadius: rounded.full,
     marginRight: 8,
     marginBottom: 8,
     alignSelf: 'flex-start',
@@ -134,16 +130,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     ...font('heading', 700),
-  },
-  closeButton: {
-    marginLeft: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
