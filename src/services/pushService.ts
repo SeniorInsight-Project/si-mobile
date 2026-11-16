@@ -191,6 +191,11 @@ export function obterIdentificadorAparelho(): string {
   return identificadorAparelhoCache;
 }
 
+/** Exclusão da conta (HU-022): o próximo login gera outro identificador. */
+export function esquecerIdentificadorAparelhoPush(): void {
+  identificadorAparelhoCache = null;
+}
+
 export async function inicializarPushUsuario(
   opcoes: OpcoesPush & { notif?: any; identificadorAparelho?: string } = {}
 ): Promise<boolean> {

@@ -135,7 +135,36 @@ describe('Aparelho pareado (HU-007: depois do pareamento, abre sempre no Modo Id
       },
     });
     assert.equal(r.idosoId, IDOSO_ID);
-    assert.deepEqual(guardado, { perfilId: 'perfil-1', nome: 'Maria Aparecida Silva', idosoId: IDOSO_ID });
+    assert.deepEqual(guardado, {
+      perfilId: 'perfil-1',
+      nome: 'Maria Aparecida Silva',
+      idosoId: IDOSO_ID,
+      sessaoAparelhoId: 'sessao-9',
+    });
+  });
+
+  test('guarda e lê sessaoAparelhoId; registro antigo sem o campo continua válido', async () => {
+    assert.equal(
+      await marcarAparelhoPareado({
+        perfilId: 'perfil-1',
+        nome: 'Maria',
+        idosoId: IDOSO_ID,
+        sessaoAparelhoId: 'sessao-abc',
+      }),
+      true,
+    );
+    assert.equal((await obterAparelhoPareado())?.sessaoAparelhoId, 'sessao-abc');
+
+    store.dados.set(CHAVE_APARELHO_PAREADO, JSON.stringify({ perfilId: 'perfil-1', nome: 'Maria', pareadoEm: 1 }));
+    const antigo = await obterAparelhoPareado();
+    assert.equal(antigo?.perfilId, 'perfil-1');
+    assert.equal(antigo?.sessaoAparelhoId, undefined);
+
+    store.dados.set(
+      CHAVE_APARELHO_PAREADO,
+      JSON.stringify({ perfilId: 'perfil-1', nome: 'Maria', sessaoAparelhoId: 123 }),
+    );
+    assert.equal((await obterAparelhoPareado())?.sessaoAparelhoId, undefined);
   });
 
   test('resgate com idosoId null (código gerado sem idoso) não inventa idosoId', async () => {

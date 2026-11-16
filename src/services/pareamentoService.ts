@@ -192,7 +192,12 @@ export interface DependenciasPareamento {
   cliente?: Pick<ApiClient, 'post'>;
   salvar?: (tokens: RespostaTokens) => Promise<void>;
   /** Guarda que este aparelho foi pareado (abre sempre no Modo Idoso). */
-  marcarPareado?: (dados: { perfilId: string; nome: string; idosoId?: string }) => Promise<unknown>;
+  marcarPareado?: (dados: {
+    perfilId: string;
+    nome: string;
+    idosoId?: string;
+    sessaoAparelhoId?: string;
+  }) => Promise<unknown>;
   timeoutMs?: number;
 }
 
@@ -235,7 +240,12 @@ export async function parearComCodigo(
   // salvarSessao grava access/refresh com salvarTokens (secure store) e a expiração.
   await salvar({ accessToken, refreshToken, expiresIn });
   const idosoId = resposta.idosoId ?? undefined;
-  await marcarPareado({ perfilId: resposta.perfil.id, nome: resposta.perfil.nome, idosoId });
+  await marcarPareado({
+    perfilId: resposta.perfil.id,
+    nome: resposta.perfil.nome,
+    idosoId,
+    sessaoAparelhoId: resposta.sessaoAparelhoId,
+  });
 
   return {
     perfilId: resposta.perfil.id,

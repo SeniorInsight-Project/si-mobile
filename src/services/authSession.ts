@@ -11,6 +11,8 @@
  * provedor carrega o módulo sob demanda, e os testes injetam um provedor falso.
  */
 import { runtimeConfig } from '../config/runtime';
+import type { RenovarSessaoAparelhoRequest, TokensIdentityApi } from '../types/api';
+import { obterAparelhoPareado } from './aparelhoPareadoService';
 import {
   salvarTokens,
   obterTokens,
@@ -23,6 +25,7 @@ export const KEYCLOAK_CLIENT_ID = 'si-mobile';
 
 /** Renova o access token quando faltar menos que isso para ele vencer. */
 export const MARGEM_RENOVACAO_MS = 60_000;
+export const TIMEOUT_REDE_MS = 10_000;
 
 export interface RespostaTokens {
   accessToken: string;
@@ -38,7 +41,7 @@ export interface ProvedorOidc {
   revogar(refreshToken: string): Promise<void>;
 }
 
-export type MotivoEncerramento = 'logout' | 'expirada';
+export type MotivoEncerramento = 'logout' | 'expirada' | 'conta-excluida';
 type OuvinteEncerramento = (motivo: MotivoEncerramento) => void;
 type LimpadorLocal = () => Promise<void>;
 
@@ -70,8 +73,50 @@ async function obterAuthSessionEDescoberta(): Promise<{ AuthSession: any; discov
   return { AuthSession, discovery: await descobertaEmCache };
 }
 
+async function renovarSessaoAparelho(sessaoAparelhoId: string, refreshToken: string): Promise<RespostaTokens> {
+  const baseUrl = runtimeConfig.apiBaseUrl.replace(/\/+$/, '');
+  const url = `${baseUrl}/api/v1/identity/pareamentos/sessoes/${encodeURIComponent(sessaoAparelhoId)}/renovacoes`;
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), timeoutRenovacaoMs);
+  let resposta: Response;
+  try {
+    resposta = await fetchHttp(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken } satisfies RenovarSessaoAparelhoRequest),
+      signal: controlador.signal,
+    });
+  } finally {
+    clearTimeout(temporizador);
+  }
+
+  if (!resposta.ok) {
+    throw Object.assign(new Error(`Erro HTTP ${resposta.status}`), { status: resposta.status });
+  }
+
+  const dados = (await resposta.json()) as Partial<TokensIdentityApi> | null;
+  if (!dados || typeof dados.accessToken !== 'string' || !dados.accessToken) {
+    throw new Error('Resposta de renovação inválida.');
+  }
+  return {
+    accessToken: dados.accessToken,
+    refreshToken: dados.refreshToken,
+    expiresIn: dados.expiresIn,
+  };
+}
+
 const provedorPadrao: ProvedorOidc = {
   async renovar(refreshToken) {
+    const pareado = await obterAparelhoPareado();
+    if (pareado?.sessaoAparelhoId) {
+      return renovarSessaoAparelho(pareado.sessaoAparelhoId, refreshToken);
+    }
+    if (refreshOidcCustom) {
+      return refreshOidcCustom(refreshToken);
+    }
     const { AuthSession, discovery } = await obterAuthSessionEDescoberta();
     const resposta = await AuthSession.refreshAsync({ clientId: KEYCLOAK_CLIENT_ID, refreshToken }, discovery);
     return {
@@ -100,11 +145,17 @@ const limpadoresPadrao: LimpadorLocal[] = [
 let provedor: ProvedorOidc = provedorPadrao;
 let limpadores: LimpadorLocal[] = limpadoresPadrao;
 let agora: () => number = () => Date.now();
+let fetchHttp: typeof fetch = (...args) => globalThis.fetch(...args);
+let refreshOidcCustom: ((refreshToken: string) => Promise<RespostaTokens>) | null = null;
+let timeoutRenovacaoMs = TIMEOUT_REDE_MS;
 
 export interface ConfiguracaoSessao {
   provedor?: ProvedorOidc;
   limpadoresLocais?: LimpadorLocal[];
   relogio?: () => number;
+  fetch?: typeof fetch;
+  refreshOidc?: (refreshToken: string) => Promise<RespostaTokens>;
+  timeoutRenovacaoMs?: number;
 }
 
 /** Troca dependências (testes). Chame sem argumentos para voltar ao padrão. */
@@ -112,6 +163,9 @@ export function configurarSessao(config: ConfiguracaoSessao = {}): void {
   provedor = config.provedor ?? provedorPadrao;
   limpadores = config.limpadoresLocais ?? limpadoresPadrao;
   agora = config.relogio ?? (() => Date.now());
+  fetchHttp = config.fetch ?? ((...args) => globalThis.fetch(...args));
+  refreshOidcCustom = config.refreshOidc ?? null;
+  timeoutRenovacaoMs = config.timeoutRenovacaoMs ?? TIMEOUT_REDE_MS;
   renovacaoEmAndamento = null;
 }
 
@@ -195,7 +249,7 @@ async function executarRenovacao(): Promise<string> {
 function refreshRecusado(err: unknown): boolean {
   const e = err as { code?: unknown; status?: unknown } | null;
   if (e && typeof e.code === 'string' && ERROS_REFRESH_INVALIDO.has(e.code)) return true;
-  return e?.status === 400 || e?.status === 401;
+  return e?.status === 400 || e?.status === 401 || e?.status === 404;
 }
 
 /**
@@ -239,6 +293,16 @@ export async function encerrarSessaoLocal(motivo: MotivoEncerramento): Promise<v
     }
   }
   ouvintes.forEach((ouvinte) => ouvinte(motivo));
+}
+
+/**
+ * Conta excluída (HU-022): os dados locais já foram apagados pelo limpezaLocalService; aqui só se avisa
+ * os ouvintes (o App volta para a tela de entrada). Não chama limparTokens nem os limpadores do logout,
+ * que reabririam os bancos recém-apagados.
+ */
+export function avisarContaExcluida(): void {
+  renovacaoEmAndamento = null;
+  ouvintes.forEach((ouvinte) => ouvinte('conta-excluida'));
 }
 
 /**

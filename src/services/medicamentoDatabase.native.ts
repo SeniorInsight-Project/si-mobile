@@ -1,6 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import type { RotinaCache, RotinaCacheInput } from './medicamentoDatabase';
+import { apagarArquivoSqlite } from './sqliteArquivo';
 
+const NOME_BANCO = 'seniorinsight_medicamentos.db';
 let sqliteDb: SQLite.SQLiteDatabase | null = null;
 
 interface RotinaCacheRow {
@@ -29,7 +31,7 @@ export async function getMedicamentoDatabase(): Promise<SQLite.SQLiteDatabase | 
   }
 
   try {
-    sqliteDb = SQLite.openDatabaseSync('seniorinsight_medicamentos.db');
+    sqliteDb = SQLite.openDatabaseSync(NOME_BANCO);
     await sqliteDb.execAsync(`
       CREATE TABLE IF NOT EXISTS rotinas_medicamentos_cache (
         id TEXT PRIMARY KEY,
@@ -200,4 +202,11 @@ export async function limparCacheMedicamentos(): Promise<void> {
   } catch (err: any) {
     console.warn('[medicamentoDatabase.native] Erro ao limpar cache SQLite:', err?.message);
   }
+}
+
+/** Exclusão da conta (HU-022): fecha e apaga o arquivo do banco. Lança se não conseguir. */
+export async function apagarBancoMedicamentos(): Promise<void> {
+  const conexao = sqliteDb;
+  sqliteDb = null;
+  await apagarArquivoSqlite(NOME_BANCO, conexao);
 }
