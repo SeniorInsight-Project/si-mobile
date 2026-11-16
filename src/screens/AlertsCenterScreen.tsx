@@ -138,6 +138,7 @@ export default function AlertsCenterScreen({
             title="Salvar"
             variant="primary"
             fullWidth={false}
+            style={{ alignSelf: 'flex-start' }}
             onPress={() => avaliar(alerta, 'FALSO', motivo)}
             testID={`alerta-salvar-${alerta.id}`}
           />

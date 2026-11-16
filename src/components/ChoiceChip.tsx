@@ -26,7 +26,8 @@ export default function ChoiceChip({
       style={[
         styles.chip,
         selected && styles.chipSelected,
-        disabled && styles.chipDisabled,
+        // Em modo leitura a opção escolhida continua legível; só as demais esmaecem.
+        disabled && !selected && styles.chipDisabled,
       ]}
       onPress={onPress}
       disabled={disabled}

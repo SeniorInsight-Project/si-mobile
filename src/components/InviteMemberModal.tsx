@@ -397,15 +397,16 @@ const styles = StyleSheet.create({
   chipItem: {
     minHeight: 48,
     justifyContent: 'center',
-    backgroundColor: colors.surfaceSubtle,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: rounded.full,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  // Mesmo visual do ChoiceChip: selecionado em navy sólido com texto branco.
   chipItemSelected: {
-    backgroundColor: colors.infoSurface,
+    backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   chipText: {
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     ...font('body', 600),
   },
   chipTextSelected: {
-    color: colors.primary,
+    color: colors.onPrimary,
     ...font('body', 700),
   },
   doctorRedirectCard: {

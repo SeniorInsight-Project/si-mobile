@@ -102,7 +102,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '90%',
   },
+  // A cadeia sheet > safeArea > body precisa encolher para caber nos 90% do keyboardWrapper;
+  // sem isso o ScrollView cresce até o conteúdo inteiro e o rodapé é cortado pelo overflow.
   sheet: {
+    flexShrink: 1,
     backgroundColor: colors.surface,
     borderTopLeftRadius: rounded.sheet,
     borderTopRightRadius: rounded.sheet,
@@ -111,6 +114,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     width: '100%',
+    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',
@@ -140,7 +144,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   body: {
-    maxHeight: '100%',
+    flexGrow: 0,
+    flexShrink: 1,
   },
   bodyContent: {
     paddingHorizontal: 20,

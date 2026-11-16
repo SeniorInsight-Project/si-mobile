@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   /* CARD 1: IDENTIDADE E MÉTRICAS */
   elderlyCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     alignItems: 'center',
     marginBottom: 24,
@@ -831,8 +831,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 6,
     alignItems: 'center',
+    // Rótulos de 14 px podem quebrar em 2 linhas ("TIPO SANGUÍNEO"): o valor fica na base para alinhar entre os blocos.
+    justifyContent: 'space-between',
   },
   statLabel: {
+    textAlign: 'center',
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 2,
@@ -912,7 +915,7 @@ const styles = StyleSheet.create({
   },
   comorbiditiesCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     ...shadows.tier2,
   },

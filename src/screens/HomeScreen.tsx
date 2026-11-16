@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 18,
     ...shadows.tier2,
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
   },
   semaforoCard: {
     backgroundColor: colors.mint.background,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 18,
     position: 'relative',
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
   },
   paywallCard: {
     backgroundColor: colors.lavender.background,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1.5,
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   rotinaCard: {
     backgroundColor: colors.sky.background,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1.5,
@@ -1268,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   mapCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 16,
     marginBottom: 18,
     ...shadows.tier2,

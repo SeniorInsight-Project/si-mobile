@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 80,
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     paddingHorizontal: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   loadingCard: {
     width: '100%',
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 30,
     alignItems: 'center',
     justifyContent: 'center',
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
   medicineCard: {
     width: '100%',
     backgroundColor: colors.infoSurface,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 24,
     marginBottom: 18,
     position: 'relative',
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
   },
   allTakenCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 24,
     alignItems: 'center',
     marginBottom: 18,
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 24,
     alignItems: 'center',
     marginBottom: 18,
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     paddingHorizontal: 18,
     marginBottom: 18,
     ...shadows.tier1,
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   },
   sosCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 24,
     alignItems: 'center',
     position: 'relative',
@@ -1087,10 +1087,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginRight: 8,
   },
+  // 32 px: a sigla usa o texto mínimo de 14 px e precisa caber dentro da borda de 2 px.
   miniAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: rounded.input,
+    width: 32,
+    height: 32,
+    borderRadius: rounded.full,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

@@ -842,12 +842,15 @@ const styles = StyleSheet.create({
   contactNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Quebra o badge "Nº a ligar" para a linha de baixo em vez de invadir os botões de ação.
+    flexWrap: 'wrap',
+    columnGap: 6,
+    rowGap: 4,
   },
   contactName: {
     fontSize: 14,
     ...font('body', 700),
     color: colors.primary,
-    marginRight: 6,
   },
   ordemBadge: {
     flexDirection: 'row',
@@ -885,6 +888,7 @@ const styles = StyleSheet.create({
   contactActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginLeft: 8,
   },
   samuCard: {

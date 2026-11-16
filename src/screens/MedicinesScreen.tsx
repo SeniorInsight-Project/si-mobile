@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   },
   dailyCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 18,
     ...shadows.tier2,

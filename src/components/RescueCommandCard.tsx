@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   caregiverAvatar: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: rounded.full,
     borderWidth: 2,
     borderColor: colors.white,

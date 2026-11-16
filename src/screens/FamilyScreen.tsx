@@ -35,7 +35,7 @@ import {
   MembroRede,
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
-import { colors, font, rounded, shadows, typography } from '../theme';
+import { colors, font, rounded, shadows, sizes, typography } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 
 export interface FamilyScreenProps {
@@ -1084,7 +1084,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 20,
     marginBottom: 16,
     ...shadows.tier2,
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
   },
   memberCard: {
     backgroundColor: colors.white,
-    borderRadius: rounded.full,
+    borderRadius: rounded.card,
     padding: 16,
     ...shadows.tier2,
   },
@@ -1289,16 +1289,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: rounded.xl,
+    width: sizes.iconButton,
+    height: sizes.iconButton,
+    borderRadius: rounded.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionCircleWhite: {
-    width: 36,
-    height: 36,
-    borderRadius: rounded.xl,
+    width: sizes.iconButton,
+    height: sizes.iconButton,
+    borderRadius: rounded.full,
     backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',

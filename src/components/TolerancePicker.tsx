@@ -20,7 +20,7 @@ export default function TolerancePicker({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Icon name="notifications" size={18} color={colors.coralDark} />
+            <Icon name="notifications" size={18} color={colors.amber.textDark} />
           </View>
           <View>
             <Text style={styles.title}>Janela de Tolerância</Text>
@@ -70,7 +70,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: rounded.full,
-    backgroundColor: colors.peach.background,
+    // Âmbar = tolerância / medicação pendente (AGENTS.md, pastéis funcionais).
+    backgroundColor: colors.amber.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

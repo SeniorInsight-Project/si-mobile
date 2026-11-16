@@ -240,7 +240,7 @@ export default function AddMedicineModal({
                   <Icon
                     name={opt.icon}
                     size={16}
-                    color={isSelected ? colors.primary : colors.textSecondary}
+                    color={isSelected ? colors.onPrimary : colors.textSecondary}
                   />
                 </View>
                 <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>
@@ -389,15 +389,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
-    backgroundColor: colors.surfaceSubtle,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: rounded.full,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
+  // Mesmo visual do ChoiceChip: selecionado em navy sólido com texto branco.
   chipActive: {
-    backgroundColor: colors.sky.background,
+    backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   chipLabel: {
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     ...font('body', 600),
   },
   chipLabelActive: {
-    color: colors.primary,
+    color: colors.onPrimary,
     ...font('body', 700),
   },
   quickTimesRow: {
@@ -417,9 +418,9 @@ const styles = StyleSheet.create({
   quickTimeChip: {
     minHeight: 48,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: rounded.sm,
-    backgroundColor: colors.surfaceSubtle,
+    paddingHorizontal: 16,
+    borderRadius: rounded.full,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',

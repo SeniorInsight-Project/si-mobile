@@ -136,8 +136,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
+  // Compacto: centraliza no eixo cruzado do container (centro na coluna, meio na linha).
+  // Para alinhar à esquerda, passe style={{ alignSelf: 'flex-start' }}.
   compactPadding: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     paddingHorizontal: 20,
   },
   content: {

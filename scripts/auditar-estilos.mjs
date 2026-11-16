@@ -123,10 +123,10 @@ function auditFile(filePath, violations) {
       });
     }
 
-    // 5. height/width/minHeight < 48 em estilos com Button|Btn|Chip|Touch
+    // 5. height/width/minHeight < 48 em estilos com Button|Btn|Chip|Touch|Action
     if (
       currentStyleName &&
-      /(Button|Btn|Chip|Touch)/i.test(currentStyleName) &&
+      /(Button|Btn|Chip|Touch|Action)/i.test(currentStyleName) &&
       !okOverride
     ) {
       const dimMatch = code.match(/\b(height|width|minHeight)\s*:\s*(\d+(?:\.\d+)?)\b/);

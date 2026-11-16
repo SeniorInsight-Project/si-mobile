@@ -172,3 +172,34 @@
   - `.github/workflows/ci.yml`: adicionado passo `npm run lint:estilo` após `npm test`.
   - `README.md`: adicionada seção `## Padronização de UI`.
   - Limpeza final nas telas e componentes restantes para zerar todas as 92 ocorrências apontadas na primeira execução do auditor (hex remanescente em `ElderlyDataScreen.tsx`, estilos mortos de botões migrados, `borderRadius` literais → `rounded.*` e exceção comentada para badge informativo em `CodigoPareamentoPainel.tsx`).
+
+---
+
+## Etapa 8 — Verificação visual no aparelho (`16/11/2026`, parcial)
+
+- **Ambiente:** build de desenvolvimento (`npx expo run:android`) num Galaxy SM-S942B por USB, Metro em `localhost:8089`, back local (gateway 8080, care 8082, identity 8083, Keycloak 8180) e `EXPO_PUBLIC_USAR_MOCK=true`. Usuário de teste em `planning/credenciais_teste_local.md` (fora do git).
+- **Corrigido nesta etapa (sem commit):**
+
+| Tela / componente | Problema visto no aparelho | Correção |
+|---|---|---|
+| `ModalSheet` (todos os modais) | Corpo não rolava até o fim e o rodapé (Salvar/Enviar) ficava fora da tela: não dava para salvar um remédio | `sheet`/`safeArea`/`body` com `flexShrink: 1` e `flexGrow: 0` no corpo |
+| 17 cartões (Modo Idoso, Perfil, Família, Home, Remédios) | Raio 32 virou `rounded.full`: cartões viraram "estádios" e cortavam conteúdo | `rounded.card` |
+| `Button` compacto (19 usos) | `alignSelf: 'flex-start'` fixo: links do Login à esquerda, botões de cabeçalho colados no topo | `alignSelf: 'center'`; "Salvar" do alarme falso mantém `flex-start` explícito |
+| `Icon` | 12 nomes sem mapa caíam no "?" (Enviar Convite, Premium, SOS, 2FA…) | Mapeados + teste `iconesMapeados.test.ts` |
+| Contatos de Emergência | Badge "Nº a ligar" invadido pelos botões de 48 dp | Linha do nome com `flexWrap` + `gap` nas ações |
+| Família | Ações dos membros com 36 dp (lint não pegava `actionCircle`) | 48 dp (`sizes.iconButton`); lint passa a checar estilos `Action` |
+| Modo Idoso / Comando de Resgate | Siglas de 14 px vazando de avatares de 24/28 px | Avatares de 32 px |
+| Perfil do idoso | "TIPO SANGUÍNEO" em 2 linhas desalinhava os valores; chip selecionado apagado em modo leitura | `space-between` nos blocos; `ChoiceChip` só esmaece não selecionados |
+| `AddMedicineModal`, `InviteMemberModal` | 3 estilos de seleção diferentes | Mesmo visual do `ChoiceChip` (navy sólido) |
+| `TolerancePicker` | Ícone em pêssego | Âmbar (tolerância, AGENTS.md) |
+| `authService` | `scheme` forçava `seniorinsight://auth` no Expo Go | `makeRedirectUri({ native: 'seniorinsight://auth', path: 'auth' })` (sugerido em commit separado) |
+
+- **Telas vistas:** Onboarding, Login, Home, Remédios, Modo Idoso (SOS Idoso), Família, Cadastrar Idoso, Perfil do idoso, Central de Alertas, Premium, Contatos de Emergência; modais Novo Medicamento, Convidar Membro e Semáforo.
+- **Não vistas:** 2FA, Confirmar e-mail, Aceitar convite, telas de pareamento do idoso (código/QR/conectado), Excluir conta, Dados do idoso, Relógio, SOS recebido, modais Convidar Médico, Comorbidade, Status do aparelho e SOS ativo (não disparei SOS).
+- **Pendências (decisão de produto/design):**
+  - Setas ↑↓ e alça de arrastar em Contatos com bem menos de 48 dp.
+  - Erros de carga em alerta nativo do Android (Remédios mostra o UUID do idoso; Perfil) x erro inline (Central de Alertas).
+  - Pastéis da Home: "Passos" em pêssego e "Batimento" em azul-céu (guia: pêssego = cardíaco). Já era assim antes da branch.
+  - Textos: "Família Perfil" no Perfil do idoso, "Modo Idoso Alarme Sos", "Rotina De Remédios", "(HU-016)" visível na Família, "Perfil atual: ADMIN"; mistura de Title Case e frase nos botões; filtros da Central de Alertas em caixa alta x Família.
+  - Badge "Especialista" em vermelho e cores de avatar/badge vindas de hex em `redeProtecaoService.ts`/mocks (fora do alcance do `lint:estilo`).
+  - Modo Idoso mostra "Cadastrar Medicamento" para o idoso (RN-004: só o Familiar Administrador cadastra).
