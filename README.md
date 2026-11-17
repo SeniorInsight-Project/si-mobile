@@ -2,6 +2,33 @@
 
 Initial React Native setup using Expo Go for Android.
 
+## Health Connect / Open Wearables
+
+The watch integration uses the Open Wearables React Native SDK commit
+`339bd95f708fa3ef3682a98e70c106a0f82ec184` (backend-compatible SDK line 0.9.0).
+It is a native module and does not run in Expo Go; use the EAS `development`
+profile or a local development build.
+
+Before the first Android build on each machine, publish the temporary native
+dependency required by the SDK:
+
+```bash
+git clone https://github.com/the-momentum/open_wearables_android_sdk
+cd open_wearables_android_sdk
+git checkout v0.11.2
+./gradlew publishToMavenLocal
+cd ../si-mobile
+npx expo prebuild
+# Add mavenLocal() as the first repository in android/build.gradle.
+npx expo run:android
+```
+
+Repeat the `mavenLocal()` step after `npx expo prebuild --clean`. For EAS
+builds, use a runner where the Android SDK has been published to Maven Local;
+the config plugin sets the Health Connect activity aliases and `minSdkVersion`
+29. The app requests only the Health Connect read permissions corresponding to
+the HU-018 consents: heart rate, steps, sleep and oxygen saturation.
+
 ## Stack configured
 
 - React Native + Expo
