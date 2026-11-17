@@ -1,12 +1,21 @@
-import { Platform } from 'react-native';
 import { plataformaDoContrato, type Aparelho, type PlataformaAparelho } from './pareamentoService';
+
+let Platform: { OS: string } = { OS: 'node' };
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const rn = require('react-native');
+  if (rn?.Platform) Platform = rn.Platform;
+} catch {
+  // Ambiente Node.js de testes
+}
 
 /**
  * Identificação deste aparelho para o pareamento (campo `identificadorAparelho` do contrato).
  * O identificador é um UUID gerado uma vez e guardado no secure store; não é número de telefone,
  * IMEI nem nada que identifique a pessoa.
  */
-const CHAVE = 'si_aparelho_id';
+export const CHAVE_IDENTIFICADOR_APARELHO = 'si_aparelho_id';
+const CHAVE = CHAVE_IDENTIFICADOR_APARELHO;
 let emMemoria: string | null = null;
 
 function plataformaAtual(): PlataformaAparelho {
@@ -36,4 +45,9 @@ export async function obterAparelho(): Promise<Aparelho> {
   }
   emMemoria = armazenado;
   return { identificador: armazenado, plataforma: plataformaAtual() };
+}
+
+/** Exclusão da conta (HU-022): esquece o identificador em memória. A chave do secure store é apagada à parte. */
+export function esquecerIdentificadorAparelho(): void {
+  emMemoria = null;
 }

@@ -1,11 +1,10 @@
 import { type Consentimentos, descreverAutorizados, tiposAutorizados } from './consentimentoService';
+import { mockPermitido } from '../config/ambiente';
 
 /**
  * Conexão do relógio pelo Health Connect (HU-023, HU-025 / RF-016 a RF-020).
  *
- * O Health Connect é um módulo nativo (react-native-health-connect) que não existe no Expo Go.
- * Aqui ficam o modelo de passos, a classificação da sincronização e a abertura da loja; a leitura
- * real entra num development build. Enquanto isso o estado do relógio é simulado.
+ * A integração nativa fica em open-wearablesService; este módulo mantém apenas as regras de tela.
  */
 export const PACOTE_HEALTH_CONNECT = 'com.google.android.apps.healthdata';
 export const INTERVALO_LEITURA_MIN = 15;
@@ -75,8 +74,6 @@ export function montarPassos(estado: EstadoConexao, consentimentos: Consentiment
   ];
 }
 
-declare const __DEV__: boolean | undefined;
-
 export interface EstadoConexaoInfo extends EstadoConexao {
   /** true quando os valores NÃO vêm do aparelho (só em desenvolvimento) e a tela deve sinalizar. */
   simulado: boolean;
@@ -88,9 +85,9 @@ export interface EstadoConexaoInfo extends EstadoConexao {
  */
 export function obterEstadoConexao(
   agoraMs: number = Date.now(),
-  emDesenvolvimento: boolean = typeof __DEV__ !== 'undefined' && __DEV__ === true
+  emDesenvolvimento?: boolean
 ): EstadoConexaoInfo {
-  if (emDesenvolvimento) {
+  if (mockPermitido(emDesenvolvimento)) {
     return { healthConnectInstalado: true, segundoPlanoAtivo: true, ultimaMedicaoMs: agoraMs - 12 * 60000, simulado: true };
   }
   return { healthConnectInstalado: false, segundoPlanoAtivo: false, ultimaMedicaoMs: null, simulado: false };

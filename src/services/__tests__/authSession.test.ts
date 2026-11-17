@@ -1,6 +1,10 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  definirArmazenamentoAparelhoPareado,
+  marcarAparelhoPareado,
+} from '../aparelhoPareadoService';
+import {
   TOKEN_STORAGE_KEYS,
   setSecureStoreAdapter,
   obterTokens,
@@ -84,6 +88,7 @@ function configurar(provedor: ProvedorOidc) {
 beforeEach(() => {
   store = criarMockSecureStore();
   setSecureStoreAdapter(store);
+  definirArmazenamentoAparelhoPareado(store);
   limpezas = 0;
 });
 
@@ -315,4 +320,185 @@ test('cancelamento no Google (access_denied) é tratado como cancelamento sem er
   // Entrar (login) e Criar conta (criar-conta) sem cancelamentoSilencioso -> 'erro' mesmo com access_denied
   assert.equal(desfechoErroOAuth({ error: 'access_denied' }, false), 'erro');
   assert.equal(desfechoErroOAuth({ error: 'access_denied' }), 'erro');
+});
+
+test('provedorPadrao: aparelho pareado com sessaoAparelhoId renova pela rota do identity sem Authorization', async () => {
+  const chamadasFetch: Array<{ url: string; init?: RequestInit }> = [];
+  let oidcChamado = false;
+  configurarSessao({
+    relogio: () => AGORA,
+    limpadoresLocais: [
+      async () => {
+        limpezas += 1;
+      },
+    ],
+    fetch: (async (url: string | URL | Request, init?: RequestInit) => {
+      chamadasFetch.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          accessToken: 'access-idoso-novo',
+          refreshToken: 'refresh-idoso-novo',
+          expiresIn: 300,
+          tokenType: 'Bearer',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch,
+    refreshOidc: async () => {
+      oidcChamado = true;
+      return { accessToken: 'nao-deve-usar' };
+    },
+  });
+
+  await marcarAparelhoPareado({
+    perfilId: 'perfil-1',
+    nome: 'Maria',
+    sessaoAparelhoId: 'sessao-idoso-42',
+  });
+  await salvarSessao({
+    accessToken: 'access-velho',
+    refreshToken: 'refresh-idoso-atual',
+    expiresIn: 30,
+    issuedAt: AGORA / 1000,
+  });
+
+  const novoToken = await renovarSessao();
+
+  assert.equal(novoToken, 'access-idoso-novo');
+  assert.equal(oidcChamado, false);
+  assert.equal(chamadasFetch.length, 1);
+  const req = chamadasFetch[0];
+  assert.ok(req.url.endsWith('/api/v1/identity/pareamentos/sessoes/sessao-idoso-42/renovacoes'));
+  assert.equal(req.init?.method, 'POST');
+  const headers = new Headers(req.init?.headers);
+  assert.equal(headers.has('Authorization'), false);
+  assert.equal(headers.get('Content-Type'), 'application/json');
+  assert.deepEqual(JSON.parse(String(req.init?.body)), { refreshToken: 'refresh-idoso-atual' });
+  assert.deepEqual(await obterTokens(), {
+    accessToken: 'access-idoso-novo',
+    refreshToken: 'refresh-idoso-novo',
+  });
+  assert.equal(await obterExpiracaoAccessToken(), AGORA + 300_000);
+});
+
+test('provedorPadrao: aparelho pareado sem sessaoAparelhoId e familiar seguem pelo refresh OIDC', async () => {
+  const chamadasFetch: string[] = [];
+  const chamadasOidc: string[] = [];
+  configurarSessao({
+    relogio: () => AGORA,
+    limpadoresLocais: [],
+    fetch: (async (url: string | URL | Request) => {
+      chamadasFetch.push(String(url));
+      throw new Error('fetch não deve ser chamado');
+    }) as typeof fetch,
+    refreshOidc: async (refreshToken) => {
+      chamadasOidc.push(refreshToken);
+      return { accessToken: `oidc-${refreshToken}`, refreshToken: 'r-novo', expiresIn: 300, issuedAt: AGORA / 1000 };
+    },
+  });
+
+  // Familiar (sem aparelho pareado)
+  await salvarSessao({ accessToken: 'a1', refreshToken: 'r-fam', expiresIn: 300, issuedAt: AGORA / 1000 });
+  assert.equal(await renovarSessao(), 'oidc-r-fam');
+
+  // Pareado antigo (sem sessaoAparelhoId)
+  await marcarAparelhoPareado({ perfilId: 'perfil-1', nome: 'Maria' });
+  await salvarSessao({ accessToken: 'a2', refreshToken: 'r-antigo', expiresIn: 300, issuedAt: AGORA / 1000 });
+  assert.equal(await renovarSessao(), 'oidc-r-antigo');
+
+  assert.deepEqual(chamadasOidc, ['r-fam', 'r-antigo']);
+  assert.equal(chamadasFetch.length, 0);
+});
+
+test('provedorPadrao: 400, 401 e 404 na rota de renovação encerram a sessão local', async () => {
+  for (const status of [400, 401, 404]) {
+    store = criarMockSecureStore();
+    setSecureStoreAdapter(store);
+    definirArmazenamentoAparelhoPareado(store);
+    limpezas = 0;
+
+    configurarSessao({
+      relogio: () => AGORA,
+      limpadoresLocais: [
+        async () => {
+          limpezas += 1;
+        },
+      ],
+      fetch: (async () => new Response(JSON.stringify({ mensagem: 'inválido' }), { status })) as typeof fetch,
+    });
+
+    await marcarAparelhoPareado({ perfilId: 'p1', nome: 'Maria', sessaoAparelhoId: 'sessao-1' });
+    await salvarSessao({ accessToken: 'a', refreshToken: 'r-secreto', expiresIn: 300, issuedAt: AGORA / 1000 });
+    const motivos: string[] = [];
+    const remover = aoEncerrarSessao((m) => motivos.push(m));
+
+    try {
+      await assert.rejects(renovarSessao(), (err: unknown) => err instanceof SessaoInvalidaError);
+      assert.deepEqual(await obterTokens(), { accessToken: null, refreshToken: null });
+      assert.equal(limpezas, 1);
+      assert.deepEqual(motivos, ['expirada']);
+    } finally {
+      remover();
+    }
+  }
+});
+
+test('provedorPadrao: 429, 503 e falha de rede mantêm a sessão e não vazam tokens em logs', async () => {
+  const avisos: string[] = [];
+  const warnOriginal = console.warn;
+  console.warn = (...args: unknown[]) => {
+    avisos.push(args.map(String).join(' '));
+  };
+
+  try {
+    const cenarios: Array<() => Promise<Response>> = [
+      async () => new Response('too many', { status: 429 }),
+      async () => new Response('unavailable', { status: 503 }),
+      async () => {
+        throw new TypeError('Network request failed');
+      },
+    ];
+
+    for (const simular of cenarios) {
+      store = criarMockSecureStore();
+      setSecureStoreAdapter(store);
+      definirArmazenamentoAparelhoPareado(store);
+      limpezas = 0;
+
+      configurarSessao({
+        relogio: () => AGORA,
+        limpadoresLocais: [
+          async () => {
+            limpezas += 1;
+          },
+        ],
+        fetch: simular as typeof fetch,
+      });
+
+      await marcarAparelhoPareado({ perfilId: 'p1', nome: 'Maria', sessaoAparelhoId: 'sessao-1' });
+      await salvarSessao({
+        accessToken: 'access-secreto-123',
+        refreshToken: 'refresh-secreto-456',
+        expiresIn: 10,
+        issuedAt: AGORA / 1000,
+      });
+
+      const motivos: string[] = [];
+      const remover = aoEncerrarSessao((m) => motivos.push(m));
+      try {
+        assert.equal(await obterAccessTokenValido(), 'access-secreto-123');
+        assert.equal((await obterTokens()).refreshToken, 'refresh-secreto-456');
+        assert.equal(limpezas, 0);
+        assert.deepEqual(motivos, []);
+      } finally {
+        remover();
+      }
+    }
+
+    const textoLogs = avisos.join('\n');
+    assert.equal(textoLogs.includes('access-secreto-123'), false);
+    assert.equal(textoLogs.includes('refresh-secreto-456'), false);
+  } finally {
+    console.warn = warnOriginal;
+  }
 });

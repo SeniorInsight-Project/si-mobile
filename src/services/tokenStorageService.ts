@@ -204,6 +204,16 @@ export async function limparTokens(): Promise<boolean> {
 }
 
 /**
+ * Apaga uma chave do `expo-secure-store` (exclusão da conta, HU-022). Sem secure store
+ * (ex.: web), não há o que apagar. Lança se o secure store recusar, para quem chama registrar a falha.
+ */
+export async function apagarItemSeguro(chave: string): Promise<void> {
+  const store = await getSecureStore();
+  if (!store || !(await isStoreAvailable(store))) return;
+  await store.deleteItemAsync(chave);
+}
+
+/**
  * Resolve o token de autorização: utiliza o token informado explicitamente ou
  * busca automaticamente o `accessToken` salvo no `expo-secure-store`.
  * @param {string|null} [tokenExplicito]

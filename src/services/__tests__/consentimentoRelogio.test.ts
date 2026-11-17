@@ -19,6 +19,7 @@ import {
   obterEstadoConexao,
   type EstadoConexao,
 } from '../relogioService';
+import { rotaTokenSdk } from '../openWearablesService';
 
 const IDOSO_ID = "3f2b8c1e-5d4a-4b7e-9c10-6a1d2e3f4a5b";
 
@@ -161,5 +162,18 @@ describe('Relógio e Health Connect (HU-023 / HU-025)', () => {
     const e = obterEstadoConexao(AGORA, true);
     assert.equal(e.simulado, true);
     assert.equal(classificarSincronizacao(e.ultimaMedicaoMs, AGORA).status, 'FUNCIONANDO');
+  });
+
+  test('o estado simulado exige a permissão explícita de mock', () => {
+    const e = obterEstadoConexao(AGORA, true);
+    assert.equal(e.simulado, true);
+    assert.equal(obterEstadoConexao(AGORA, false).simulado, false);
+  });
+
+  test('a sessão do SDK usa a rota do telemetry-service', () => {
+    assert.equal(
+      rotaTokenSdk(IDOSO_ID),
+      `/api/v1/telemetry/idosos/${IDOSO_ID}/open-wearables/sdk-token`,
+    );
   });
 });

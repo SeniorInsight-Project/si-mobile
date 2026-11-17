@@ -352,8 +352,18 @@ export async function retomarPendentes(callbacks: SosQueueCallbacks = {}): Promi
  * Para os reenvios em andamento e apaga a fila local (memória e SQLite). Usado no logout.
  */
 export async function limparFilaSosLocal(): Promise<void> {
+  descartarFilaSosEmMemoria();
+  await limparFilaSos();
+}
+
+/** Para os reenvios em andamento e esvazia a fila em memória, sem tocar no SQLite. */
+export function descartarFilaSosEmMemoria(): void {
   activeJobs.forEach(({ timer }) => clearTimeout(timer));
   activeJobs.clear();
   memoriaFila.clear();
-  await limparFilaSos();
+}
+
+/** Quantos chamados estão na fila em memória. */
+export function tamanhoFilaSosEmMemoria(): number {
+  return memoriaFila.size;
 }

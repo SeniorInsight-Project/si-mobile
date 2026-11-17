@@ -11,3 +11,7 @@ export async function getSosDatabase(): Promise<SQLiteDatabase | null> {
 export async function limparFilaSos(): Promise<void> {
   // Sem SQLite fora do nativo: nada a limpar.
 }
+
+export async function apagarBancoSos(): Promise<void> {
+  // Sem SQLite fora do nativo: a fila fica só na memória do sosQueueService.
+}

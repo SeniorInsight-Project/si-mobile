@@ -52,6 +52,12 @@ export interface ConfirmacaoIngestaoResponse {
 let localMedicinesStore: RotinaMedicamento[] = [];
 let inicializadoMedicamentos = false;
 
+/** Exclusão da conta (HU-022): esquece as rotinas em memória. O SQLite é apagado à parte. */
+export function descartarRotinasEmMemoria(): void {
+  localMedicinesStore = [];
+  inicializadoMedicamentos = false;
+}
+
 async function garantirRotinasIniciais(): Promise<void> {
   if (inicializadoMedicamentos) return;
   inicializadoMedicamentos = true;

@@ -87,6 +87,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pareamentos/sessoes/{sessaoAparelhoId}/renovacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renova os tokens da sessão do aparelho do idoso
+         * @description Chamada pelo app do idoso quando o access token vence, sem header `Authorization`. Confere se a sessão não foi
+         *     revogada, renova no Keycloak com as credenciais do serviço e garante que o novo token pertence ao perfil dono
+         *     da sessão.
+         */
+        post: operations["renovarSessaoAparelho"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -154,6 +176,9 @@ export interface components {
             identificadorAparelho: string;
             plataforma: components["schemas"]["Plataforma"];
         };
+        RenovarSessaoAparelhoRequest: {
+            refreshToken: string;
+        };
         Tokens: {
             accessToken: string;
             refreshToken: string;
@@ -207,6 +232,15 @@ export interface components {
         };
         /** @description Recurso não encontrado */
         NaoEncontrado: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Erro"];
+            };
+        };
+        /** @description Serviço de identidade temporariamente indisponível */
+        ServicoIndisponivel: {
             headers: {
                 [name: string]: unknown;
             };
@@ -370,6 +404,36 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
+        };
+    };
+    renovarSessaoAparelho: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessaoAparelhoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenovarSessaoAparelhoRequest"];
+            };
+        };
+        responses: {
+            /** @description Tokens renovados */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
+            };
+            400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            404: components["responses"]["NaoEncontrado"];
+            503: components["responses"]["ServicoIndisponivel"];
         };
     };
 }
