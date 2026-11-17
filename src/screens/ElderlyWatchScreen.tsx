@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
@@ -15,6 +15,11 @@ import {
   obterEstadoConexao,
 } from '../services/relogioService';
 import { abrirHealthConnect } from '../services/healthConnectLauncher';
+import {
+  conectarOpenWearables,
+  obterEstadoOpenWearables,
+  type EstadoOpenWearables,
+} from '../services/openWearablesService';
 
 export interface ElderlyWatchScreenProps {
   onNavigate: (screen: string) => void;
@@ -28,14 +33,33 @@ const ROTULO_ESTADO: Record<EstadoPasso, string> = { FEITO: 'FEITO', AGORA: 'AGO
 export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: ElderlyWatchScreenProps) {
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [aviso, setAviso] = useState('');
+  const [estadoReal, setEstadoReal] = useState<EstadoOpenWearables | null>(null);
+  const [carregando, setCarregando] = useState(false);
   const { idosoId } = useIdoso();
-  const conexao = useMemo(() => obterEstadoConexao(), []);
 
   useEffect(() => {
-    // Se não carregar (ou sem idosoId), o passo 2 mostra "nenhum dado autorizado"; a tela Meus Dados é quem mostra o erro.
-    obterConsentimentos(idosoId).then(setConsentimentos).catch(() => undefined);
+    let ativo = true;
+    Promise.all([
+      obterConsentimentos(idosoId).catch(() => CONSENTIMENTO_PADRAO),
+      obterEstadoOpenWearables().catch(() => null),
+    ]).then(([consentimentosCarregados, estado]) => {
+      if (!ativo) return;
+      setConsentimentos(consentimentosCarregados);
+      setEstadoReal(estado);
+    });
+    return () => {
+      ativo = false;
+    };
   }, [idosoId]);
 
+  const conexao = estadoReal
+    ? {
+        healthConnectInstalado: estadoReal.healthConnectInstalado,
+        segundoPlanoAtivo: estadoReal.segundoPlanoAtivo,
+        ultimaMedicaoMs: estadoReal.ultimaSincronizacaoMs,
+        simulado: estadoReal.simulado,
+      }
+    : obterEstadoConexao(Date.now(), false);
   const passos = montarPassos(conexao, consentimentos);
   const status = classificarSincronizacao(conexao.ultimaMedicaoMs);
   const corStatus =
@@ -46,12 +70,26 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
         : { fundo: colors.surfaceSubtle, icone: colors.textSecondary, icon: 'info' };
 
   const abrir = async () => {
-    const ok = await abrirHealthConnect();
-    setAviso(
-      ok
-        ? ''
-        : 'O Health Connect abre só em celular Android. Peça ajuda à sua família para conectar o relógio.'
-    );
+    setAviso('');
+    if (!idosoId) {
+      setAviso('Não encontramos seu cadastro neste aparelho. Peça à sua família um novo pareamento.');
+      return;
+    }
+    setCarregando(true);
+    try {
+      await conectarOpenWearables(idosoId, consentimentos);
+      setEstadoReal(await obterEstadoOpenWearables());
+    } catch (erro) {
+      const mensagem = (erro as Error)?.message;
+      const ok = await abrirHealthConnect();
+      setAviso(
+        ok && mensagem?.includes('não está instalado')
+          ? 'Instale o Health Connect, volte para cá e toque novamente para conectar seu relógio.'
+          : mensagem || 'Não foi possível conectar o relógio. Tente novamente.',
+      );
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
@@ -110,11 +148,12 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
         )}
 
         <Button
-          title="Abrir o Health Connect"
+          title={carregando ? 'Conectando...' : 'Conectar meu relógio'}
           iconLeft="open_in_new"
           variant="primary"
           size="lg"
           onPress={abrir}
+          disabled={carregando}
           testID="relogio-abrir"
         />
 

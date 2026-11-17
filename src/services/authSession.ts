@@ -22,6 +22,7 @@ import {
 } from './tokenStorageService';
 
 export const KEYCLOAK_CLIENT_ID = 'si-mobile';
+export const KEYCLOAK_SCOPES = ['openid', 'profile', 'email', 'offline_access'];
 
 /** Renova o access token quando faltar menos que isso para ele vencer. */
 export const MARGEM_RENOVACAO_MS = 60_000;
@@ -381,6 +382,37 @@ export function emailNaoVerificado(...tokens: Array<string | null | undefined>):
  */
 export function desfechoSemCodigo(fluxo: FluxoAutenticacao): DesfechoAutenticacao {
   return fluxo === 'criar-conta' ? 'confirmar-email' : 'cancelado';
+}
+
+/**
+ * Monta uma variação da configuração base de AuthRequest (ex.: prompt=create ou kc_idp_hint=google)
+ * preservando os parâmetros PKCE e de client sem mutar a base.
+ */
+export function montarConfigAuthComHint<T extends { clientId: string; extraParams?: Record<string, string> }>(
+  configBase: T,
+  extraParams: Record<string, string>,
+): T & { extraParams: Record<string, string> } {
+  return { ...configBase, extraParams: { ...configBase.extraParams, ...extraParams } };
+}
+
+/** true quando o provedor (ex.: Google) retornou cancelamento explícito do usuário. */
+export function ehCancelamentoOAuth(params?: Record<string, string>): boolean {
+  return params?.error === 'access_denied';
+}
+
+/**
+ * Decide o desfecho quando o provedor devolve erro.
+ * Só trata `access_denied` como cancelamento silencioso quando explicitamente pedido (fluxo do Google),
+ * preservando o comportamento de erro para "Entrar" e "Criar conta".
+ */
+export function desfechoErroOAuth(
+  params?: Record<string, string>,
+  cancelamentoSilencioso = false,
+): DesfechoAutenticacao {
+  if (cancelamentoSilencioso && ehCancelamentoOAuth(params)) {
+    return 'cancelado';
+  }
+  return 'erro';
 }
 
 export type TelaInicial = 'ElderlyMode' | 'Home' | 'AcessoRestrito';

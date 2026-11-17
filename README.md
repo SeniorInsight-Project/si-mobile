@@ -2,6 +2,33 @@
 
 Initial React Native setup using Expo Go for Android.
 
+## Health Connect / Open Wearables
+
+The watch integration uses the Open Wearables React Native SDK commit
+`339bd95f708fa3ef3682a98e70c106a0f82ec184` (backend-compatible SDK line 0.9.0).
+It is a native module and does not run in Expo Go; use the EAS `development`
+profile or a local development build.
+
+Before the first Android build on each machine, publish the temporary native
+dependency required by the SDK:
+
+```bash
+git clone https://github.com/the-momentum/open_wearables_android_sdk
+cd open_wearables_android_sdk
+git checkout v0.11.2
+./gradlew publishToMavenLocal
+cd ../si-mobile
+npx expo prebuild
+# Add mavenLocal() as the first repository in android/build.gradle.
+npx expo run:android
+```
+
+Repeat the `mavenLocal()` step after `npx expo prebuild --clean`. For EAS
+builds, use a runner where the Android SDK has been published to Maven Local;
+the config plugin sets the Health Connect activity aliases and `minSdkVersion`
+29. The app requests only the Health Connect read permissions corresponding to
+the HU-018 consents: heart rate, steps, sleep and oxygen saturation.
+
 ## Stack configured
 
 - React Native + Expo
@@ -38,6 +65,7 @@ O app só fala com o `si-api-gateway`; não há URL padrão. Se alguma variável
 
 O app não tem formulário de login próprio. "Entrar" abre o login do realm `seniorinsight` no navegador do sistema (client público `si-mobile`, PKCE `S256`, scopes `openid profile email offline_access`); e-mail, senha, "Esqueceu a senha?" e MFA são telas do tema do Keycloak.
 
+- "Entrar com Google" abre o mesmo fluxo com `kc_idp_hint=google`, indo direto para a escolha de conta do Google sem mostrar a tela do Keycloak; o Keycloak continua emitindo o token. No Google Cloud, o redirect autorizado deve ser `<issuer>/broker/google/endpoint` (ex.: `http://localhost:8180/realms/seniorinsight/broker/google/endpoint` no ambiente local). Em ambiente local, o Google só aceita `localhost` como redirect (use emulador ou `adb reverse`).
 - "Criar conta" (Entrada no App, Login e Aceitar Convite) abre o mesmo fluxo com `prompt=create`, que cai direto no cadastro do Keycloak. Com `verifyEmail` ligado no realm, quem acabou de se cadastrar fica na tela de verificação do Keycloak; ao fechar o navegador (ou se o token vier com `email_verified = false`) o app mostra "Confirme seu e-mail para continuar". "Já confirmei" refaz o login e, com o e-mail confirmado, o app segue o fluxo normal (`GET /api/v1/identity/me`, que cria o perfil no primeiro acesso, e a tela do papel).
 - Tokens e expiração ficam só no `expo-secure-store`. O access token é renovado um minuto antes de vencer e, uma vez, quando o gateway responde 401. Se o refresh token for recusado, a sessão é limpa e o app volta ao Login.
 - Ao abrir, com sessão salva, o app chama `GET /api/v1/identity/me` e abre a tela do papel do token: `idoso` → modo idoso, `familiar` → início; outros papéis veem um aviso de que o app é só para família e idoso.
