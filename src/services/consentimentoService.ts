@@ -139,5 +139,13 @@ export async function salvarConsentimentos(
   }
   // Tipo revogado sai do cache de telemetria na hora (HU-030); a função não lança.
   await sincronizarCacheComConsentimentos(id, salvo);
+  if (tiposAutorizados(salvo).length === 0) {
+    try {
+      const { pararSincronizacaoOpenWearables } = await import('./openWearablesService');
+      await pararSincronizacaoOpenWearables();
+    } catch (erro) {
+      console.warn('[consentimentoService] Não foi possível parar a sincronização do relógio:', (erro as Error)?.message);
+    }
+  }
   return salvo;
 }

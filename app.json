@@ -20,7 +20,11 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_OXYGEN_SATURATION"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -58,7 +62,22 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "open-wearables",
+        {
+          "healthShareUsage": "O Senior Insight lê os dados de saúde que você autorizou para acompanhar seu bem-estar.",
+          "healthUpdateUsage": "O Senior Insight não grava dados de saúde no seu relógio."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          }
+        }
+      ]
     ]
   }
 }

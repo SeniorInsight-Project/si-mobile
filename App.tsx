@@ -61,6 +61,7 @@ import {
   registrarOuvinteToqueNotificacao,
   removerTokenPush,
 } from './src/services/pushService';
+import { pararSincronizacaoOpenWearables } from './src/services/openWearablesService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -167,6 +168,9 @@ export default function App() {
   useEffect(
     () =>
       aoEncerrarSessao(() => {
+        pararSincronizacaoOpenWearables().catch((err) =>
+          console.warn('[App] Falha ao parar a sincronização do relógio:', err?.message),
+        );
         conviteRef.current = null;
         sessaoAtivaRef.current = false;
         setCodigoDoLink(null);
