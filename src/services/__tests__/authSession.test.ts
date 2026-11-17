@@ -11,12 +11,17 @@ import {
   obterExpiracaoAccessToken,
 } from '../tokenStorageService';
 import {
+  KEYCLOAK_CLIENT_ID,
+  KEYCLOAK_SCOPES,
   MARGEM_RENOVACAO_MS,
   SessaoInvalidaError,
   aoEncerrarSessao,
   configurarSessao,
+  desfechoErroOAuth,
   desfechoSemCodigo,
+  ehCancelamentoOAuth,
   emailNaoVerificado,
+  montarConfigAuthComHint,
   obterAccessTokenValido,
   papeisDoToken,
   renovarSessao,
@@ -280,6 +285,41 @@ test('HU-001: email_verified = false em qualquer token pede a confirmação do e
 test('HU-001: fechar o navegador no cadastro leva à confirmação; no login, só cancela', () => {
   assert.equal(desfechoSemCodigo('criar-conta'), 'confirmar-email');
   assert.equal(desfechoSemCodigo('login'), 'cancelado');
+});
+
+test('kc_idp_hint: montarConfigAuthComHint preserva a configuração base e adiciona kc_idp_hint=google', () => {
+  const base = {
+    clientId: KEYCLOAK_CLIENT_ID,
+    scopes: KEYCLOAK_SCOPES,
+    redirectUri: 'seniorinsight://auth',
+    responseType: 'code',
+    usePKCE: true,
+    codeChallengeMethod: 'S256',
+  };
+
+  const configGoogle = montarConfigAuthComHint(base, { kc_idp_hint: 'google' });
+
+  assert.deepEqual(configGoogle, {
+    ...base,
+    extraParams: { kc_idp_hint: 'google' },
+  });
+  assert.equal('extraParams' in base, false);
+});
+
+test('cancelamento no Google (access_denied) é tratado como cancelamento sem erro apenas com cancelamentoSilencioso', () => {
+  assert.equal(ehCancelamentoOAuth({ error: 'access_denied' }), true);
+  assert.equal(ehCancelamentoOAuth({ error: 'server_error' }), false);
+  assert.equal(ehCancelamentoOAuth(undefined), false);
+
+  // Google (cancelamentoSilencioso = true) com access_denied -> 'cancelado'
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }, true), 'cancelado');
+  // Google com outro erro ou sem params -> 'erro'
+  assert.equal(desfechoErroOAuth({ error: 'server_error' }, true), 'erro');
+  assert.equal(desfechoErroOAuth(undefined, true), 'erro');
+
+  // Entrar (login) e Criar conta (criar-conta) sem cancelamentoSilencioso -> 'erro' mesmo com access_denied
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }, false), 'erro');
+  assert.equal(desfechoErroOAuth({ error: 'access_denied' }), 'erro');
 });
 
 test('provedorPadrao: aparelho pareado com sessaoAparelhoId renova pela rota do identity sem Authorization', async () => {
