@@ -17,6 +17,11 @@ import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
 import SemIdosoCard from '../components/SemIdosoCard';
 import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
+import {
+  buscarUltimaPosicaoIdoso,
+  formatarMomentoPosicao,
+  type LocalizacaoSos,
+} from '../services/sosRecebidoService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
 import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
 import { extrairMensagemErro } from '../services/erroHelper';
@@ -91,6 +96,9 @@ export default function HomeScreen({
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
   const [direitoPremium, setDireitoPremium] = useState<DireitoPremium | null>(null);
   const [erroPlano, setErroPlano] = useState<string | null>(null);
+  // Última posição conhecida do idoso, vinda do servidor (último SOS com coordenada).
+  const [posicaoIdoso, setPosicaoIdoso] = useState<LocalizacaoSos | null>(null);
+  const [carregandoPosicao, setCarregandoPosicao] = useState<boolean>(false);
 
   const carregarPlano = useCallback(async () => {
     setErroPlano(null);
@@ -205,6 +213,31 @@ export default function HomeScreen({
       ativo = false;
     };
   }, [idosoSelecionadoId, idosoSelecionado?.nome, plano]);
+
+  const carregarPosicaoIdoso = useCallback(async (id: string | null) => {
+    if (!id) {
+      setPosicaoIdoso(null);
+      return;
+    }
+    setCarregandoPosicao(true);
+    try {
+      const posicao = await buscarUltimaPosicaoIdoso(id);
+      if (idosoSelecionadoRef.current === id) setPosicaoIdoso(posicao);
+    } catch (erro: any) {
+      console.warn(
+        `[HomeScreen] Erro ao carregar a localização do idoso (HTTP ${erro?.status ?? '?'}):`,
+        erro?.message
+      );
+      if (idosoSelecionadoRef.current === id) setPosicaoIdoso(null);
+    } finally {
+      if (idosoSelecionadoRef.current === id) setCarregandoPosicao(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setPosicaoIdoso(null);
+    carregarPosicaoIdoso(idosoSelecionadoId);
+  }, [idosoSelecionadoId, carregarPosicaoIdoso]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -673,35 +706,50 @@ export default function HomeScreen({
           </View>
         )}
 
-        {/* CARD 3: LOCALIZAÇÃO EM TEMPO REAL (rx=32, #FFFFFF) */}
+        {/* CARD 3: ÚLTIMA LOCALIZAÇÃO CONHECIDA DO IDOSO (do servidor, nunca o GPS deste aparelho) */}
         <View style={styles.mapCard}>
           <View style={styles.mapHeader}>
             <View style={styles.mapTitleGroup}>
               <View style={styles.mapPinBadge}>
                 <Icon name="location_on" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.mapTitle}>Localização em Tempo Real</Text>
-            </View>
-            <View style={styles.gpsAtivoBadge}>
-              <View style={styles.gpsDot} />
-              <Text style={styles.gpsAtivoText}>GPS Ativo</Text>
+              <Text style={styles.mapTitle}>Última localização</Text>
             </View>
           </View>
 
-          {/* Mapa Interativo com Perímetro Seguro, Pino do idoso e Barra de Endereço */}
-          <LiveGpsMap
-            latitude={-23.55052}
-            longitude={-46.633308}
-            safeRadiusMeters={120}
-            addressTitle="Em casa (Rua das Flores, 142)"
-            addressSubtitle="Dentro do Perímetro Seguro"
-            onPressCenter={() =>
-              Alert.alert(
-                'Coordenadas GPS',
-                'Latitude: -23.550520\nLongitude: -46.633308\nPrecisão: 5 metros (Excelente)'
-              )
-            }
-          />
+          {posicaoIdoso ? (
+            <LiveGpsMap
+              latitude={posicaoIdoso.latitude}
+              longitude={posicaoIdoso.longitude}
+              titulo={`${posicaoIdoso.latitude.toFixed(4)}, ${posicaoIdoso.longitude.toFixed(4)}`}
+              subtitulo={`Enviada no SOS de ${formatarMomentoPosicao(posicaoIdoso.medidaEm)}`}
+              atualizando={carregandoPosicao}
+              onAtualizar={() => carregarPosicaoIdoso(idosoSelecionadoId)}
+            />
+          ) : (
+            <View style={styles.mapVazio} testID="home-localizacao-vazia">
+              {carregandoPosicao ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <>
+                  <Icon name="location_off" size={24} color={colors.textSecondary} />
+                  <Text style={styles.semDadosText}>Localização do idoso indisponível</Text>
+                  <Text style={styles.mapVazioTexto}>
+                    A posição aparece aqui quando o celular do idoso enviar um SOS com localização.
+                  </Text>
+                  {idosoSelecionadoId ? (
+                    <Button
+                      title="Tentar de novo"
+                      iconLeft="refresh"
+                      variant="secondary"
+                      fullWidth={false}
+                      onPress={() => carregarPosicaoIdoso(idosoSelecionadoId)}
+                    />
+                  ) : null}
+                </>
+              )}
+            </View>
+          )}
         </View>
 
         {/* SEÇÃO ESTADO ATUAL CONSOLIDADO DO DIA (HU-031 / RF-025) */}
@@ -1329,25 +1377,20 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...font('heading', 700),
   },
-  gpsAtivoBadge: {
-    flexDirection: 'row',
+  mapVazio: {
+    minHeight: 176,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
+    padding: 16,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.mint.background,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: rounded.full,
-    gap: 6,
+    gap: 8,
   },
-  gpsDot: {
-    width: 8,
-    height: 8,
-    borderRadius: rounded.sm,
-    backgroundColor: colors.success,
-  },
-  gpsAtivoText: {
+  mapVazioTexto: {
     fontSize: 14,
-    color: colors.mint.textDark,
-    ...font('heading', 700),
+    color: colors.textMuted,
+    textAlign: 'center',
+    ...font('body', 400),
   },
   mapVisualContainer: {
     height: 176,
