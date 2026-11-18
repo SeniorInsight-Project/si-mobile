@@ -7,14 +7,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
-import DayOfWeekSelector, {
-  DIAS_DA_SEMANA_PADRAO,
-  DiaSemanaItem,
-} from '../components/DayOfWeekSelector';
+import DayOfWeekSelector, { DiaSemanaItem } from '../components/DayOfWeekSelector';
 import TolerancePicker from '../components/TolerancePicker';
 import MedicineTimelineCard from '../components/MedicineTimelineCard';
 import AddMedicineModal from '../components/AddMedicineModal';
@@ -33,6 +31,10 @@ import {
   RotinaMedicamentoInput,
 } from '../services/medicamentoService';
 import { useIdoso } from '../context/IdosoContext';
+import { calcularProgresso, diaDeHoje, gerarSemana, mensagemRitmo } from '../services/semanaRemedios';
+
+/** Abaixo desta largura (pt), os cabeçalhos dos cards empilham em coluna. */
+const LARGURA_ESTREITA = 360;
 
 export interface MedicinesScreenProps {
   onNavigate?: (screen: string) => void;
@@ -48,14 +50,17 @@ export default function MedicinesScreen({
   const idosoId = idosoIdProp ?? idosoIdContexto;
   const somenteConfirmar = usePapel() === 'IDOSO';
   const [rotinas, setRotinas] = useState<RotinaMedicamento[]>([]);
-  const [selectedDayObj, setSelectedDayObj] = useState<DiaSemanaItem>(
-    DIAS_DA_SEMANA_PADRAO[3]
-  ); // Quinta-feira, 24 Out
+  const semana = useMemo(() => gerarSemana(new Date()), []);
+  const [selectedDayObj, setSelectedDayObj] = useState<DiaSemanaItem>(() => diaDeHoje(semana));
+  const { width } = useWindowDimensions();
+  const estreito = width < LARGURA_ESTREITA;
   const [toleranceMinutes, setToleranceMinutes] = useState<number>(15);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingRoutine, setEditingRoutine] = useState<RotinaMedicamento | null>(null);
+
+  const dataSelecionada = selectedDayObj.id;
 
   useEffect(() => {
     const idAtivo = idosoId;
@@ -65,23 +70,29 @@ export default function MedicinesScreen({
       return;
     }
 
-    async function carregar(id: string) {
+    // Troca rápida de dia: só a resposta da última consulta entra na tela.
+    let ativo = true;
+    async function carregar(id: string, data: string) {
       try {
         setLoading(true);
-        const data = await listarRotinas(id);
-        if (data && Array.isArray(data)) {
-          setRotinas(data);
+        const resposta = await listarRotinas(id, { data });
+        if (ativo && Array.isArray(resposta)) {
+          setRotinas(resposta);
         }
       } catch (err: any) {
+        if (!ativo) return;
         console.warn('Erro ao listar rotinas:', err?.message);
         Alert.alert('Erro', err?.message || 'Não foi possível carregar os medicamentos agora.');
       } finally {
-        setLoading(false);
+        if (ativo) setLoading(false);
       }
     }
 
-    carregar(idAtivo);
-  }, [idosoId]);
+    carregar(idAtivo, dataSelecionada);
+    return () => {
+      ativo = false;
+    };
+  }, [idosoId, dataSelecionada]);
 
   const rotinasUnicas = useMemo(() => {
     const map = new Map();
@@ -93,20 +104,14 @@ export default function MedicinesScreen({
     );
   }, [rotinas]);
 
-  const { tomadosCount, totalCount, percentualConcluido } = useMemo(() => {
-    if (!rotinasUnicas || rotinasUnicas.length === 0) {
-      return { tomadosCount: 0, totalCount: 0, percentualConcluido: 0 };
-    }
+  const progresso = useMemo(() => {
     const ativos = rotinasUnicas.filter((r) => r.ativo !== false);
-    const tomados = ativos.filter((r) => r.statusHoje === 'TOMADO').length;
-    const total = ativos.length;
-    const pct = total > 0 ? Math.round((tomados / total) * 100) : 0;
-    return {
-      tomadosCount: tomados,
-      totalCount: total,
-      percentualConcluido: pct,
-    };
+    return calcularProgresso(ativos.filter((r) => r.statusHoje === 'TOMADO').length, ativos.length);
   }, [rotinasUnicas]);
+  const ritmo = mensagemRitmo(progresso);
+  const corRitmo =
+    ritmo?.tom === 'sucesso' ? colors.successDark : ritmo?.tom === 'atencao' ? colors.amber.text : colors.textSecondary;
+  const ehHoje = selectedDayObj.ehHoje;
 
   const handleConfirmDose = async (rotina: RotinaMedicamento) => {
     if (!idosoId) return;
@@ -267,18 +272,24 @@ export default function MedicinesScreen({
           <>
             {/* CARD 1: ACOMPANHAMENTO DIÁRIO & CALENDÁRIO (rx=32, #FFFFFF) */}
         <View style={styles.dailyCard}>
-          <View style={styles.dailyHeaderRow}>
-            <View>
-              <Text style={styles.dailySubtitle}>Acompanhamento Diário</Text>
-              <Text style={styles.dailyTitle}>
-                {selectedDayObj?.labelCompleta || 'Quinta-feira, 24 Out'}
+          <View style={[styles.dailyHeaderRow, estreito && styles.headerColuna]}>
+            <View style={styles.headerTextos}>
+              <Text style={styles.dailySubtitle} numberOfLines={1}>
+                {ehHoje ? 'Acompanhamento de hoje' : 'Acompanhamento Diário'}
+              </Text>
+              <Text style={styles.dailyTitle} numberOfLines={2}>
+                {selectedDayObj.labelCompleta}
               </Text>
             </View>
 
-            <View style={styles.progressBadge}>
+            <View
+              style={styles.progressBadge}
+              accessible
+              accessibilityLabel={`${progresso.percentual}% concluído`}
+            >
               <Icon name="check_circle" size={14} color={colors.mint.textDark} />
-              <Text style={styles.progressBadgeText}>
-                {percentualConcluido}% Concluído
+              <Text style={styles.progressBadgeText} numberOfLines={1}>
+                {progresso.percentual}% Concluído
               </Text>
             </View>
           </View>
@@ -286,24 +297,32 @@ export default function MedicinesScreen({
           {/* Linha de texto acima da barra de progresso */}
           <View style={styles.progressStatsRow}>
             <Text style={styles.progressStatsLeft}>
-              {tomadosCount} de {totalCount} medicamentos tomados hoje
+              {progresso.total === 0
+                ? ehHoje
+                  ? 'Nenhum medicamento para hoje'
+                  : 'Nenhum medicamento neste dia'
+                : `${progresso.tomados} de ${progresso.total} medicamentos tomados ${ehHoje ? 'hoje' : 'neste dia'}`}
             </Text>
-            <Text style={styles.progressStatsRight}>Ótimo ritmo</Text>
+            {ritmo && (
+              <Text style={[styles.progressStatsRight, { color: corRitmo }]} numberOfLines={1}>
+                {ritmo.texto}
+              </Text>
+            )}
           </View>
 
-          {/* Barra de Progresso Verde */}
-          <View style={styles.progressBarTrack}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${Math.max(percentualConcluido, 5)}%` },
-              ]}
-            />
+          {/* Barra de Progresso Verde: largura real, sem mínimo */}
+          <View
+            style={styles.progressBarTrack}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: 100, now: progresso.percentual }}
+          >
+            <View style={[styles.progressBarFill, { width: `${progresso.percentual}%` }]} />
           </View>
 
           {/* Carrossel de Dias da Semana (SEG a DOM) */}
           <DayOfWeekSelector
-            selectedDate={selectedDayObj?.id}
+            dias={semana}
+            selectedDate={selectedDayObj.id}
             onSelectDate={(dia) => setSelectedDayObj(dia)}
           />
         </View>
@@ -317,16 +336,19 @@ export default function MedicinesScreen({
         )}
 
         {/* CABEÇALHO DA TIMELINE: Horários de Hoje + Botão "+ Novo Remédio" */}
-        <View style={styles.timelineHeaderRow}>
-          <Text style={styles.timelineSectionTitle}>Horários de Hoje</Text>
+        <View style={[styles.timelineHeaderRow, estreito && styles.headerColuna]}>
+          <Text style={[styles.timelineSectionTitle, styles.headerTextos]} numberOfLines={2}>
+            {ehHoje ? 'Horários de Hoje' : `Horários de ${selectedDayObj.nomeDia}`}
+          </Text>
           {!somenteConfirmar && (
             <Button
               title="Novo Remédio"
               variant="primary"
               size="md"
               iconLeft="add"
-              fullWidth={false}
+              fullWidth={estreito}
               onPress={handleOpenAddModal}
+              style={estreito ? undefined : styles.botaoNovo}
             />
           )}
         </View>
@@ -346,8 +368,9 @@ export default function MedicinesScreen({
               </View>
               <Text style={styles.emptyTitle}>Nenhum medicamento agendado</Text>
               <Text style={styles.emptySubtitle}>
-                Toque no botão acima para adicionar a primeira medicação da
-                rotina.
+                {somenteConfirmar
+                  ? 'Sua família ainda não cadastrou remédios para este dia.'
+                  : 'Toque em "Novo Remédio" para adicionar a primeira medicação da rotina.'}
               </Text>
             </View>
           ) : (
@@ -410,6 +433,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 12,
+  },
+  headerColuna: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    gap: 10,
+  },
+  headerTextos: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  botaoNovo: {
+    flexShrink: 0,
   },
   dailySubtitle: {
     fontSize: 14,
@@ -430,6 +467,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: rounded.full,
     gap: 6,
+    flexShrink: 0,
   },
   progressBadgeText: {
     fontSize: 14,
@@ -438,11 +476,15 @@ const styles = StyleSheet.create({
   },
   progressStatsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    columnGap: 12,
+    rowGap: 2,
     marginBottom: 6,
   },
   progressStatsLeft: {
+    flexShrink: 1,
     fontSize: 14,
     color: colors.textSecondary,
     ...font('body', 500),
@@ -468,6 +510,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
