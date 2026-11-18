@@ -477,7 +477,7 @@ export default function EmergencyContactsScreen({
 
   const handleVoltar = () => {
     if (onNavigate) {
-      onNavigate('ElderlyMode');
+      onNavigate('Home');
     }
   };
 

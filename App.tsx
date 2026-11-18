@@ -18,6 +18,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ConfirmarEmailScreen from './src/screens/ConfirmarEmailScreen';
 import ElderlyModeScreen from './src/screens/ElderlyModeScreen';
+import ElderlyMonitorScreen from './src/screens/ElderlyMonitorScreen';
 import ElderlyProfileScreen from './src/screens/ElderlyProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MedicinesScreen from './src/screens/MedicinesScreen';
@@ -407,6 +408,16 @@ export default function App() {
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
         return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} />;
+      case 'ElderlyMonitor':
+        return (
+          <ElderlyMonitorScreen
+            onNavigate={navegar}
+            onAbrirSos={(alarmeId) => {
+              setAlarmeSelecionadoId(alarmeId);
+              setTelaAtual('SosReceived');
+            }}
+          />
+        );
       case 'ElderlyProfile':
         return (
           <ElderlyProfileScreen

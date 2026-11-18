@@ -2,7 +2,8 @@
  * Separação de visões por papel (RN-011 — princípio do menor privilégio).
  *
  * - FAMILIAR: painel, remédios, rede, contatos, perfil do idoso, cadastro, código de pareamento,
- *   Central de Alertas e SOS recebido.
+ *   Central de Alertas, SOS recebido e o acompanhamento do idoso (só leitura). Não abre o Modo Idoso:
+ *   o familiar nunca dispara SOS em nome do idoso.
  * - IDOSO: só o próprio Modo Idoso, a confirmação de remédios, "Meus Dados" e "Meu Relógio".
  *   Não vê painel familiar, rede, perfil/comorbidades, contatos, alertas nem cadastro de outros idosos.
  *   Excluir conta (HU-022) vale para os dois: "idoso ou familiar administrador".
@@ -36,7 +37,7 @@ export const TELAS_FAMILIAR: readonly string[] = [
   'Family',
   'EmergencyContacts',
   'ElderlyProfile',
-  'ElderlyMode',
+  'ElderlyMonitor',
   'RegisterElderly',
   'PairingCode',
   'Alerts',
@@ -74,7 +75,7 @@ export const ABAS_POR_PAPEL: Record<PapelApp, AbaNavegacao[]> = {
   FAMILIAR: [
     { id: 'Home', label: 'Início', icon: 'vital_signs' },
     { id: 'Medicines', label: 'Remédios', icon: 'medication' },
-    { id: 'ElderlyMode', label: 'SOS Idoso', icon: 'crisis_alert' },
+    { id: 'ElderlyMonitor', label: 'Acompanhar', icon: 'monitor_heart' },
     { id: 'Family', label: 'Família', icon: 'groups' },
   ],
   IDOSO: [
