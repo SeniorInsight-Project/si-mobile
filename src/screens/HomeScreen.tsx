@@ -36,12 +36,12 @@ import {
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
 import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
+import { consentimentosDosTiposAtivos } from '../services/mappers/consentimentos';
 import {
-  obterConsentimentos,
   statusMonitoramento,
   mensagemParaFamilia,
-  type Consentimentos,
 } from '../services/consentimentoService';
+import type { Consentimentos } from '../services/mappers/consentimentos';
 import {
   avisoFimTrial,
   DireitoPremium,
@@ -153,7 +153,7 @@ export default function HomeScreen({
         setNomeIdoso(escolhido.nome || null);
       }
     } catch (error: any) {
-      console.warn('Erro ao carregar idosos na Home:', error?.message);
+      console.warn(`[HomeScreen] Erro ao carregar idosos (HTTP ${error?.status ?? '?'}):`, error?.message);
       setIdosos([]);
       selecionarIdoso(null);
       setErroIdosos(
@@ -188,6 +188,8 @@ export default function HomeScreen({
         if (!ativo) return;
         setDeviceStatus(status);
         setPerdaDados(verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3));
+        // Tipos autorizados pelo idoso: vêm no próprio /status (tiposAtivos); a família não lê /consentimentos.
+        setConsentimentosIdoso(consentimentosDosTiposAtivos(status.sensores));
 
         const estadoTelemetria = await buscarEstadoAtual(id);
         if (!ativo) return;
@@ -196,15 +198,8 @@ export default function HomeScreen({
         const scoreResult = await buscarScoreBemEstar(id, plano);
         if (!ativo) return;
         setScoreData(scoreResult);
-
-        try {
-          const consent = await obterConsentimentos(id);
-          if (ativo) setConsentimentosIdoso(consent);
-        } catch (consentErr: any) {
-          console.warn('[HomeScreen] Erro ao carregar consentimentos do idoso:', consentErr?.message);
-        }
       } catch (error: any) {
-        console.warn('Erro ao carregar dados do idoso na Home:', error?.message);
+        console.warn(`[HomeScreen] Erro ao carregar dados do idoso (HTTP ${error?.status ?? '?'}):`, error?.message);
       }
     }
 

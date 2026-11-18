@@ -27,3 +27,21 @@ export function consentimentosParaContrato(consentimentos: Consentimentos): Cons
     LOCALIZACAO: consentimentos.LOCALIZACAO,
   };
 }
+
+/**
+ * Autorizações do idoso vistas pela família: os `tiposAtivos` de GET /api/v1/telemetry/idosos/{id}/status
+ * (telemetry-v1, StatusAparelho), já traduzidos em `sensores`. A família não lê /consentimentos: essa rota é
+ * só do idoso e do curador. Tipo fora da lista conta como não autorizado.
+ */
+export function consentimentosDosTiposAtivos(
+  sensores: ReadonlyArray<{ tipo: string; ativo: boolean }>
+): Consentimentos {
+  const ativo = (tipo: keyof Consentimentos) => sensores.some((s) => s.tipo === tipo && s.ativo);
+  return {
+    BATIMENTOS: ativo('BATIMENTOS'),
+    PASSOS: ativo('PASSOS'),
+    SONO: ativo('SONO'),
+    OXIGENACAO: ativo('OXIGENACAO'),
+    LOCALIZACAO: ativo('LOCALIZACAO'),
+  };
+}
