@@ -48,6 +48,7 @@ import { Idoso } from './src/services/elderlyService';
 import {
   aoEncerrarSessao,
   decodificarJwt,
+  encerrarSessaoLocal,
   obterAccessTokenValido,
   papeisDoToken,
   sair,
@@ -55,6 +56,9 @@ import {
   type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
+
+const MENSAGEM_SESSAO_RECUSADA =
+  'O servidor recusou a sua sessão logo após o login. Tente entrar novamente; se persistir, avise o suporte.';
 import {
   inicializarPushUsuario,
   obterIdentificadorAparelho,
@@ -94,6 +98,7 @@ export default function App() {
   }, [fontError]);
 
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
+  const [avisoLogin, setAvisoLogin] = useState<string | null>(null);
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
   const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string | null>(null);
   const [nomeIdosoSelecionado, setNomeIdosoSelecionado] = useState<string | null>(null);
@@ -119,7 +124,7 @@ export default function App() {
   /**
    * Com token válido: busca o perfil e abre a tela do papel. Retorna false se não há sessão.
    */
-  const entrarComSessaoSalva = useCallback(async (): Promise<boolean> => {
+  const entrarComSessaoSalva = useCallback(async (origem: 'restauracao' | 'login' = 'restauracao'): Promise<boolean> => {
     const token = await obterAccessTokenValido();
     if (!token) return false;
 
@@ -132,7 +137,15 @@ export default function App() {
     try {
       perfil = await apiClient.get<PerfilIdentity>('/api/v1/identity/me');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) return false;
+      if (err instanceof ApiError && err.status === 401) {
+        console.warn(`[App] Servidor recusou a sessão (status ${err.status}) em /api/v1/identity/me (${origem})`);
+        // Login recém-concluído recusado: limpa a sessão e avisa na tela de login, em vez de voltar em silêncio.
+        if (origem === 'login') {
+          await encerrarSessaoLocal('expirada');
+          setAvisoLogin(MENSAGEM_SESSAO_RECUSADA);
+        }
+        return false;
+      }
       // 404 (idoso ainda sem perfil), sem rede etc.: segue com os dados do token.
       console.warn('[App] Não foi possível carregar o perfil:', (err as Error)?.message);
     }
@@ -238,7 +251,8 @@ export default function App() {
   );
 
   const handleLoginConcluido = useCallback(() => {
-    entrarComSessaoSalva()
+    setAvisoLogin(null);
+    entrarComSessaoSalva('login')
       .then((ok) => {
         if (!ok) setTelaAtual('Login');
       })
@@ -317,7 +331,7 @@ export default function App() {
       case 'Onboarding':
         return <OnboardingScreen onNavigate={navegar} />;
       case 'Login':
-        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} />;
+        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} aviso={avisoLogin} />;
       case 'ConfirmarEmail':
         return <ConfirmarEmailScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'EntryApp':

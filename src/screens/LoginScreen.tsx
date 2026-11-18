@@ -21,10 +21,12 @@ import {
 export interface LoginScreenProps {
   /** Resultado da volta do Keycloak (sessão salva, e-mail a confirmar...). */
   onDesfecho: (desfecho: DesfechoAutenticacao) => void;
+  /** Aviso vindo do App (ex.: o servidor recusou a sessão logo após o login). */
+  aviso?: string | null;
 }
 
-export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
-  const { pronto, carregando, erro, entrar, criarConta } = useAutenticacaoKeycloak();
+export default function LoginScreen({ onDesfecho, aviso }: LoginScreenProps) {
+  const { pronto, carregando, erro, entrar, entrarComGoogle, criarConta } = useAutenticacaoKeycloak();
 
   const handleEntrar = async () => {
     onDesfecho(await entrar());
@@ -76,7 +78,18 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
               disabled={!pronto || carregando}
             />
 
-            {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
+            <Button
+              title="Entrar com Google"
+              onPress={handleEntrarComGoogle}
+              variant="outline"
+              size="lg"
+              iconLeft="login"
+              disabled={!pronto || carregando}
+              style={styles.googleButton}
+              testID="login-google"
+            />
+
+            {erro || aviso ? <Text style={styles.errorText}>{erro || aviso}</Text> : null}
 
             <View style={styles.forgotWrapper}>
               <Button
