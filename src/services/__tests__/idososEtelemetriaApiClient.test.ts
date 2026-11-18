@@ -10,6 +10,8 @@ import { buscarScoreBemEstar } from '../riskScoreService';
 import { ApiError } from '../apiClient';
 
 const IDOSO = 'e3b0c442-98fc-1c14-9afc-432100000001';
+const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '');
+const tokenFam1 = async () => `${b64({ alg: 'none' })}.${b64({ sub: 'fam-1' })}.a`;
 
 function cliente(rotas: Record<string, unknown> = {}) {
   const chamadas: Array<{ metodo: string; caminho: string; corpo?: any; opcoes?: any }> = [];
@@ -30,16 +32,16 @@ describe('Idosos e score pelo apiClient', () => {
 
   test('idosos: resposta do contrato (nomeCompleto, genero) vira o modelo da tela', async () => {
     const c = cliente({ 'GET /api/v1/familiares/fam-1/idosos': [{ id: IDOSO, nomeCompleto: 'Maria Silva', dataNascimento: '1950-03-02', genero: 'F' }] });
-    const [idoso] = await listarIdososDoFamiliar('fam-1', { cliente: c });
+    const [idoso] = await listarIdososDoFamiliar({ cliente: c, obterToken: tokenFam1 });
     assert.equal(idoso.idosoId, IDOSO);
     assert.equal(idoso.nome, 'Maria Silva');
     assert.equal(idoso.sexo, 'F');
   });
 
   test('idosos: lista vazia fica vazia e erro lança (mock desligado)', async () => {
-    assert.deepEqual(await listarIdososDoFamiliar('fam-1', { cliente: cliente({ 'GET /api/v1/familiares/fam-1/idosos': [] }) }), []);
+    assert.deepEqual(await listarIdososDoFamiliar({ cliente: cliente({ 'GET /api/v1/familiares/fam-1/idosos': [] }), obterToken: tokenFam1 }), []);
     const erro = new ApiError(0, null, '/x');
-    await assert.rejects(listarIdososDoFamiliar('fam-1', { cliente: cliente({ 'GET /api/v1/familiares/fam-1/idosos': erro }) }), (e: any) => e === erro);
+    await assert.rejects(listarIdososDoFamiliar({ cliente: cliente({ 'GET /api/v1/familiares/fam-1/idosos': erro }), obterToken: tokenFam1 }), (e: any) => e === erro);
   });
 
   test('idosos: salvar e atualizar mandam IdosoRequest e, em erro, lançam sem criar idoso local', async () => {

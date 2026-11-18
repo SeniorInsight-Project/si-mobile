@@ -111,14 +111,12 @@ export interface ElderlyProfileScreenProps {
   onNavigate?: (screen: string) => void;
   idosoId?: string | null;
   accessRole?: string;
-  familiarId?: string | null;
 }
 
 export default function ElderlyProfileScreen({
   onNavigate,
   idosoId: idosoIdProp,
   accessRole = 'ADMIN',
-  familiarId,
 }: ElderlyProfileScreenProps) {
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto } = useIdoso();
@@ -163,7 +161,7 @@ export default function ElderlyProfileScreen({
     async function carregarPerfil(id: string) {
       try {
         setLoadingPerfil(true);
-        const locais = await listarIdososDoFamiliar(familiarId);
+        const locais = await listarIdososDoFamiliar();
         const idosoAtual = locais.find((item) => item.idosoId === id);
 
         if (idosoAtual) {
@@ -191,7 +189,7 @@ export default function ElderlyProfileScreen({
     }
 
     carregarPerfil(idAtivo);
-  }, [idosoId, familiarId]);
+  }, [idosoId]);
 
   useEffect(() => {
     const idAtivo = idosoId;

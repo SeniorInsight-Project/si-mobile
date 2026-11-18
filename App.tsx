@@ -411,9 +411,7 @@ export default function App() {
         return (
           <ElderlyProfileScreen
             onNavigate={navegar}
-           
             accessRole={papelAcessoAtual}
-            familiarId={usuarioLogado?.id}
           />
         );
       case 'Home':
@@ -421,7 +419,6 @@ export default function App() {
           <HomeScreen
             onNavigate={navegar}
             onLogout={handleLogout}
-            familiarId={usuarioLogado?.id}
           />
         );
       case 'Medicines':

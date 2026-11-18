@@ -19,6 +19,7 @@ import SemIdosoCard from '../components/SemIdosoCard';
 import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
 import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
+import { extrairMensagemErro } from '../services/erroHelper';
 import { useIdoso } from '../context/IdosoContext';
 import {
   buscarStatusDispositivo,
@@ -63,7 +64,6 @@ function calcularIdade(dataNascimento?: string): number | null {
 export interface HomeScreenProps {
   onNavigate?: (screen: string) => void;
   onSelectElderly?: (idosoId: string | null) => void;
-  familiarId?: string | null;
   plano?: string;
   onLogout?: () => void;
 }
@@ -72,13 +72,13 @@ export default function HomeScreen({
   onNavigate,
   onSelectElderly,
   onLogout,
-  familiarId,
   plano: planoProp,
 }: HomeScreenProps) {
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
   const [loadingIdosos, setLoadingIdosos] = useState<boolean>(false);
+  const [erroIdosos, setErroIdosos] = useState<string | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<StatusDispositivo | null>(null);
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
@@ -124,32 +124,39 @@ export default function HomeScreen({
     [setIdosoId, setNomeIdoso, onSelectElderly]
   );
 
-  // Lista dos idosos do familiar (HU-008): mantém a seleção atual se ainda existir, senão cai no primeiro.
-  useEffect(() => {
-    async function carregarIdosos() {
-      try {
-        setLoadingIdosos(true);
-        const data = await listarIdososDoFamiliar(familiarId);
-        const lista = Array.isArray(data) ? data : [];
-        setIdosos(lista);
+  // Lista dos idosos do familiar (HU-008), pelo `sub` da sessão: mantém a seleção atual se ainda existir,
+  // senão cai no primeiro. Em erro mostra a falha e limpa a seleção, que não foi confirmada pela API.
+  const carregarIdosos = useCallback(async () => {
+    try {
+      setLoadingIdosos(true);
+      setErroIdosos(null);
+      const data = await listarIdososDoFamiliar();
+      const lista = Array.isArray(data) ? data : [];
+      setIdosos(lista);
 
-        const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
-        if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
-          selecionarIdoso(escolhido);
-        } else if (escolhido) {
-          // Mesmo idoso: só garante o nome no contexto.
-          setNomeIdoso(escolhido.nome || null);
-        }
-      } catch (error: any) {
-        console.warn('Erro ao carregar idosos na Home:', error?.message);
-      } finally {
-        setLoadingIdosos(false);
+      const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
+      if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
+        selecionarIdoso(escolhido);
+      } else if (escolhido) {
+        // Mesmo idoso: só garante o nome no contexto.
+        setNomeIdoso(escolhido.nome || null);
       }
+    } catch (error: any) {
+      console.warn('Erro ao carregar idosos na Home:', error?.message);
+      setIdosos([]);
+      selecionarIdoso(null);
+      setErroIdosos(
+        extrairMensagemErro(error, 'Não foi possível carregar seus idosos agora. Verifique a conexão e tente de novo.')
+      );
+    } finally {
+      setLoadingIdosos(false);
     }
+  }, [selecionarIdoso, setNomeIdoso]);
 
+  useEffect(() => {
     carregarIdosos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [familiarId]);
+  }, []);
 
   // Status do celular, telemetria e score do idoso SELECIONADO (HU-027, HU-028, HU-031, HU-032 e HU-033).
   useEffect(() => {
@@ -316,6 +323,18 @@ export default function HomeScreen({
       >
         {loadingIdosos ? (
           <ActivityIndicator color={colors.primary} size="small" style={{ marginVertical: 24 }} />
+        ) : erroIdosos ? (
+          <View style={styles.erroIdososCard} testID="home-erro-idosos">
+            <Icon name="warning" size={22} color={colors.coralDark} />
+            <Text style={styles.erroIdososTexto}>{erroIdosos}</Text>
+            <Button
+              title="Tentar novamente"
+              iconLeft="refresh"
+              variant="secondary"
+              fullWidth={false}
+              onPress={carregarIdosos}
+            />
+          </View>
         ) : idosos.length === 0 ? (
           <SemIdosoCard onNavigate={onNavigate} />
         ) : (
@@ -840,6 +859,23 @@ export default function HomeScreen({
 }
 
 const styles = StyleSheet.create({
+  erroIdososCard: {
+    alignItems: 'center',
+    gap: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    borderColor: colors.peach.border,
+    backgroundColor: colors.peach.background,
+  },
+  erroIdososTexto: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: colors.coralDark,
+    ...font('body', 600),
+  },
   addElderlyWrapper: {
     marginBottom: 18,
   },

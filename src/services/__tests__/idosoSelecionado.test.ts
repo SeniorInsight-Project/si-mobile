@@ -1,6 +1,6 @@
 import { describe, test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { listarIdososDoFamiliar } from '../elderlyService';
+import { listarIdososDoFamiliar, SessaoSemFamiliarError } from '../elderlyService';
 import { escolherIdosoSelecionado } from '../selecaoIdoso';
 import { ApiError } from '../apiClient';
 
@@ -29,11 +29,11 @@ describe('Correção 3/3: familiar e idoso selecionado (#82)', () => {
     process.env.EXPO_PUBLIC_USAR_MOCK = 'false';
   });
 
-  test('sem familiarId usa o sub do JWT da sessão', async () => {
+  test('usa sempre o sub do JWT da sessão (DAS v2.1 §4.1)', async () => {
     const cliente = clienteFake({
       '/api/v1/familiares/fam-jwt/idosos': [{ id: IDOSO_A, nomeCompleto: 'Maria Silva' }],
     });
-    const lista = await listarIdososDoFamiliar(undefined, {
+    const lista = await listarIdososDoFamiliar({
       cliente,
       obterToken: async () => jwtComSub('fam-jwt'),
     });
@@ -41,51 +41,52 @@ describe('Correção 3/3: familiar e idoso selecionado (#82)', () => {
     assert.equal(lista[0].idosoId, IDOSO_A);
   });
 
-  test('familiarId nulo também cai no sub do JWT', async () => {
+  test('não aceita id externo: a assinatura só recebe as opções de rede', async () => {
     const cliente = clienteFake();
-    await listarIdososDoFamiliar(null, { cliente, obterToken: async () => jwtComSub('fam-jwt') });
+    // perfil.id do identity passado por engano é ignorado (não vira opção conhecida)
+    await listarIdososDoFamiliar({ cliente, obterToken: async () => jwtComSub('fam-jwt'), ...({ familiarId: 'perfil-identity' } as any) });
     assert.deepEqual(cliente.caminhos, ['/api/v1/familiares/fam-jwt/idosos']);
   });
 
-  test('sem familiarId e sem token cai no alias "me"', async () => {
+  test('sem token não chama a API e lança SessaoSemFamiliarError (sem alias "me")', async () => {
     const cliente = clienteFake();
-    await listarIdososDoFamiliar(undefined, { cliente, obterToken: async () => null });
-    assert.deepEqual(cliente.caminhos, ['/api/v1/familiares/me/idosos']);
+    await assert.rejects(
+      listarIdososDoFamiliar({ cliente, obterToken: async () => null }),
+      (e: unknown) => e instanceof SessaoSemFamiliarError
+    );
+    assert.deepEqual(cliente.caminhos, []);
   });
 
-  test('token ilegível ou erro ao obter o token também cai em "me"', async () => {
-    const ilegivel = clienteFake();
-    await listarIdososDoFamiliar(undefined, { cliente: ilegivel, obterToken: async () => 'nao-e-jwt' });
-    assert.deepEqual(ilegivel.caminhos, ['/api/v1/familiares/me/idosos']);
-
-    const comFalha = clienteFake();
-    await listarIdososDoFamiliar(undefined, {
-      cliente: comFalha,
-      obterToken: async () => {
+  test('token ilegível, sem sub ou erro ao obter o token também lançam sem chamar a API', async () => {
+    const semSub = (() => {
+      const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '');
+      return `${b64({ alg: 'none' })}.${b64({ name: 'x' })}.a`;
+    })();
+    for (const obterToken of [
+      async () => 'nao-e-jwt',
+      async () => semSub,
+      async () => {
         throw new Error('secure store indisponível');
       },
-    });
-    assert.deepEqual(comFalha.caminhos, ['/api/v1/familiares/me/idosos']);
-  });
-
-  test('familiarId explícito tem prioridade sobre o token', async () => {
-    const cliente = clienteFake();
-    await listarIdososDoFamiliar('fam-explicito', { cliente, obterToken: async () => jwtComSub('fam-jwt') });
-    assert.deepEqual(cliente.caminhos, ['/api/v1/familiares/fam-explicito/idosos']);
+    ]) {
+      const cliente = clienteFake();
+      await assert.rejects(listarIdososDoFamiliar({ cliente, obterToken }), (e: unknown) => e instanceof SessaoSemFamiliarError);
+      assert.deepEqual(cliente.caminhos, []);
+    }
   });
 
   test('sem mock, erro da API é propagado e não vira lista local', async () => {
     const erro = new ApiError(500, null, '/x');
-    const cliente = clienteFake({ '/api/v1/familiares/me/idosos': erro });
+    const cliente = clienteFake({ '/api/v1/familiares/fam-jwt/idosos': erro });
     await assert.rejects(
-      listarIdososDoFamiliar(undefined, { cliente, obterToken: async () => null }),
+      listarIdososDoFamiliar({ cliente, obterToken: async () => jwtComSub('fam-jwt') }),
       (e: unknown) => e === erro
     );
   });
 
   test('sem mock, lista vazia da API fica vazia (sem idosos de demonstração)', async () => {
-    const cliente = clienteFake({ '/api/v1/familiares/me/idosos': [] });
-    assert.deepEqual(await listarIdososDoFamiliar(undefined, { cliente, obterToken: async () => null }), []);
+    const cliente = clienteFake({ '/api/v1/familiares/fam-jwt/idosos': [] });
+    assert.deepEqual(await listarIdososDoFamiliar({ cliente, obterToken: async () => jwtComSub('fam-jwt') }), []);
   });
 });
 
