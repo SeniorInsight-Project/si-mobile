@@ -27,6 +27,7 @@ import {
   renovarSessao,
   salvarSessao,
   sair,
+  deveRevogarComClientMobile,
   telaInicialPorPapeis,
   urlRedefinicaoSenha,
   type ProvedorOidc,
@@ -249,6 +250,40 @@ test('sair encerra a sessão local mesmo se a revogação falhar (sem rede)', as
   await sair();
 
   assert.deepEqual(await obterTokens(), { accessToken: null, refreshToken: null });
+});
+
+test('sair no aparelho pareado do idoso não revoga com o client si-mobile, só limpa a sessão local', async () => {
+  const { provedor, chamadas } = criarProvedor(async () => ({ accessToken: 'x' }));
+  configurarSessao({
+    provedor,
+    relogio: () => AGORA,
+    limpadoresLocais: [
+      async () => {
+        limpezas += 1;
+      },
+    ],
+    obterAparelhoPareado: async () => ({ sessaoAparelhoId: 'sessao-1' }),
+  });
+  await salvarSessao({ accessToken: 'a', refreshToken: 'refresh-do-pareamento', expiresIn: 300, issuedAt: AGORA / 1000 });
+
+  await sair();
+
+  assert.deepEqual(chamadas.revogar, [], 'não deve chamar a revogação (Unmatching clients)');
+  assert.deepEqual(await obterTokens(), { accessToken: null, refreshToken: null });
+  assert.equal(limpezas, 1);
+});
+
+test('deveRevogarComClientMobile: só revoga refresh token do client si-mobile', () => {
+  assert.equal(deveRevogarComClientMobile({ refreshToken: jwt({ azp: 'si-mobile' }) }), true);
+  assert.equal(deveRevogarComClientMobile({ refreshToken: 'opaco' }), true, 'sem azp legível segue o fluxo normal');
+  assert.equal(deveRevogarComClientMobile({ refreshToken: jwt({ azp: 'identity-service' }) }), false);
+  assert.equal(
+    deveRevogarComClientMobile({ refreshToken: 'opaco', accessToken: jwt({ azp: 'identity-service' }) }),
+    false,
+    'usa o azp do access token quando o refresh não é JWT'
+  );
+  assert.equal(deveRevogarComClientMobile({ refreshToken: jwt({ azp: 'si-mobile' }), sessaoAparelhoId: 's-1' }), false);
+  assert.equal(deveRevogarComClientMobile({ refreshToken: null }), false);
 });
 
 test('papeisDoToken lê realm_access.roles e telaInicialPorPapeis escolhe a tela', () => {

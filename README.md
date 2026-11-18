@@ -69,8 +69,12 @@ O app não tem formulário de login próprio. "Entrar" abre o login do realm `se
 - "Criar conta" (Entrada no App, Login e Aceitar Convite) abre o mesmo fluxo com `prompt=create`, que cai direto no cadastro do Keycloak. Com `verifyEmail` ligado no realm, quem acabou de se cadastrar fica na tela de verificação do Keycloak; ao fechar o navegador (ou se o token vier com `email_verified = false`) o app mostra "Confirme seu e-mail para continuar". "Já confirmei" refaz o login e, com o e-mail confirmado, o app segue o fluxo normal (`GET /api/v1/identity/me`, que cria o perfil no primeiro acesso, e a tela do papel).
 - Tokens e expiração ficam só no `expo-secure-store`. O access token é renovado um minuto antes de vencer e, uma vez, quando o gateway responde 401. Se o refresh token for recusado, a sessão é limpa e o app volta ao Login.
 - Ao abrir, com sessão salva, o app chama `GET /api/v1/identity/me` e abre a tela do papel do token: `idoso` → modo idoso, `familiar` → início; outros papéis veem um aviso de que o app é só para família e idoso.
-- Sair revoga o refresh token no Keycloak e apaga o secure store e os bancos SQLite locais (fila do SOS e cache de medicamentos).
+- Sair revoga o refresh token no Keycloak e apaga o secure store e os bancos SQLite locais (fila do SOS e cache de medicamentos). Na sessão do aparelho pareado do idoso o app **não** revoga (ver "Pendências"): só limpa a sessão local.
 - Chamadas ao gateway devem passar por `src/services/apiClient.ts`, que põe o `Authorization: Bearer` e faz a renovação.
+
+### Pendências
+
+- **Revogação no logout do idoso pareado.** O refresh token da sessão do aparelho pareado é emitido pelo identity-service para outro client do Keycloak, não para o `si-mobile`. Revogar com o `si-mobile` falha com `REVOKE_GRANT_ERROR reason="Unmatching clients"` (visto na auditoria de 18/11/2026). Por isso, nessa sessão, `sair()` só limpa a sessão local (`deveRevogarComClientMobile` em `src/services/authSession.ts`) e o refresh token continua válido no Keycloak até expirar. A revogação certa depende de uma rota no identity-service que encerre a sessão do aparelho (por exemplo, sob `/api/v1/identity/pareamentos/sessoes/{sessaoAparelhoId}`) usando o client que emitiu o token. Quando essa rota existir, o app passa a chamá-la no logout do idoso.
 
 ### Redirect URI
 
