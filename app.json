@@ -24,7 +24,10 @@
         "android.permission.health.READ_HEART_RATE",
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_SLEEP",
-        "android.permission.health.READ_OXYGEN_SATURATION"
+        "android.permission.health.READ_OXYGEN_SATURATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -80,6 +83,12 @@
         }
       ],
       "./plugins/withMavenLocal"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e12cfd09-7501-46e7-9dd4-2485af4d4c84"
+      }
+    },
+    "owner": "luandeferreira777"
   }
 }
