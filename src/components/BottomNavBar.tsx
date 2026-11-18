@@ -11,6 +11,12 @@ const ALTURA_ABA = 56;
 const PADDING_BARRA = 4;
 const BORDA_BARRA = 1;
 export const ALTURA_BARRA = ALTURA_ABA + 2 * PADDING_BARRA + 2 * BORDA_BARRA;
+/**
+ * Escala máxima dos rótulos com Dynamic Type: a barra tem altura fixa, então o rótulo cresce até 1,3×
+ * e, se ainda não couber na largura da aba, encolhe até 80% em vez de cortar. O nome completo da aba
+ * continua no accessibilityLabel para o leitor de tela.
+ */
+export const ESCALA_MAX_ROTULO = 1.3;
 /** Distância entre a barra e a área segura inferior (indicador inicial do iPhone). */
 export const MARGEM_BARRA = 8;
 /** Folga entre o fim do conteúdo e o topo da barra. */
@@ -74,6 +80,9 @@ export default function BottomNavBar({ currentScreen, onNavigate }: BottomNavBar
               </View>
               <Text
                 numberOfLines={1}
+                maxFontSizeMultiplier={ESCALA_MAX_ROTULO}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
                 style={isActive ? styles.tabLabelActive : styles.tabLabel}
               >
                 {tab.label}
@@ -124,11 +133,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabLabel: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
     fontSize: 14,
     color: colors.textMuted,
     ...font('body', 600),
   },
   tabLabelActive: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
     fontSize: 14,
     color: colors.primary,
     ...font('body', 700),
