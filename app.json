@@ -78,7 +78,10 @@
         {
           "android": {
             "minSdkVersion": 29,
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false,
+            "extraProguardRules": "-keepattributes *Annotation*,InnerClasses,Signature,EnclosingMethod\n-keep class expo.modules.openwearables.** { *; }\n-keep class com.openwearables.health.sdk.** { *; }\n-keep class com.samsung.android.sdk.health.** { *; }\n-dontwarn com.samsung.android.sdk.health.**\n-keep class androidx.health.connect.client.** { *; }\n-keep class androidx.health.platform.client.** { *; }\n-keep class * extends androidx.work.ListenableWorker { public <init>(android.content.Context, androidx.work.WorkerParameters); }\n-keepclassmembers class kotlinx.serialization.json.** { *** Companion; }\n-keepclasseswithmembers class kotlinx.serialization.json.** { kotlinx.serialization.KSerializer serializer(...); }\n-keepclassmembers @kotlinx.serialization.Serializable class ** { *** Companion; *** INSTANCE; kotlinx.serialization.KSerializer serializer(...); }\n-keep class **$$serializer { *; }\n-keep class * extends androidx.room.RoomDatabase { *; }\n-keep class **_Impl { *; }\n-keep class androidx.work.** { *; }\n-keep class androidx.room.** { *; }\n-keep class androidx.startup.** { *; }\n-keep class * implements androidx.startup.Initializer { <init>(); }\n-keep class androidx.security.crypto.** { *; }\n-keep class com.google.crypto.tink.** { *; }\n-dontwarn com.google.errorprone.annotations.**\n-dontwarn javax.annotation.**\n-dontwarn okhttp3.internal.platform.**\n-dontwarn org.conscrypt.**\n-dontwarn org.bouncycastle.**\n-dontwarn org.openjsse.**"
           }
         }
       ],
