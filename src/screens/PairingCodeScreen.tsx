@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
 import { colors, typography, font, rounded } from '../theme';
@@ -19,12 +19,13 @@ export interface PairingCodeScreenProps {
  * O código e o QR vêm do identity-service; o app não gera nem guarda código.
  */
 export default function PairingCodeScreen({ onNavigate, idosoId, nomeIdoso }: PairingCodeScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const tratamento = saudacaoIdoso(nomeIdoso) || 'o idoso';
 
   return (
     <ScreenWrapper>
       <AppHeader title="Código de pareamento" onNavigate={onNavigate} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         <CodigoPareamentoPainel
           idosoId={idosoId}
           nomeIdoso={nomeIdoso}
@@ -51,7 +52,7 @@ export default function PairingCodeScreen({ onNavigate, idosoId, nomeIdoso }: Pa
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 110 },
+  content: { padding: 16 },
   stepChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import SosLocationMap from '../components/SosLocationMap';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -38,6 +38,7 @@ const hora = (ms: number) => {
  * O estado do chamado é o do servidor: nada vale só no aparelho.
  */
 export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null, telefoneIdoso }: SosReceivedScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [alarme, setAlarme] = useState<AlarmeRecebido | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState('');
@@ -118,7 +119,7 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
   return (
     <ScreenWrapper>
       <AppHeader title="Pedido de socorro" onNavigate={onNavigate} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         {carregando ? (
           <ActivityIndicator color={colors.primary} />
         ) : erroCarga ? (
@@ -292,7 +293,7 @@ export default function SosReceivedScreen({ onNavigate, idosoId, alarmeId = null
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   hero: { backgroundColor: colors.peachBg, borderWidth: 1, borderColor: colors.peachBorder, borderRadius: rounded.card, padding: 20, gap: 8 },
   chip: { alignSelf: 'flex-start', minHeight: 28, paddingHorizontal: 12, borderRadius: rounded.full, justifyContent: 'center' },
   chipTexto: { fontSize: 14,  color: colors.white, ...font('body', 700) },

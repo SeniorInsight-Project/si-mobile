@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import DayOfWeekSelector, { DiaSemanaItem } from '../components/DayOfWeekSelector';
 import TolerancePicker from '../components/TolerancePicker';
 import MedicineTimelineCard from '../components/MedicineTimelineCard';
@@ -45,6 +45,7 @@ export default function MedicinesScreen({
   onNavigate,
   idosoId: idosoIdProp,
 }: MedicinesScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -263,7 +264,7 @@ export default function MedicinesScreen({
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {!idosoId ? (
@@ -419,7 +420,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 105,
   },
   dailyCard: {
     backgroundColor: colors.white,

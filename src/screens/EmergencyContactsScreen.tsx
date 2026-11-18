@@ -17,7 +17,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
 import ModalSheet from '../components/ModalSheet';
@@ -310,6 +310,7 @@ export default function EmergencyContactsScreen({
   onNavigate,
   idosoId: idosoIdProp,
 }: EmergencyContactsScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -490,7 +491,7 @@ export default function EmergencyContactsScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Lista de Contatos Cadastrados */}
@@ -711,7 +712,6 @@ export default function EmergencyContactsScreen({
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
-    paddingBottom: 120,
   },
   infoBanner: {
     flexDirection: 'row',

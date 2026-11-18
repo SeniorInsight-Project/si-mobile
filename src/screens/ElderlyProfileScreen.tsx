@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import ComorbidityChip from '../components/ComorbidityChip';
 import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
@@ -79,6 +79,7 @@ export default function ElderlyProfileScreen({
   idosoId: idosoIdProp,
   accessRole = 'ADMIN',
 }: ElderlyProfileScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -328,7 +329,7 @@ export default function ElderlyProfileScreen({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
       >
         {!idosoId ? (
           <SemIdosoCard onNavigate={onNavigate} />
@@ -704,7 +705,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 110,
   },
 
   /* CARD 1: IDENTIDADE E MÉTRICAS */

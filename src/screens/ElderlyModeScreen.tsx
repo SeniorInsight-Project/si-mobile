@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
 import { AVISO_SEM_CONTATO, destinoLigacaoEmergencia } from '../services/discagemEmergencia';
 import SosHoldButton from '../components/SosHoldButton';
@@ -64,6 +64,7 @@ export default function ElderlyModeScreen({
   idosoId: idosoIdProp,
   onLogout,
 }: ElderlyModeScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto, nomeIdoso: nomeIdosoContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -403,7 +404,7 @@ export default function ElderlyModeScreen({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
       >
         {/* CARTÃO DE SAUDAÇÃO (rx=32, #FFFFFF) */}
         <View style={styles.greetingCard}>
@@ -642,7 +643,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 100,
   },
   greetingCard: {
     width: '100%',

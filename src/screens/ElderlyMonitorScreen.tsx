@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import SemIdosoCard from '../components/SemIdosoCard';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -34,6 +34,7 @@ function formatarDataHora(ms: number): string {
  * Não dispara SOS: o pedido de socorro é só do próprio idoso, no Modo Idoso.
  */
 export default function ElderlyMonitorScreen({ onNavigate, onAbrirSos }: ElderlyMonitorScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const { idosoId, nomeIdoso } = useIdoso();
   const nome = nomeIdoso || 'o idoso';
 
@@ -84,7 +85,7 @@ export default function ElderlyMonitorScreen({ onNavigate, onAbrirSos }: Elderly
     <ScreenWrapper>
       <AppHeader title="Acompanhamento" onNavigate={onNavigate} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]} showsVerticalScrollIndicator={false}>
         {!idosoId ? (
           <SemIdosoCard onNavigate={onNavigate} />
         ) : (
@@ -194,7 +195,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 110,
     gap: 16,
   },
   avisoLeitura: {

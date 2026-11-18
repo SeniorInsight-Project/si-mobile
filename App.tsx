@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { useFonts } from 'expo-font';
 import {
@@ -469,6 +470,7 @@ export default function App() {
   };
 
   return (
+    <SafeAreaProvider>
     <PapelProvider value={papel}>
       <UsuarioProvider value={usuarioLogado?.nome ?? null}>
       <IdosoProvider
@@ -490,5 +492,6 @@ export default function App() {
       </IdosoProvider>
       </UsuarioProvider>
     </PapelProvider>
+    </SafeAreaProvider>
   );
 }

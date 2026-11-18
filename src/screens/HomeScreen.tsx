@@ -11,7 +11,7 @@ import {
 import Icon from '../components/Icon';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
@@ -74,6 +74,7 @@ export default function HomeScreen({
   onLogout,
   plano: planoProp,
 }: HomeScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
@@ -318,7 +319,7 @@ export default function HomeScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {loadingIdosos ? (
@@ -882,7 +883,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 100,
   },
   dataLossAlertBanner: {
     flexDirection: 'row',

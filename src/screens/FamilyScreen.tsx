@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
@@ -51,6 +51,7 @@ export default function FamilyScreen({
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto, nomeIdoso } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -288,7 +289,7 @@ export default function FamilyScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {/* CARD 1: RESUMO DA REDE DE CUIDADO FAMILIAR (rx=32, #FFFFFF) */}
@@ -1079,7 +1080,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 105,
   },
   summaryCard: {
     backgroundColor: colors.white,

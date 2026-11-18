@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import { colors, typography, shadows, font, rounded } from '../theme';
@@ -32,6 +32,7 @@ const ROTULO_ESTADO: Record<EstadoPasso, string> = { FEITO: 'FEITO', AGORA: 'AGO
 
 /** Figma: "Idoso - Conectar Relógio" (HU-023, HU-025). Só o idoso chega aqui. */
 export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: ElderlyWatchScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [aviso, setAviso] = useState('');
   const [estadoReal, setEstadoReal] = useState<EstadoOpenWearables | null>(null);
@@ -97,7 +98,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
   return (
     <ScreenWrapper>
       <AppHeader title="Meu relógio" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         <View style={styles.card}>
           <Text style={styles.title}>Vamos conectar seu relógio</Text>
           <Text style={styles.body}>Seus dados chegam à família sem você abrir o app todo dia.</Text>
@@ -187,7 +188,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 16, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
   body: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },

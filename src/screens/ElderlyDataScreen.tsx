@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -42,6 +42,7 @@ const LINHAS_SAUDE: LinhaDado[] = [
 
 /** Figma: "Idoso - Autorizar meus dados" (HU-018, HU-019, RN-001). Só o idoso chega aqui. */
 export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: ElderlyDataScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const papel = usePapel();
   // TODO(care#111): cadastro de curatela — quando existir no back, liberar edição para familiar curador autorizado
   const isFamiliar = papel !== 'IDOSO';
@@ -99,7 +100,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
   return (
     <ScreenWrapper>
       <AppHeader title="Meus dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         {isFamiliar && (
           <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
             <Icon name="gavel" size={20} color={colors.coralDark} />
@@ -242,7 +243,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   curatelaBanner: {
     flexDirection: 'row',
     alignItems: 'center',
