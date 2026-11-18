@@ -59,9 +59,6 @@ const CONFIG_BASE: AuthRequestConfig = {
 // prompt=create abre direto a tela de cadastro do realm (registrationAllowed).
 const CONFIG_CRIAR_CONTA: AuthRequestConfig = montarConfigAuthComHint(CONFIG_BASE, { prompt: 'create' });
 
-// kc_idp_hint=google abre direto a escolha de conta do Google, sem mostrar a tela do Keycloak.
-const CONFIG_GOOGLE: AuthRequestConfig = montarConfigAuthComHint(CONFIG_BASE, { kc_idp_hint: 'google' });
-
 function mensagemDeErro(params: Record<string, string> | undefined, erro?: Error | null): string {
   if (params?.error_description) return params.error_description;
   if (erro?.message) return erro.message;
@@ -75,8 +72,6 @@ export interface AutenticacaoKeycloak {
   erro: string | null;
   /** Abre o login do Keycloak. */
   entrar: () => Promise<DesfechoAutenticacao>;
-  /** Abre direto a escolha de conta do Google (kc_idp_hint=google). */
-  entrarComGoogle: () => Promise<DesfechoAutenticacao>;
   /** Abre o cadastro do Keycloak (prompt=create). */
   criarConta: () => Promise<DesfechoAutenticacao>;
 }
@@ -84,7 +79,6 @@ export interface AutenticacaoKeycloak {
 export function useAutenticacaoKeycloak(): AutenticacaoKeycloak {
   const discovery = useAutoDiscovery(runtimeConfig.keycloakIssuer);
   const [requestLogin, , promptLogin] = useAuthRequest(CONFIG_BASE, discovery);
-  const [requestGoogle, , promptGoogle] = useAuthRequest(CONFIG_GOOGLE, discovery);
   const [requestCadastro, , promptCadastro] = useAuthRequest(CONFIG_CRIAR_CONTA, discovery);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -150,21 +144,16 @@ export function useAutenticacaoKeycloak(): AutenticacaoKeycloak {
     () => autenticar('login', requestLogin, () => promptLogin()),
     [autenticar, requestLogin, promptLogin],
   );
-  const entrarComGoogle = useCallback(
-    () => autenticar('login', requestGoogle, () => promptGoogle(), true),
-    [autenticar, requestGoogle, promptGoogle],
-  );
   const criarConta = useCallback(
     () => autenticar('criar-conta', requestCadastro, () => promptCadastro()),
     [autenticar, requestCadastro, promptCadastro],
   );
 
   return {
-    pronto: Boolean(requestLogin && requestGoogle && requestCadastro && discovery),
+    pronto: Boolean(requestLogin && requestCadastro && discovery),
     carregando,
     erro,
     entrar,
-    entrarComGoogle,
     criarConta,
   };
 }

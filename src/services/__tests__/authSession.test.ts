@@ -287,7 +287,7 @@ test('HU-001: fechar o navegador no cadastro leva à confirmação; no login, s�
   assert.equal(desfechoSemCodigo('login'), 'cancelado');
 });
 
-test('kc_idp_hint: montarConfigAuthComHint preserva a configuração base e adiciona kc_idp_hint=google', () => {
+test('montarConfigAuthComHint preserva a configuração base e adiciona prompt=create', () => {
   const base = {
     clientId: KEYCLOAK_CLIENT_ID,
     scopes: KEYCLOAK_SCOPES,
@@ -297,11 +297,11 @@ test('kc_idp_hint: montarConfigAuthComHint preserva a configuração base e adic
     codeChallengeMethod: 'S256',
   };
 
-  const configGoogle = montarConfigAuthComHint(base, { kc_idp_hint: 'google' });
+  const configCadastro = montarConfigAuthComHint(base, { prompt: 'create' });
 
-  assert.deepEqual(configGoogle, {
+  assert.deepEqual(configCadastro, {
     ...base,
-    extraParams: { kc_idp_hint: 'google' },
+    extraParams: { prompt: 'create' },
   });
   assert.equal('extraParams' in base, false);
 });
