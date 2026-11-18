@@ -2,6 +2,8 @@
 
 Initial React Native setup using Expo Go for Android.
 
+Primeira vez no projeto? Veja o [guia de onboarding](docs/ONBOARDING.md): pré-requisitos, onde colocar os secrets, como rodar e como devolver alterações.
+
 ## Health Connect / Open Wearables
 
 The watch integration uses the Open Wearables React Native SDK commit
