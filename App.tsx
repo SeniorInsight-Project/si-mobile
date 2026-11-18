@@ -69,6 +69,7 @@ import {
 } from './src/services/pushService';
 import { pararSincronizacaoOpenWearables } from './src/services/openWearablesService';
 import { ehExpoGo } from './src/config/expoGo';
+import { iniciarEnvioStatusCelular } from './src/services/statusCelularIdosoService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -222,6 +223,13 @@ export default function App() {
       console.warn('[App] Falha ao inicializar notificações push:', err?.message)
     );
   }, [usuarioLogado?.id]);
+
+  // Sessão do idoso: envia bateria, modelo, sistema e versão do celular para a família (ao abrir, ao voltar ao
+  // primeiro plano e a cada 15 min com o app aberto). Para no logout, quando o papel deixa de ser IDOSO.
+  useEffect(() => {
+    if (papel !== 'IDOSO' || !idosoSelecionadoId) return;
+    return iniciarEnvioStatusCelular(idosoSelecionadoId);
+  }, [papel, idosoSelecionadoId]);
 
   useEffect(() => {
     return registrarOuvinteToqueNotificacao((destino) => {
