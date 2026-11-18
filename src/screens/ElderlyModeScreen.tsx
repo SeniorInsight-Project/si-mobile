@@ -39,10 +39,12 @@ import {
   atualizarStatusAlarme,
   AlarmeEmergencia,
 } from '../services/alarmeSosService';
-import { obterLocalizacaoRapida } from '../services/locationService';
+import { buscarPosicaoSos } from '../services/locationService';
+import { lerNivelBateria } from '../services/bateriaService';
 import {
   enfileirarSos,
   iniciarCicloEnvio,
+  atualizarLocalizacaoSos,
   cancelarFilaSos,
   retomarPendentes,
   SosQueueStatusInfo,
@@ -303,14 +305,14 @@ export default function ElderlyModeScreen({
     }
     setDisparandoSos(true);
     try {
-      // 1. Obtém localização rápida (cache ou 1.5s timeout, sem bloqueio de geocoding reverso)
-      const loc = await obterLocalizacaoRapida();
+      // 1. Bateria (leitura local, instantânea). A posição NÃO é esperada: o SOS sai na hora.
+      const nivelBateria = await lerNivelBateria();
 
       // 2. Enfileira imediatamente no SQLite e memória com chave de idempotência UUID única
       const registro = await enfileirarSos(idSos, {
-        latitude: loc?.latitude ?? null,
-        longitude: loc?.longitude ?? null,
-        nivelBateria: null,
+        latitude: null,
+        longitude: null,
+        nivelBateria,
         observacao: 'SOS acionado pelo idoso (pressão contínua de 2s).',
       });
 
@@ -319,8 +321,6 @@ export default function ElderlyModeScreen({
         idempotencyKey: registro.idempotencyKey,
         status: 'DISPARADO',
         criadoEm: new Date(registro.criadoEm).toISOString(),
-        latitude: loc?.latitude,
-        longitude: loc?.longitude,
       };
       setAlarmeAtivo(alarmeInicial);
       setFilaStatus({
@@ -355,6 +355,14 @@ export default function ElderlyModeScreen({
             );
           });
         },
+      });
+
+      // 4. Continua buscando a posição (até ~20 s) e a manda quando chegar: no próximo POST da fila, se o SOS
+      // ainda não saiu, ou por PATCH /api/v1/sos/{id}/localizacao, se já saiu.
+      buscarPosicaoSos((coords) => {
+        atualizarLocalizacaoSos(registro.idempotencyKey, coords).catch((e: any) =>
+          console.warn('[ElderlyModeScreen] Falha ao registrar a posição do SOS:', e?.message)
+        );
       });
     } catch (err: any) {
       console.warn('Erro ao disparar SOS:', err?.message);

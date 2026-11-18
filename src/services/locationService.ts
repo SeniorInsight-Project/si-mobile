@@ -1,5 +1,4 @@
 import * as Location from 'expo-location';
-import { Platform } from 'react-native';
 
 export interface Coords {
   latitude: number;
@@ -7,61 +6,62 @@ export interface Coords {
   accuracy: number;
 }
 
+/** Posição em cache aceita no SOS: até 2 min. Mais velha que isso pode estar em outro lugar. */
+const IDADE_MAXIMA_CACHE_MS = 2 * 60 * 1000;
+/** Quanto o SOS continua esperando um fix de GPS depois do disparo. */
+export const TEMPO_LIMITE_POSICAO_SOS_MS = 20000;
+
+function paraCoords(pos: Location.LocationObject | null): Coords | null {
+  if (!pos?.coords) return null;
+  return {
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    accuracy: pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 0,
+  };
+}
+
 /**
- * Obtém a localização rápida sem atrasar o envio do SOS de emergência (HU-063).
- * Prioriza cache de última posição conhecida e impõe timeout rígido de 1.5s,
- * sem executar reverse geocoding no caminho crítico do socorro.
+ * Posição do idoso para o SOS (HU-063), buscada DEPOIS do disparo: o SOS não espera por ela.
+ * Avisa `onPosicao` com a posição em cache recente (se houver) e de novo com o fix novo (Accuracy.Balanced),
+ * que pode levar até ~20 s no Android. Devolve a melhor posição obtida, ou null (sem permissão ou sem fix).
  */
-export async function obterLocalizacaoRapida(): Promise<Coords | null> {
+export async function buscarPosicaoSos(
+  onPosicao: (coords: Coords) => void,
+  { tempoLimiteMs = TEMPO_LIMITE_POSICAO_SOS_MS }: { tempoLimiteMs?: number } = {}
+): Promise<Coords | null> {
   try {
-    const { status } = await Location.getForegroundPermissionsAsync();
-    let perm = status;
-    if (perm !== 'granted') {
-      const req = await Location.requestForegroundPermissionsAsync();
-      perm = req.status;
+    let { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      status = (await Location.requestForegroundPermissionsAsync()).status;
     }
-    if (perm !== 'granted') {
-      return null;
-    }
+    if (status !== 'granted') return null;
 
-    // Tenta posição recente em cache (latência < 50ms)
+    let melhor: Coords | null = null;
     try {
-      const cached = await Location.getLastKnownPositionAsync({});
-      if (cached && cached.coords) {
-        return {
-          latitude: cached.coords.latitude,
-          longitude: cached.coords.longitude,
-          accuracy: cached.coords.accuracy ? Math.round(cached.coords.accuracy) : 10,
-        };
-      }
-    } catch (e) {
-      // Ignora e tenta leitura direta
+      melhor = paraCoords(await Location.getLastKnownPositionAsync({ maxAge: IDADE_MAXIMA_CACHE_MS }));
+      if (melhor) onPosicao(melhor);
+    } catch {
+      // Sem cache: segue para o fix novo.
     }
 
-    // Fallback: busca coordenada fresca com timeout de 1500ms
-    const timeoutPromise = new Promise<Coords | null>((resolve) =>
-      setTimeout(() => resolve(null), 1500)
-    );
-    const posPromise: Promise<Coords | null> = Location.getCurrentPositionAsync({
-      accuracy:
-        Platform.OS === 'web'
-          ? Location.Accuracy.Balanced
-          : Location.Accuracy.High,
-    })
-      .then((p) =>
-        p && p.coords
-          ? {
-              latitude: p.coords.latitude,
-              longitude: p.coords.longitude,
-              accuracy: p.coords.accuracy ? Math.round(p.coords.accuracy) : 5,
-            }
-          : null
-      )
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tempoEsgotado = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), tempoLimiteMs);
+    });
+    const fix = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      .then(paraCoords)
       .catch(() => null);
+    const fresca = await Promise.race([fix, tempoEsgotado]);
+    clearTimeout(timer);
 
-    return await Promise.race([posPromise, timeoutPromise]);
+    if (fresca) {
+      onPosicao(fresca);
+      return fresca;
+    }
+    if (!melhor) console.warn(`[locationService] SOS sem posição após ${Math.round(tempoLimiteMs / 1000)} s`);
+    return melhor;
   } catch (error: any) {
-    console.warn('[locationService] Erro na localização rápida:', error?.message);
+    console.warn('[locationService] Erro ao buscar a posição do SOS:', error?.message);
     return null;
   }
 }
