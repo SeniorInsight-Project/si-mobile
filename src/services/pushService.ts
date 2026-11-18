@@ -71,11 +71,11 @@ export async function configurarCanaisPush(notif: any = Notifications): Promise<
     return;
   }
 
+  // Sem `sound`: omitir já usa o som padrão. Em canal, `sound` espera um arquivo de res/raw, e 'default' não é um.
   await notif.setNotificationChannelAsync(CANAL_SOS, {
     name: 'Emergências SOS e Alertas Críticos',
     importance: notif.AndroidImportance?.MAX ?? 5,
     vibrationPattern: [0, 400, 200, 400],
-    sound: 'default',
     bypassDnd: true,
     lockscreenVisibility: notif.AndroidNotificationVisibility?.PUBLIC ?? 1,
   });
@@ -83,7 +83,6 @@ export async function configurarCanaisPush(notif: any = Notifications): Promise<
   await notif.setNotificationChannelAsync(CANAL_ALERTAS, {
     name: 'Alertas de Atenção e Técnicos',
     importance: notif.AndroidImportance?.DEFAULT ?? 3,
-    sound: 'default',
   });
 }
 
@@ -204,7 +203,13 @@ export async function inicializarPushUsuario(
 
   if (Platform.OS === 'web' || !notif) return false;
 
-  await configurarCanaisPush(notif);
+  // Falha ao criar os canais (ex.: NullPointerException do gerenciador de canais do Expo Go) não impede o
+  // registro do token: sem canal próprio, o Android entrega no canal padrão.
+  try {
+    await configurarCanaisPush(notif);
+  } catch (err) {
+    console.warn('[pushService] Falha ao criar os canais de notificação:', err instanceof Error ? err.message : 'erro desconhecido');
+  }
   const permitido = await solicitarPermissaoPush(notif);
   if (!permitido) return false;
 
