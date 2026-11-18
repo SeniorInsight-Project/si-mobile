@@ -15,6 +15,7 @@ import {
   obterEstadoConexao,
 } from '../services/relogioService';
 import { abrirHealthConnect } from '../services/healthConnectLauncher';
+import { AVISO_EXPO_GO_RELOGIO, ehExpoGo } from '../config/expoGo';
 import {
   conectarOpenWearables,
   obterEstadoOpenWearables,
@@ -71,6 +72,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 
   const abrir = async () => {
     setAviso('');
+    if (ehExpoGo) return;
     if (!idosoId) {
       setAviso('Não encontramos seu cadastro neste aparelho. Peça à sua família um novo pareamento.');
       return;
@@ -124,6 +126,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
           ))}
         </View>
 
+        {ehExpoGo && (
+          <View style={styles.simulado} testID="relogio-expo-go">
+            <Icon name="info" size={18} color={colors.amber.textDark} />
+            <Text style={styles.simuladoTexto}>{AVISO_EXPO_GO_RELOGIO}</Text>
+          </View>
+        )}
+
         {conexao.simulado && (
           <View style={styles.simulado} testID="relogio-simulado">
             <Icon name="warning" size={18} color={colors.amber.textDark} />
@@ -153,7 +162,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
           variant="primary"
           size="lg"
           onPress={abrir}
-          disabled={carregando}
+          disabled={carregando || ehExpoGo}
           testID="relogio-abrir"
         />
 

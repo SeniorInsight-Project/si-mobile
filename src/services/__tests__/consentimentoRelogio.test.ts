@@ -19,7 +19,7 @@ import {
   obterEstadoConexao,
   type EstadoConexao,
 } from '../relogioService';
-import { rotaTokenSdk } from '../openWearablesService';
+import { rotaTokenSdk } from '../openWearablesRotas';
 
 const IDOSO_ID = "3f2b8c1e-5d4a-4b7e-9c10-6a1d2e3f4a5b";
 

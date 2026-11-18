@@ -67,6 +67,7 @@ import {
   removerTokenPush,
 } from './src/services/pushService';
 import { pararSincronizacaoOpenWearables } from './src/services/openWearablesService';
+import { ehExpoGo } from './src/config/expoGo';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -117,6 +118,9 @@ export default function App() {
   const papelAcessoAtual = papeis.includes('familiar') ? 'ADMIN' : papeis.includes('idoso') ? 'IDOSO' : '';
   // Papel de visão (RN-011): vem sempre do token, nunca de um botão. Mesma prioridade de telaInicialPorPapeis.
   const papel: PapelApp | null = papeis.includes('idoso') ? 'IDOSO' : papeis.includes('familiar') ? 'FAMILIAR' : null;
+  // Lido no encerramento da sessão: só a sessão do idoso tem sincronização do relógio a parar.
+  const papelRef = useRef<PapelApp | null>(null);
+  papelRef.current = papel;
   const [pareamento, setPareamento] = useState<ResultadoPareamento | null>(null);
   const [idosoRecemCadastrado, setIdosoRecemCadastrado] = useState<Idoso | null>(null);
   const [primeiroUsoIdoso, setPrimeiroUsoIdoso] = useState<boolean>(false);
@@ -182,9 +186,11 @@ export default function App() {
   useEffect(
     () =>
       aoEncerrarSessao(() => {
-        pararSincronizacaoOpenWearables().catch((err) =>
-          console.warn('[App] Falha ao parar a sincronização do relógio:', err?.message),
-        );
+        if (papelRef.current === 'IDOSO') {
+          pararSincronizacaoOpenWearables().catch((err) =>
+            console.warn('[App] Falha ao parar a sincronização do relógio:', err?.message),
+          );
+        }
         conviteRef.current = null;
         sessaoAtivaRef.current = false;
         setCodigoDoLink(null);
@@ -200,7 +206,8 @@ export default function App() {
   );
 
   const handleLogout = useCallback(() => {
-    removerTokenPush(obterIdentificadorAparelho())
+    // No Expo Go nenhum token de push foi registrado.
+    (ehExpoGo ? Promise.resolve() : removerTokenPush(obterIdentificadorAparelho()))
       .catch((err) => console.warn('[App] Falha ao remover token de push:', err?.message))
       .finally(() => {
         sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
@@ -208,7 +215,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!usuarioLogado?.id) return;
+    // Push remoto não existe no Expo Go: só funciona no app instalado.
+    if (!usuarioLogado?.id || ehExpoGo) return;
     inicializarPushUsuario().catch((err) =>
       console.warn('[App] Falha ao inicializar notificações push:', err?.message)
     );
