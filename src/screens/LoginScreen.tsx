@@ -24,14 +24,10 @@ export interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
-  const { pronto, carregando, erro, entrar, entrarComGoogle, criarConta } = useAutenticacaoKeycloak();
+  const { pronto, carregando, erro, entrar, criarConta } = useAutenticacaoKeycloak();
 
   const handleEntrar = async () => {
     onDesfecho(await entrar());
-  };
-
-  const handleEntrarComGoogle = async () => {
-    onDesfecho(await entrarComGoogle());
   };
 
   const handleCriarConta = async () => {
@@ -78,17 +74,6 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
               iconRight="arrow_forward"
               loading={carregando || !pronto}
               disabled={!pronto || carregando}
-            />
-
-            <Button
-              title="Entrar com Google"
-              onPress={handleEntrarComGoogle}
-              variant="outline"
-              size="lg"
-              iconLeft="login"
-              disabled={!pronto || carregando}
-              style={styles.googleButton}
-              testID="login-google"
             />
 
             {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
@@ -185,9 +170,6 @@ const styles = StyleSheet.create({
     borderRadius: rounded.card,
     padding: 24,
     ...shadows.tier2,
-  },
-  googleButton: {
-    marginTop: 12,
   },
   forgotWrapper: {
     alignItems: 'center',

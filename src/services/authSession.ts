@@ -385,7 +385,7 @@ export function desfechoSemCodigo(fluxo: FluxoAutenticacao): DesfechoAutenticaca
 }
 
 /**
- * Monta uma variação da configuração base de AuthRequest (ex.: prompt=create ou kc_idp_hint=google)
+ * Monta uma variação da configuração base de AuthRequest (ex.: prompt=create)
  * preservando os parâmetros PKCE e de client sem mutar a base.
  */
 export function montarConfigAuthComHint<T extends { clientId: string; extraParams?: Record<string, string> }>(
