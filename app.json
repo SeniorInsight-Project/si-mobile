@@ -77,7 +77,8 @@
             "minSdkVersion": 29
           }
         }
-      ]
+      ],
+      "./plugins/withMavenLocal"
     ]
   }
 }
