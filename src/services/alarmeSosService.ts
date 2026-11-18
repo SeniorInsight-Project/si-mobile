@@ -30,7 +30,8 @@ export interface DispararSosPayload extends Omit<DispararSosRequest, 'latitude' 
  * - POST /api/v1/idosos/{idosoId}/sos (202 Accepted), com Idempotency-Key.
  *
  * Consultar e mudar o estado do chamado é do sosRecebidoService (GET /api/v1/sos/{id},
- * GET /api/v1/idosos/{id}/sos e PUT /api/v1/sos/{id}/status): aqui só se delega. O estado é sempre o do servidor;
+ * GET /api/v1/idosos/{id}/sos e PUT /api/v1/sos/{id}/status): aqui só se delega. A posição que chega depois
+ * do disparo vai por PATCH /api/v1/sos/{id}/localizacao. O estado é sempre o do servidor;
  * em erro as funções lançam, sem guardar alarme local.
  */
 
@@ -57,6 +58,30 @@ export async function dispararSos(
   return cliente.post<AlarmeEmergenciaApi>(`/api/v1/idosos/${idosoId}/sos`, corpo, {
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
   });
+}
+
+/**
+ * Corpo de PATCH /api/v1/sos/{alarmeId}/localizacao: a posição que chegou depois do disparo. A rota é nova no
+ * care e ainda não está no care-v1; o tipo fica aqui até o contrato ser publicado.
+ */
+export interface AtualizarLocalizacaoSosRequest {
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Manda ao servidor a posição do idoso para um SOS já registrado (o SOS sai na hora, sem esperar o GPS).
+ * Em erro lança ApiError com o status (0 sem rede); quem chama decide se tenta de novo.
+ */
+export function enviarLocalizacaoSos(
+  alarmeId: string,
+  { latitude, longitude }: AtualizarLocalizacaoSosRequest,
+  { cliente = apiClient }: { cliente?: Pick<ApiClient, 'patch'> } = {}
+): Promise<AlarmeEmergenciaApi> {
+  return cliente.patch<AlarmeEmergenciaApi>(`/api/v1/sos/${alarmeId}/localizacao`, {
+    latitude,
+    longitude,
+  } satisfies AtualizarLocalizacaoSosRequest);
 }
 
 /** Muda o estado do alarme (EM_ATENDIMENTO, RESOLVIDO ou CANCELADO) no servidor. */

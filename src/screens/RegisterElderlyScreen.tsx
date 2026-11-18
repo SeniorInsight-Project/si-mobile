@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import InputField from '../components/InputField';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -17,6 +17,7 @@ import {
   formatarCelular,
   formatarData,
   validarCadastroIdoso,
+  SEXOS_IDOSO,
 } from '../services/cadastroIdosoValidacao';
 
 export interface RegisterElderlyScreenProps {
@@ -24,10 +25,11 @@ export interface RegisterElderlyScreenProps {
   onCadastrado: (idoso: Idoso) => void;
 }
 
-const SEXOS = ['Feminino', 'Masculino'];
+const SEXOS = SEXOS_IDOSO;
 
 /** Figma: "Cadastrar Idoso" — passo 1 de 2 (HU-008). */
 export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: RegisterElderlyScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [form, setForm] = useState({ nome: '', dataNascimento: '', sexo: '', celular: '' });
   const [erros, setErros] = useState<CadastroIdosoErros>({});
   const [salvando, setSalvando] = useState(false);
@@ -64,7 +66,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
     <ScreenWrapper>
       <AppHeader title="Cadastrar idoso" onNavigate={onNavigate} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
             <View style={styles.stepChip}>
               <Icon name="person_add" size={14} color={colors.primary} />
@@ -161,7 +163,7 @@ export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: Regi
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, paddingBottom: 110, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 10, ...shadows.tier1 },
   stepChip: {
     alignSelf: 'flex-start',

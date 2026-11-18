@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { dispararSos, atualizarStatusAlarme, obterAlarme, obterAlarmeAtivo } from '../alarmeSosService';
+import { dispararSos, atualizarStatusAlarme, obterAlarme, obterAlarmeAtivo, enviarLocalizacaoSos } from '../alarmeSosService';
 import { ApiError } from '../apiClient';
 
 const IDOSO = 'e3b0c442-98fc-1c14-9afc-432100000001';
@@ -18,7 +18,7 @@ function cliente(rotas: Record<string, unknown> = {}) {
     if (r === undefined) throw new ApiError(404, null, caminho);
     return r;
   };
-  return { chamadas, get: executa('GET') as any, post: executa('POST') as any, put: executa('PUT') as any };
+  return { chamadas, get: executa('GET') as any, post: executa('POST') as any, put: executa('PUT') as any, patch: executa('PATCH') as any };
 }
 
 describe('SOS do idoso pelo apiClient, contrato care-v1 (HU35)', () => {
@@ -65,5 +65,17 @@ describe('SOS do idoso pelo apiClient, contrato care-v1 (HU35)', () => {
     assert.equal((await obterAlarmeAtivo(IDOSO, { cliente: c }))?.id, ALARME);
     const vazio = cliente({ [`GET /api/v1/idosos/${IDOSO}/sos`]: [] });
     assert.equal(await obterAlarmeAtivo(IDOSO, { cliente: vazio }), null);
+  });
+
+  test('enviarLocalizacaoSos: PATCH /sos/{id}/localizacao só com latitude e longitude', async () => {
+    const c = cliente({ [`PATCH /api/v1/sos/${ALARME}/localizacao`]: alarmeApi({ latitude: -23.5, longitude: -46.6 }) });
+    const r = await enviarLocalizacaoSos(ALARME, { latitude: -23.5, longitude: -46.6 }, { cliente: c });
+    assert.deepEqual(c.chamadas[0].corpo, { latitude: -23.5, longitude: -46.6 });
+    assert.equal(r.latitude, -23.5);
+  });
+
+  test('enviarLocalizacaoSos: erro sai com o status HTTP', async () => {
+    const c = cliente({ [`PATCH /api/v1/sos/${ALARME}/localizacao`]: new ApiError(404, null, '/x') });
+    await assert.rejects(enviarLocalizacaoSos(ALARME, { latitude: 1, longitude: 2 }, { cliente: c }), (e: any) => e.status === 404);
   });
 });

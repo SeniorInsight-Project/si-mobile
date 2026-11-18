@@ -1,5 +1,4 @@
 import * as Location from 'expo-location';
-import { Platform } from 'react-native';
 
 export interface Coords {
   latitude: number;
@@ -7,208 +6,147 @@ export interface Coords {
   accuracy: number;
 }
 
-export interface LocalizacaoAtual extends Coords {
-  permissaoConcedida: boolean;
-  endereco: string;
+/** Posição em cache aceita no SOS: até 2 min. Mais velha que isso pode estar em outro lugar. */
+const IDADE_MAXIMA_CACHE_MS = 2 * 60 * 1000;
+/** Quanto o SOS continua esperando um fix de GPS depois do disparo. */
+export const TEMPO_LIMITE_POSICAO_SOS_MS = 20000;
+
+function paraCoords(pos: Location.LocationObject | null): Coords | null {
+  if (!pos?.coords) return null;
+  return {
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    accuracy: pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 0,
+  };
 }
 
-export const DEFAULT_COORDS: Coords = {
-  latitude: -23.55052,
-  longitude: -46.633308,
-  accuracy: 10,
-};
+// ---------------------------------------------------------------------------
+// Localização contínua: vale quando o idoso liga "Compartilhar sempre" (consentimento LOCALIZACAO).
+// Com o app aberto o GPS fica ligado e a última posição fica guardada; o SOS sai com ela na hora.
+// ---------------------------------------------------------------------------
 
-/**
- * Formata um objeto de endereço retornado pelo reverseGeocodeAsync ou Nominatim.
- */
-function formatAddress(place: any): string | null {
-  if (!place) return null;
-  const street = place.street || place.thoroughfare || place.name || '';
-  const number = place.streetNumber || place.subThoroughfare || '';
-  const district = place.district || place.subLocality || '';
-  const city = place.city || place.subregion || place.region || '';
+let assinatura: Location.LocationSubscription | null = null;
+let iniciando: Promise<boolean> | null = null;
+let ultimaPosicao: { coords: Coords; em: number } | null = null;
 
-  if (street && number) {
-    return `${street}, ${number}${district ? ` - ${district}` : ''}`;
-  }
-  if (street) {
-    return `${street}${district ? ` - ${district}` : city ? ` - ${city}` : ''}`;
-  }
-  if (district && city) {
-    return `${district}, ${city}`;
-  }
-  return city || null;
-}
-
-/**
- * Busca endereço legível via Nominatim (OpenStreetMap) como fallback universal (Web/Mobile).
- */
-async function reverseGeocodeNominatim(
-  latitude: number,
-  longitude: number
-): Promise<string | null> {
+/** Pede a permissão de localização do sistema (se ainda não foi dada). true = concedida. */
+export async function solicitarPermissaoLocalizacao(): Promise<boolean> {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=pt-BR`;
-    const res = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data && data.address) {
-      const road =
-        data.address.road ||
-        data.address.pedestrian ||
-        data.address.suburb ||
-        '';
-      const houseNumber = data.address.house_number || '';
-      const suburb =
-        data.address.suburb ||
-        data.address.neighbourhood ||
-        data.address.city_district ||
-        '';
-      const city =
-        data.address.city ||
-        data.address.town ||
-        data.address.municipality ||
-        '';
-
-      if (road && houseNumber) {
-        return `${road}, ${houseNumber}${suburb ? ` (${suburb})` : ''}`;
-      }
-      if (road) {
-        return `${road}${suburb ? ` - ${suburb}` : city ? ` - ${city}` : ''}`;
-      }
-      if (suburb || city) {
-        return [suburb, city].filter(Boolean).join(' - ');
-      }
-    }
-    return null;
-  } catch (err) {
-    return null;
-  }
-}
-
-/**
- * Obtém a localização GPS real atual do dispositivo + endereço formatado.
- */
-export async function obterLocalizacaoAtual(): Promise<LocalizacaoAtual> {
-  try {
-    // 1. Solicita permissão via expo-location
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    let { status } = await Location.getForegroundPermissionsAsync();
     if (status !== 'granted') {
-      return {
-        permissaoConcedida: false,
-        ...DEFAULT_COORDS,
-        endereco: 'Permissão de localização negada',
-      };
+      status = (await Location.requestForegroundPermissionsAsync()).status;
     }
-
-    // 2. Obtém posição atual com alta precisão
-    const pos = await Location.getCurrentPositionAsync({
-      accuracy:
-        Platform.OS === 'web'
-          ? Location.Accuracy.Balanced
-          : Location.Accuracy.High,
-    });
-
-    const { latitude, longitude, accuracy } = pos.coords;
-
-    // 3. Tenta converter coordenadas em endereço legível
-    let endereco: string | null = null;
-    if (Platform.OS !== 'web') {
-      try {
-        const places = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
-        if (places && places.length > 0) {
-          endereco = formatAddress(places[0]);
-        }
-      } catch (e) {
-        // Continua para o fallback Nominatim
-      }
-    }
-
-    if (!endereco) {
-      endereco = await reverseGeocodeNominatim(latitude, longitude);
-    }
-
-    return {
-      permissaoConcedida: true,
-      latitude,
-      longitude,
-      accuracy: accuracy ? Math.round(accuracy) : 5,
-      endereco:
-        endereco ||
-        `Lat ${latitude.toFixed(4)}, Lon ${longitude.toFixed(4)}`,
-    };
+    return status === 'granted';
   } catch (error: any) {
-    console.warn('Erro ao obter localização atual:', error?.message);
-    return {
-      permissaoConcedida: false,
-      ...DEFAULT_COORDS,
-      endereco: 'Em casa (Rua das Flores, 142)',
-    };
+    console.warn('[locationService] Erro ao pedir a permissão de localização:', error?.message);
+    return false;
   }
 }
 
+/** true quando o GPS está sendo acompanhado (consentimento ligado e permissão concedida). */
+export function rastreamentoAtivo(): boolean {
+  return assinatura !== null;
+}
+
+/** Última posição do acompanhamento contínuo, se ainda for recente (até 2 min). */
+export function ultimaPosicaoRastreada(agora: number = Date.now()): Coords | null {
+  if (!ultimaPosicao || agora - ultimaPosicao.em > IDADE_MAXIMA_CACHE_MS) return null;
+  return ultimaPosicao.coords;
+}
+
 /**
- * Obtém a localização rápida sem atrasar o envio do SOS de emergência (HU-063).
- * Prioriza cache de última posição conhecida e impõe timeout rígido de 1.5s,
- * sem executar reverse geocoding no caminho crítico do socorro.
+ * Liga o acompanhamento contínuo da posição (consentimento "Compartilhar sempre"). Pede a permissão se
+ * preciso. Devolve false quando o sistema negou: o consentimento continua salvo, mas o GPS não liga.
  */
-export async function obterLocalizacaoRapida(): Promise<Coords | null> {
-  try {
-    const { status } = await Location.getForegroundPermissionsAsync();
-    let perm = status;
-    if (perm !== 'granted') {
-      const req = await Location.requestForegroundPermissionsAsync();
-      perm = req.status;
-    }
-    if (perm !== 'granted') {
-      return null;
-    }
-
-    // Tenta posição recente em cache (latência < 50ms)
+export async function iniciarRastreamentoLocalizacao(): Promise<boolean> {
+  if (assinatura) return true;
+  if (iniciando) return iniciando;
+  iniciando = (async () => {
     try {
-      const cached = await Location.getLastKnownPositionAsync({});
-      if (cached && cached.coords) {
-        return {
-          latitude: cached.coords.latitude,
-          longitude: cached.coords.longitude,
-          accuracy: cached.coords.accuracy ? Math.round(cached.coords.accuracy) : 10,
-        };
+      if (!(await solicitarPermissaoLocalizacao())) return false;
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) {
+        // GPS do aparelho desligado: o Android mostra o pedido para ligar ao buscar a posição.
+        await Location.enableNetworkProviderAsync().catch(() => {});
       }
-    } catch (e) {
-      // Ignora e tenta leitura direta
+      assinatura = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 60000, distanceInterval: 25 },
+        (pos) => {
+          const coords = paraCoords(pos);
+          if (coords) ultimaPosicao = { coords, em: Date.now() };
+        }
+      );
+      return true;
+    } catch (error: any) {
+      console.warn('[locationService] Não foi possível ligar a localização contínua:', error?.message);
+      return false;
+    } finally {
+      iniciando = null;
     }
+  })();
+  return iniciando;
+}
 
-    // Fallback: busca coordenada fresca com timeout de 1500ms
-    const timeoutPromise = new Promise<Coords | null>((resolve) =>
-      setTimeout(() => resolve(null), 1500)
-    );
-    const posPromise: Promise<Coords | null> = Location.getCurrentPositionAsync({
-      accuracy:
-        Platform.OS === 'web'
-          ? Location.Accuracy.Balanced
-          : Location.Accuracy.High,
-    })
-      .then((p) =>
-        p && p.coords
-          ? {
-              latitude: p.coords.latitude,
-              longitude: p.coords.longitude,
-              accuracy: p.coords.accuracy ? Math.round(p.coords.accuracy) : 5,
-            }
-          : null
-      )
+/** Desliga o acompanhamento contínuo (consentimento desligado ou fim da sessão do idoso). */
+export function pararRastreamentoLocalizacao(): void {
+  assinatura?.remove();
+  assinatura = null;
+  ultimaPosicao = null;
+}
+
+/** Liga ou desliga o GPS contínuo conforme o consentimento LOCALIZACAO do idoso. */
+export async function aplicarConsentimentoLocalizacao(ligado: boolean): Promise<boolean> {
+  if (!ligado) {
+    pararRastreamentoLocalizacao();
+    return false;
+  }
+  return iniciarRastreamentoLocalizacao();
+}
+
+/**
+ * Posição do idoso para o SOS (HU-063), buscada DEPOIS do disparo: o SOS não espera por ela.
+ * Avisa `onPosicao` com a posição em cache recente (se houver) e de novo com o fix novo (Accuracy.Balanced),
+ * que pode levar até ~20 s no Android. Devolve a melhor posição obtida, ou null (sem permissão ou sem fix).
+ */
+export async function buscarPosicaoSos(
+  onPosicao: (coords: Coords) => void,
+  { tempoLimiteMs = TEMPO_LIMITE_POSICAO_SOS_MS }: { tempoLimiteMs?: number } = {}
+): Promise<Coords | null> {
+  try {
+    let { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      status = (await Location.requestForegroundPermissionsAsync()).status;
+    }
+    if (status !== 'granted') return null;
+
+    // Com a localização contínua ligada, a posição já está em mãos; senão, o cache do sistema.
+    let melhor: Coords | null = ultimaPosicaoRastreada();
+    if (!melhor) {
+      try {
+        melhor = paraCoords(await Location.getLastKnownPositionAsync({ maxAge: IDADE_MAXIMA_CACHE_MS }));
+      } catch {
+        // Sem cache: segue para o fix novo.
+      }
+    }
+    if (melhor) onPosicao(melhor);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tempoEsgotado = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), tempoLimiteMs);
+    });
+    const fix = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      .then(paraCoords)
       .catch(() => null);
+    const fresca = await Promise.race([fix, tempoEsgotado]);
+    clearTimeout(timer);
 
-    return await Promise.race([posPromise, timeoutPromise]);
+    if (fresca) {
+      onPosicao(fresca);
+      return fresca;
+    }
+    if (!melhor) console.warn(`[locationService] SOS sem posição após ${Math.round(tempoLimiteMs / 1000)} s`);
+    return melhor;
   } catch (error: any) {
-    console.warn('[locationService] Erro na localização rápida:', error?.message);
+    console.warn('[locationService] Erro ao buscar a posição do SOS:', error?.message);
     return null;
   }
 }

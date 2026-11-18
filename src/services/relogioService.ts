@@ -11,7 +11,7 @@ export const INTERVALO_LEITURA_MIN = 15;
 export const LIMITE_FUNCIONANDO_MIN = 60;
 export const LIMITE_SEM_DADOS_MIN = 24 * 60;
 
-export type StatusRelogio = 'NAO_CONECTADO' | 'FUNCIONANDO' | 'PARADO' | 'SEM_DADOS';
+export type StatusRelogio = 'NAO_CONECTADO' | 'AGUARDANDO' | 'FUNCIONANDO' | 'PARADO' | 'SEM_DADOS';
 
 export interface StatusRelogioInfo {
   status: StatusRelogio;
@@ -20,9 +20,25 @@ export interface StatusRelogioInfo {
   cor: 'verde' | 'laranja' | 'cinza';
 }
 
-/** Ponto único de decisão do HU-025 (verde ≤ 60 min) e do HU-023 cenário 3 (sem dado em 24 h). */
-export function classificarSincronizacao(ultimaMedicaoMs: number | null, agoraMs: number = Date.now()): StatusRelogioInfo {
+/**
+ * Ponto único de decisão do HU-025 (verde ≤ 60 min) e do HU-023 cenário 3 (sem dado em 24 h).
+ * `conectado`: o SDK está com sessão e envio em segundo plano ativos. Sem medição no servidor ainda,
+ * o relógio está conectado e aguardando a primeira leitura, não "não conectado".
+ */
+export function classificarSincronizacao(
+  ultimaMedicaoMs: number | null,
+  agoraMs: number = Date.now(),
+  conectado = false
+): StatusRelogioInfo {
   if (ultimaMedicaoMs === null) {
+    if (conectado) {
+      return {
+        status: 'AGUARDANDO',
+        titulo: 'Relógio conectado',
+        detalhe: `Aguardando a primeira medição. Ela chega em até ${INTERVALO_LEITURA_MIN * 2} minutos.`,
+        cor: 'cinza',
+      };
+    }
     return { status: 'NAO_CONECTADO', titulo: 'Relógio não conectado', detalhe: 'Conecte para sua família acompanhar.', cor: 'cinza' };
   }
   const minutos = Math.max(0, Math.floor((agoraMs - ultimaMedicaoMs) / 60000));

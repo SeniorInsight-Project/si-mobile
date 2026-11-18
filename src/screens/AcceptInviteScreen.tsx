@@ -37,7 +37,7 @@ export interface AcceptInviteScreenProps {
 
 export default function AcceptInviteScreen({
   onNavigate,
-  inviteToken = 'token-exemplo',
+  inviteToken,
   isAuthenticated = false,
   currentUser = null,
   onDesfecho,
@@ -51,13 +51,13 @@ export default function AcceptInviteScreen({
   const [sucesso, setSucesso] = useState<boolean>(false);
 
   useEffect(() => {
-    async function carregarConvite() {
+    async function carregarConvite(token: string) {
       try {
         setLoading(true);
         setErroStatus(null);
         setErroMensagem('');
 
-        const dados = await obterDetalhesConvite(inviteToken);
+        const dados = await obterDetalhesConvite(token);
 
         if (dados.expirado || dados.status === 'EXPIRADO') {
           setErroStatus('EXPIRADO');
@@ -84,11 +84,17 @@ export default function AcceptInviteScreen({
     }
 
     if (inviteToken) {
-      carregarConvite();
+      carregarConvite(inviteToken);
+    } else {
+      setConvite(null);
+      setErroStatus('INVALIDO');
+      setErroMensagem('O link do convite está incompleto. Abra de novo o link que você recebeu.');
+      setLoading(false);
     }
   }, [inviteToken]);
 
   const handleConfirmarAceite = async () => {
+    if (!inviteToken) return;
     try {
       setSubmitting(true);
       const aceite = await aceitarConvite(inviteToken);
@@ -241,11 +247,17 @@ export default function AcceptInviteScreen({
             <View style={styles.inviterBox}>
               <Icon name="person" size={16} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.inviterText}>
-                Convite enviado por{' '}
-                <Text style={{ ...font('body', 700), color: colors.textPrimary }}>
-                  {convite.solicitanteNome || 'Carlos Silva'}
-                </Text>{' '}
-                ({convite.solicitanteGrau || 'Administrador'})
+                {convite.solicitanteNome ? (
+                  <>
+                    Convite enviado por{' '}
+                    <Text style={{ ...font('body', 700), color: colors.textPrimary }}>
+                      {convite.solicitanteNome}
+                    </Text>
+                    {convite.solicitanteGrau ? ` (${convite.solicitanteGrau})` : ''}
+                  </>
+                ) : (
+                  'Convite enviado pelo familiar administrador'
+                )}
               </Text>
             </View>
 

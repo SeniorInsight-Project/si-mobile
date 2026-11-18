@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import InviteMemberModal from '../components/InviteMemberModal';
 import InviteDoctorModal from '../components/InviteDoctorModal';
 import Icon from '../components/Icon';
@@ -35,6 +35,7 @@ import {
   MembroRede,
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
+import { listarContatos } from '../services/contatoEmergenciaService';
 import { colors, font, rounded, shadows, sizes, typography } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 
@@ -51,6 +52,7 @@ export default function FamilyScreen({
   isFamiliarAdmin = true,
   papelAcesso = 'ADMIN',
 }: FamilyScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto, nomeIdoso } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -100,6 +102,28 @@ export default function FamilyScreen({
 
   useEffect(() => {
     carregarDados();
+  }, [idosoId]);
+
+  // Sequência de chamada do SOS: primeiros nomes dos contatos de emergência cadastrados, na ordem.
+  const [sequenciaSos, setSequenciaSos] = useState<string[]>([]);
+  useEffect(() => {
+    setSequenciaSos([]);
+    if (!idosoId) return;
+    let ativo = true;
+    listarContatos(idosoId)
+      .then((contatos) => {
+        if (!ativo) return;
+        setSequenciaSos(
+          [...contatos]
+            .filter((c) => c.ativo !== false && c.nome?.trim())
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((c) => c.nome.trim().split(/\s+/)[0])
+        );
+      })
+      .catch((err: any) => console.warn('[FamilyScreen] Erro ao carregar contatos de emergência:', err?.message));
+    return () => {
+      ativo = false;
+    };
   }, [idosoId]);
 
   // Contagem e filtros de médicos e familiares (RN-012)
@@ -288,7 +312,7 @@ export default function FamilyScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {/* CARD 1: RESUMO DA REDE DE CUIDADO FAMILIAR (rx=32, #FFFFFF) */}
@@ -303,8 +327,9 @@ export default function FamilyScreen({
 
           <Text style={styles.summaryTitle}>Rede de Cuidado Familiar</Text>
           <Text style={styles.summarySubtitle}>
-            Pessoas autorizadas para alertas SOS e acompanhamento diário de Dona
-            Maria.
+            {nomeIdoso
+              ? `Pessoas autorizadas para alertas SOS e acompanhamento diário de ${nomeIdoso}.`
+              : 'Pessoas autorizadas para alertas SOS e acompanhamento diário do idoso.'}
           </Text>
 
           {/* Caixa Azul de Plantão Atual (#EBF5FF, rx=20) */}
@@ -318,10 +343,14 @@ export default function FamilyScreen({
             </View>
             <View style={styles.onDutyTexts}>
               <Text style={styles.onDutyTitle}>
-                Plantão Atual: {membroPlantao?.nome || 'Carlos Silva'}
+                {membroPlantao ? `Plantão Atual: ${membroPlantao.nome}` : 'Ninguém de plantão ainda'}
               </Text>
               <Text style={styles.onDutySub}>
-                {membroPlantao?.statusLabel || 'Resposta rápida estimada em 4 min'}
+                {membroPlantao
+                  ? membroPlantao.statusLabel
+                  : carregandoMembros
+                    ? 'Carregando a rede...'
+                    : 'Convide um familiar para receber os alertas SOS.'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -414,11 +443,11 @@ export default function FamilyScreen({
             </View>
             <View style={styles.adminMainDoctorTexts}>
               <Text style={styles.adminMainDoctorTitle}>
-                Convidar Médico do Idoso (HU-016)
+                Convidar Médico do Idoso
               </Text>
               <Text style={styles.adminMainDoctorSub}>
                 {limiteMedicosAtingido
-                  ? 'Limite de 2 médicos atingido (RN-012)'
+                  ? 'Limite de 2 médicos atingido'
                   : `Cadastrar médico de referência via CRM • ${totalMedicos}/2 médicos`}
               </Text>
             </View>
@@ -529,7 +558,7 @@ export default function FamilyScreen({
                   <View style={styles.doctorHeaderTexts}>
                     <Text style={styles.doctorHeaderTitle}>Corpo Clínico & Médicos</Text>
                     <Text style={styles.doctorHeaderSubtitle}>
-                      Acesso aos relatórios semanais de saúde (RN-012)
+                      Acesso aos relatórios semanais de saúde
                     </Text>
                   </View>
                   <View style={[styles.doctorCountBadge, limiteMedicosAtingido && styles.doctorCountBadgeAlert]}>
@@ -550,7 +579,7 @@ export default function FamilyScreen({
                     />
                     {limiteMedicosAtingido ? (
                       <Text style={styles.limitReasonText}>
-                        Limite de 2 médicos atingido (RN-012)
+                        Limite de 2 médicos atingido
                       </Text>
                     ) : null}
                   </View>
@@ -669,9 +698,9 @@ export default function FamilyScreen({
                               try {
                                 const novoVinculado = {
                                   id: `med-${Date.now()}`,
-                                  nome: convite.nomeMedico || 'Dr. Convidado',
-                                  nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
-                                  crm: convite.crm || '123456/SP',
+                                  nome: convite.nomeMedico || convite.emailDestinatario || 'Médico',
+                                  nomeCompleto: convite.nomeMedico || convite.emailDestinatario || 'Médico',
+                                  crm: convite.crm,
                                   grauParentesco: 'Médico',
                                   papelAcesso: 'MEDICO',
                                   tipoMembro: 'MEDICO',
@@ -679,7 +708,6 @@ export default function FamilyScreen({
                                   badgeTexto: 'Médico Vinculado',
                                   badgeTipo: 'especialista',
                                   online: true,
-                                  telefone: '+55 11 98888-7777',
                                   email: convite.emailDestinatario,
                                   acoes: ['call', 'prontuario'],
                                 };
@@ -954,7 +982,9 @@ export default function FamilyScreen({
             Sequência de Chamada SOS
           </Text>
           <Text style={styles.sosSequenceSub}>
-            Em caso de alarme: Carlos → Roberta → Lucas → SAMU 192
+            {sequenciaSos.length > 0
+              ? `Em caso de alarme: ${[...sequenciaSos, 'SAMU 192'].join(' → ')}`
+              : 'Nenhum contato de emergência cadastrado. Em caso de alarme: SAMU 192'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -984,12 +1014,12 @@ export default function FamilyScreen({
           </View>
           {limiteAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 5 familiares atingido (RN-012)
+              Limite de 5 familiares atingido
             </Text>
           ) : null}
           {limiteMedicosAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 2 médicos atingido (RN-012)
+              Limite de 2 médicos atingido
             </Text>
           ) : null}
         </View>
@@ -1004,7 +1034,7 @@ export default function FamilyScreen({
           />
           {limiteAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 5 familiares atingido (RN-012)
+              Limite de 5 familiares atingido
             </Text>
           ) : null}
         </View>
@@ -1079,7 +1109,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 105,
   },
   summaryCard: {
     backgroundColor: colors.white,

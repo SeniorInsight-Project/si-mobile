@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, StatusBar, AlertButton } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import Constants from 'expo-constants';
 import IconButton from './IconButton';
 import Icon from './Icon';
 import InitialsAvatar from './InitialsAvatar';
 import ElderlySwitcherSheet from './ElderlySwitcherSheet';
+import ContaSheet, { type OpcaoConta } from './ContaSheet';
 import { colors, font, rounded, shadows, sizes } from '../theme';
 import { usePapel } from '../context/PapelContext';
 import { useIdoso } from '../context/IdosoContext';
@@ -26,7 +27,7 @@ export interface AppHeaderProps {
   /** Ação principal do avatar (ex.: "Meus dados" no modo idoso). */
   onPressLogo?: () => void;
   hasNotification?: boolean;
-  /** Quando informado, o menu do avatar mostra "Sair da conta". */
+  /** Saída da conta. Sem ela, o menu usa onNavigate('Logout'). */
   onLogout?: () => void;
 }
 
@@ -41,56 +42,49 @@ export default function AppHeader({
   onNavigate,
   onPressNotification,
   onPressLogo,
-  hasNotification = true,
+  hasNotification = false,
   onLogout,
 }: AppHeaderProps) {
   const papel = usePapel();
   const nomeUsuario = useNomeUsuario();
   const { nomeIdoso } = useIdoso();
   const [seletorAberto, setSeletorAberto] = useState(false);
+  const [contaAberta, setContaAberta] = useState(false);
 
   const podeTrocarIdoso = papel === 'FAMILIAR';
   const primeiroNome = (nomeUsuario ?? '').trim().split(/\s+/)[0];
 
-  const confirmarSaida = () => {
-    if (!onLogout) return;
-    if (Platform.OS === 'web') {
-      onLogout();
-      return;
-    }
-    Alert.alert('Sair da conta', 'Deseja sair? Os dados salvos neste aparelho serão apagados.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: onLogout },
-    ]);
-  };
+  const sair = onLogout ?? (onNavigate ? () => onNavigate('Logout') : undefined);
 
-  const handleAvatarPress = () => {
-    const opcoes: AlertButton[] = [];
-    if (onPressLogo) {
-      opcoes.push({ text: 'Meus dados', onPress: onPressLogo });
-    } else if (papel === 'FAMILIAR' && onNavigate) {
-      opcoes.push({ text: 'Perfil do idoso', onPress: () => onNavigate('ElderlyProfile') });
-    }
-    if (onLogout) {
-      opcoes.push({ text: 'Sair da conta', style: 'destructive', onPress: confirmarSaida });
-    }
-    if (opcoes.length === 0) return;
-    if (opcoes.length === 1 || Platform.OS === 'web') {
-      opcoes[0].onPress?.();
-      return;
-    }
-    Alert.alert(nomeUsuario || 'Sua conta', undefined, [...opcoes, { text: 'Cancelar', style: 'cancel' }]);
-  };
+  const opcoesConta: OpcaoConta[] = [];
+  if (papel === 'IDOSO' && onNavigate) {
+    // Meus dados e o relógio saíram da barra inferior do idoso: ficam no menu da conta.
+    opcoesConta.push({ id: 'meus-dados', rotulo: 'Meus dados', icone: 'shield_check', onPress: () => onNavigate('ElderlyData') });
+    opcoesConta.push({ id: 'meu-relogio', rotulo: 'Meu relógio', icone: 'watch', onPress: () => onNavigate('ElderlyWatch') });
+  } else if (onPressLogo) {
+    opcoesConta.push({ id: 'meus-dados', rotulo: 'Meus dados', icone: 'person', onPress: onPressLogo });
+  } else if (papel === 'FAMILIAR' && onNavigate) {
+    opcoesConta.push({
+      id: 'perfil-idoso',
+      rotulo: 'Perfil do idoso',
+      icone: 'person',
+      onPress: () => onNavigate('ElderlyProfile'),
+    });
+  }
+  if (onNavigate) {
+    opcoesConta.push({
+      id: 'excluir-conta',
+      rotulo: 'Excluir conta',
+      icone: 'delete',
+      destrutiva: true,
+      onPress: () => onNavigate('DeleteAccount'),
+    });
+  }
+  const temMenuConta = opcoesConta.length > 0 || Boolean(sair);
 
-  const handleNotificationPress = () => {
-    if (onPressNotification) {
-      onPressNotification();
-    } else if (papel === 'FAMILIAR' && onNavigate) {
-      onNavigate('Alerts');
-    } else {
-      Alert.alert('Notificações', 'Sem novos alertas críticos no momento.');
-    }
-  };
+  // O sino só aparece quando leva a algum lugar; sem destino não há o que mostrar.
+  const abrirNotificacoes =
+    onPressNotification ?? (papel === 'FAMILIAR' && onNavigate ? () => onNavigate('Alerts') : undefined);
 
   const contexto = podeTrocarIdoso ? (
     <View style={styles.contextRow}>
@@ -123,10 +117,12 @@ export default function AppHeader({
     <View style={styles.safeAreaHeader}>
       <View style={styles.headerContainer}>
         <TouchableOpacity
-          onPress={handleAvatarPress}
+          onPress={() => setContaAberta(true)}
+          disabled={!temMenuConta}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel={nomeUsuario ? `Conta de ${nomeUsuario}` : 'Sua conta'}
+          testID="header-avatar"
         >
           <InitialsAvatar nome={nomeUsuario} />
         </TouchableOpacity>
@@ -145,16 +141,26 @@ export default function AppHeader({
           <View style={styles.center}>{centro}</View>
         )}
 
-        <View>
-          <IconButton
-            icon="notifications"
-            variant="neutral"
-            accessibilityLabel={hasNotification ? 'Notificações, há novos alertas' : 'Notificações'}
-            onPress={handleNotificationPress}
-          />
-          {hasNotification && <View style={styles.notificationDot} pointerEvents="none" />}
-        </View>
+        {abrirNotificacoes ? (
+          <View>
+            <IconButton
+              icon="notifications"
+              variant="neutral"
+              accessibilityLabel={hasNotification ? 'Notificações, há novos alertas' : 'Notificações'}
+              onPress={abrirNotificacoes}
+            />
+            {hasNotification && <View style={styles.notificationDot} pointerEvents="none" />}
+          </View>
+        ) : null}
       </View>
+
+      <ContaSheet
+        visible={contaAberta}
+        onClose={() => setContaAberta(false)}
+        nomeUsuario={nomeUsuario}
+        opcoes={opcoesConta}
+        onSair={sair}
+      />
 
       {podeTrocarIdoso ? (
         <ElderlySwitcherSheet

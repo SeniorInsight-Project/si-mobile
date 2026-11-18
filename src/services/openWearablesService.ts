@@ -1,12 +1,16 @@
+import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { mockPermitido } from '../config/ambiente';
+import { ehExpoGo } from '../config/expoGo';
 import { apiClient, type ApiClient } from './apiClient';
 import { tiposAutorizados, type Consentimentos } from './consentimentoService';
+import { rotaTokenSdk } from './openWearablesRotas';
+
+export { rotaTokenSdk };
 
 export const OPEN_WEARABLES_SDK_COMMIT = '339bd95f708fa3ef3682a98e70c106a0f82ec184';
 export const INTERVALO_SINCRONIZACAO_MIN = 15;
 export const DIAS_HISTORICO_INICIAL = 90;
-
-const ROTA_TOKEN = (idosoId: string) => `/api/v1/telemetry/idosos/${idosoId}/open-wearables/sdk-token`;
 
 export interface SdkTokenResponse {
   host: string;
@@ -19,19 +23,55 @@ export interface EstadoOpenWearables {
   healthConnectInstalado: boolean;
   permissoesConcedidas: boolean;
   segundoPlanoAtivo: boolean;
-  ultimaSincronizacaoMs: number | null;
+  /** Uma rodada de envio está em andamento agora. */
+  sincronizando: boolean;
   sessaoValida: boolean;
   simulado: boolean;
 }
 
-type OpenWearablesSdk = typeof import('open-wearables').default;
-let sdkPromise: Promise<OpenWearablesSdk> | null = null;
+type OpenWearablesModulo = typeof import('open-wearables');
+type OpenWearablesSdk = OpenWearablesModulo['default'];
+let moduloPromise: Promise<OpenWearablesModulo> | null = null;
+
+/** Nome do módulo nativo que o pacote open-wearables registra (requireNativeModule no próprio pacote). */
+export const MODULO_NATIVO_OPEN_WEARABLES = 'OpenWearablesHealthSDK';
+
+const MENSAGEM_SEM_MODULO = 'O módulo nativo do relógio (Open Wearables) não está disponível neste aparelho.';
+
+/**
+ * O módulo nativo do relógio existe neste app? Consulta sem avaliar o pacote open-wearables: avaliar o pacote
+ * sem o módulo chama requireNativeModule, que lança, e o Metro reporta isso como erro fatal (tela vermelha)
+ * antes de a promessa do import() rejeitar. Por isso nenhum import('open-wearables') acontece sem esta checagem.
+ */
+export function sdkNativoDisponivel(): boolean {
+  if (ehExpoGo) return false;
+  try {
+    return requireOptionalNativeModule(MODULO_NATIVO_OPEN_WEARABLES) != null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Carrega o SDK nativo, só depois de confirmar que o módulo nativo existe (Expo Go ou build sem o plugin não
+ * têm). Sem ele lança um erro claro e não guarda a promessa, para uma próxima tentativa carregar de novo.
+ */
+async function moduloSdk(): Promise<OpenWearablesModulo> {
+  if (!sdkNativoDisponivel()) throw new Error(MENSAGEM_SEM_MODULO);
+  if (!moduloPromise) {
+    moduloPromise = import('open-wearables').then((mod) => {
+      if (!mod?.default) throw new Error(MENSAGEM_SEM_MODULO);
+      return mod;
+    });
+    moduloPromise.catch(() => {
+      moduloPromise = null;
+    });
+  }
+  return moduloPromise;
+}
 
 async function sdk(): Promise<OpenWearablesSdk> {
-  if (!sdkPromise) {
-    sdkPromise = import('open-wearables').then((mod) => mod.default);
-  }
-  return sdkPromise;
+  return (await moduloSdk()).default;
 }
 
 function tiposSdk(consentimentos: Consentimentos, HealthDataType: typeof import('open-wearables').HealthDataType) {
@@ -43,15 +83,11 @@ function tiposSdk(consentimentos: Consentimentos, HealthDataType: typeof import(
   });
 }
 
-export function rotaTokenSdk(idosoId: string): string {
-  return ROTA_TOKEN(idosoId);
-}
-
 export async function obterTokenSdk(
   idosoId: string,
   { cliente = apiClient }: { cliente?: Pick<ApiClient, 'post'> } = {},
 ): Promise<SdkTokenResponse> {
-  return cliente.post<SdkTokenResponse>(ROTA_TOKEN(idosoId));
+  return cliente.post<SdkTokenResponse>(rotaTokenSdk(idosoId));
 }
 
 export async function conectarOpenWearables(
@@ -59,11 +95,11 @@ export async function conectarOpenWearables(
   consentimentos: Consentimentos,
   { cliente = apiClient }: { cliente?: Pick<ApiClient, 'post'> } = {},
 ): Promise<void> {
-  const [OpenWearablesHealthSDK, token] = await Promise.all([sdk(), obterTokenSdk(idosoId, { cliente })]);
-  const { Platform } = await import('react-native');
+  if (ehExpoGo) return;
+  const [modulo, token] = await Promise.all([moduloSdk(), obterTokenSdk(idosoId, { cliente })]);
+  const { default: OpenWearablesHealthSDK, HealthDataType } = modulo;
   OpenWearablesHealthSDK.configure(token.host);
 
-  const { HealthDataType } = await import('open-wearables');
   await OpenWearablesHealthSDK.signIn(token.userId, token.accessToken, token.refreshToken, null);
   if (Platform.OS === 'android' && !OpenWearablesHealthSDK.setProvider('google')) {
     await OpenWearablesHealthSDK.signOut();
@@ -82,35 +118,40 @@ export async function conectarOpenWearables(
   }
 }
 
+/** Sem o módulo nativo (Expo Go ou build sem o plugin) não há sincronização a parar. */
 export async function pararSincronizacaoOpenWearables(): Promise<void> {
+  if (!sdkNativoDisponivel()) return;
   const OpenWearablesHealthSDK = await sdk();
   await OpenWearablesHealthSDK.stopBackgroundSync();
   await OpenWearablesHealthSDK.signOut();
 }
 
-export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables> {
+/** null quando o relógio não pode ser consultado neste ambiente (Expo Go ou build sem o módulo nativo). */
+export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables | null> {
   if (mockPermitido()) {
     return {
       healthConnectInstalado: true,
       permissoesConcedidas: true,
       segundoPlanoAtivo: true,
-      ultimaSincronizacaoMs: Date.now() - 12 * 60_000,
+      sincronizando: false,
       sessaoValida: true,
       simulado: true,
     };
   }
 
+  if (!sdkNativoDisponivel()) return null;
+
   const OpenWearablesHealthSDK = await sdk();
-  const { Platform } = await import('react-native');
   const providers = Platform.OS === 'android' ? OpenWearablesHealthSDK.getAvailableProviders() : [];
   const credentials = OpenWearablesHealthSDK.getStoredCredentials();
+  // getSyncStatus().createdAt é a data da sessão de envio em andamento e volta a null quando ela termina:
+  // não serve como "última medição". Essa hora vem do servidor (coletadoEm de /hoje), lida pela tela.
   const status = OpenWearablesHealthSDK.getSyncStatus();
-  const ultima = status.createdAt ? Date.parse(status.createdAt) : NaN;
   return {
     healthConnectInstalado: Platform.OS !== 'android' || Boolean(providers.find((provider) => provider.id === 'google')?.isAvailable),
     permissoesConcedidas: OpenWearablesHealthSDK.isSessionValid() && credentials.provider === (Platform.OS === 'android' ? 'google' : 'apple'),
     segundoPlanoAtivo: OpenWearablesHealthSDK.isSyncActive(),
-    ultimaSincronizacaoMs: Number.isFinite(ultima) ? ultima : null,
+    sincronizando: status.isSyncing,
     sessaoValida: OpenWearablesHealthSDK.isSessionValid(),
     simulado: false,
   };

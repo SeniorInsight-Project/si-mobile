@@ -120,6 +120,30 @@ export async function buscarAlarmeAtivo(idosoId: string, { cliente = apiClient }
 }
 
 /**
+ * Última posição conhecida do idoso para o mapa da Home do cuidador: a do SOS mais recente que tem coordenada
+ * (a lista vem do mais recente para o mais antigo). null quando nenhum SOS tem posição. Nunca usa o GPS do
+ * aparelho de quem está olhando. Em erro lança o ApiError original, com o status HTTP.
+ */
+export async function buscarUltimaPosicaoIdoso(
+  idosoId: string,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<LocalizacaoSos | null> {
+  const lista = await cliente.get<AlarmeApi[]>(`/api/v1/idosos/${idosoId}/sos`);
+  for (const alarme of Array.isArray(lista) ? lista : []) {
+    const { localizacao } = mapearAlarme(alarme);
+    if (localizacao) return localizacao;
+  }
+  return null;
+}
+
+/** "18/11 às 03:49": data e hora da posição mostrada no mapa da Home. */
+export function formatarMomentoPosicao(ms: number): string {
+  const d = new Date(ms);
+  const dia = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `${dia} às ${hora(ms)}`;
+}
+
+/**
  * RN-009: o primeiro a assumir ganha. Relê o chamado antes: se já está em atendimento (ou encerrado),
  * não assume por cima. A decisão final continua sendo do servidor.
  */

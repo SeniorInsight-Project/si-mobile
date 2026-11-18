@@ -6,6 +6,7 @@ import {
   atualizarRotina,
   removerRotina,
   confirmarIngestao,
+  formatarHoraIngestao,
 } from '../medicamentoService';
 import { obterRotinasDoCache, salvarRotinasNoCache, limparCacheMedicamentos } from '../medicamentoDatabase';
 import { ApiError } from '../apiClient';
@@ -177,5 +178,39 @@ describe('Remédios pelo apiClient, contrato care-v1 (HU-056 / RF-038)', () => {
     await assert.rejects(confirmarIngestao(ROTINA, { status: 'TOMADO' }, null, { cliente: c }), (e: any) => e.status === 404);
     const [salvo] = await obterRotinasDoCache(IDOSO);
     assert.equal(salvo.statusHoje, 'PENDENTE');
+  });
+
+  test('listar: dose confirmada fora da janela (ATRASADO com horário de ingestão) conta como tomada', async () => {
+    const c = cliente({
+      [`GET /api/v1/idosos/${IDOSO}/rotinas-medicamentos?apenasAtivos=true`]: [
+        rotinaApi({ statusHoje: 'ATRASADO', horarioIngestaoHoje: '2026-11-11T13:02:00Z' }),
+      ],
+    });
+    const [r] = await listarRotinas(IDOSO, { cliente: c });
+    assert.equal(r.statusHoje, 'TOMADO');
+    assert.match(r.horarioIngestaoHoje ?? '', /^\d{2}:\d{2}$/);
+  });
+
+  test('listar: ATRASADO sem registro de ingestão continua pendente de confirmação', async () => {
+    const c = cliente({
+      [`GET /api/v1/idosos/${IDOSO}/rotinas-medicamentos?apenasAtivos=true`]: [
+        rotinaApi({ statusHoje: 'ATRASADO', horarioIngestaoHoje: null }),
+      ],
+    });
+    const [r] = await listarRotinas(IDOSO, { cliente: c });
+    assert.equal(r.statusHoje, 'ATRASADO');
+    assert.equal(r.horarioIngestaoHoje, null);
+  });
+
+  test('formatarHoraIngestao: ISO vira HH:mm local, HH:mm fica, vazio vira null', () => {
+    const iso = '2026-11-11T13:02:00Z';
+    const d = new Date(iso);
+    const esperado = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    assert.equal(formatarHoraIngestao(iso), esperado);
+    assert.equal(formatarHoraIngestao('8:05'), '08:05');
+    assert.equal(formatarHoraIngestao('10:02:33'), '10:02');
+    assert.equal(formatarHoraIngestao(''), null);
+    assert.equal(formatarHoraIngestao(null), null);
+    assert.equal(formatarHoraIngestao('lixo'), null);
   });
 });

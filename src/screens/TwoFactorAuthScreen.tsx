@@ -11,13 +11,16 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import { colors, font, rounded, shadows, typography } from '../theme';
+import { mockPermitido } from '../config/ambiente';
 
 export interface TwoFactorAuthScreenProps {
   onNavigate: (screen: string) => void;
+  /** Telefone já mascarado pelo servidor, ex.: "(11) 9****-1234". Sem ele, o texto não cita número. */
+  telefoneMascarado?: string | null;
 }
 
-export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenProps) {
-  const [digits, setDigits] = useState<string[]>(['4', '8', '2']);
+export default function TwoFactorAuthScreen({ onNavigate, telefoneMascarado }: TwoFactorAuthScreenProps) {
+  const [digits, setDigits] = useState<string[]>([]);
   const [secondsLeft, setSecondsLeft] = useState<number>(32);
 
   useEffect(() => {
@@ -39,8 +42,9 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
     }
   };
 
+  // Código de demonstração só com mock permitido; fora disso a biometria não preenche nada.
   const handleBiometrics = () => {
-    setDigits(['4', '8', '2', '9', '1', '5']);
+    if (mockPermitido()) setDigits(['4', '8', '2', '9', '1', '5']);
   };
 
   const formattedTime = `00:${secondsLeft < 10 ? `0${secondsLeft}` : secondsLeft}`;
@@ -92,9 +96,16 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
 
           <Text style={styles.title}>Código de Verificação</Text>
           <Text style={styles.subtitle}>
-            Enviamos um código de 6 dígitos para o seu celular{' '}
-            <Text style={styles.phoneHighlight}>(11) 9****-8910</Text> para
-            proteger os dados de saúde.
+            Enviamos um código de 6 dígitos para o seu celular
+            {telefoneMascarado ? (
+              <>
+                {' '}
+                <Text style={styles.phoneHighlight}>{telefoneMascarado}</Text>
+              </>
+            ) : (
+              ' cadastrado'
+            )}{' '}
+            para proteger os dados de saúde.
           </Text>
         </View>
 
@@ -148,7 +159,9 @@ export default function TwoFactorAuthScreen({ onNavigate }: TwoFactorAuthScreenP
               onPress={() =>
                 Alert.alert(
                   'Outro Método',
-                  'Código enviado via WhatsApp para (11) 9****-8910.'
+                  telefoneMascarado
+                    ? `Código enviado via WhatsApp para ${telefoneMascarado}.`
+                    : 'Código enviado via WhatsApp para o seu celular cadastrado.'
                 )
               }
               variant="ghost"

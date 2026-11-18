@@ -61,16 +61,20 @@ export async function solicitarPermissaoNotificacoes(): Promise<boolean> {
       return false;
     }
 
-    // Canal prioritário para Android
+    // Canal prioritário para Android. Sem `sound`: omitir já usa o som padrão ('default' não é arquivo de
+    // res/raw). Falha no canal não desfaz a permissão concedida.
     if (Platform.OS === 'android' && typeof Notifications.setNotificationChannelAsync === 'function') {
-      await Notifications.setNotificationChannelAsync('medicamentos-alarmes', {
-        name: 'Lembretes de Medicamentos',
-        importance: Notifications.AndroidImportance?.MAX ?? 5,
-        vibrationPattern: [0, 500, 250, 500],
-        lightColor: '#072369',
-        sound: 'default',
-        enableVibrate: true,
-      });
+      try {
+        await Notifications.setNotificationChannelAsync('medicamentos-alarmes', {
+          name: 'Lembretes de Medicamentos',
+          importance: Notifications.AndroidImportance?.MAX ?? 5,
+          vibrationPattern: [0, 500, 250, 500],
+          lightColor: '#072369',
+          enableVibrate: true,
+        });
+      } catch (err: any) {
+        console.warn('[notificacaoService] Falha ao criar o canal de lembretes:', err?.message);
+      }
     }
 
     return true;

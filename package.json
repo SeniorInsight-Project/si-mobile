@@ -8,11 +8,13 @@
     "@material-symbols-react-native/rounded-400": "^1.0.0",
     "expo": "~58.0.0",
     "expo-auth-session": "~58.0.17",
+    "expo-battery": "~58.0.4",
     "expo-build-properties": "~58.0.12",
     "expo-camera": "~58.0.14",
     "expo-constants": "~58.0.15",
     "expo-crypto": "~58.0.7",
     "expo-dev-client": "~58.0.18",
+    "expo-device": "~58.0.5",
     "expo-font": "~58.0.12",
     "expo-haptics": "~58.0.7",
     "expo-linking": "~58.0.16",
@@ -28,6 +30,7 @@
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
     "react-native-qrcode-svg": "^6.3.26",
+    "react-native-safe-area-context": "~5.11.1",
     "react-native-svg": "15.16.0",
     "react-native-web": "^0.21.2"
   },
@@ -38,7 +41,8 @@
     "web": "expo start --web",
     "test": "node --env-file=.env.test --import ./scripts/resolver-ts.mjs --test src/services/__tests__/*.test.ts",
     "lint:estilo": "node scripts/auditar-estilos.mjs",
-    "contratos:sincronizar": "node scripts/sincronizar-contratos.mjs"
+    "contratos:sincronizar": "node scripts/sincronizar-contratos.mjs",
+    "eas-build-post-install": "bash scripts/publicar-sdk-open-wearables.sh"
   },
   "private": true,
   "devDependencies": {

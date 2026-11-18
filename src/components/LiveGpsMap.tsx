@@ -1,21 +1,15 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   Image,
-  TouchableOpacity,
   ActivityIndicator,
   PanResponder,
 } from 'react-native';
 import Icon from './Icon';
 import IconButton from './IconButton';
 import { colors, font, rounded, shadows, sizes } from '../theme';
-import {
-  obterLocalizacaoAtual,
-  DEFAULT_COORDS,
-  LocalizacaoAtual,
-} from '../services/locationService';
 import { obterUrlPadraoTileOsm } from '../services/osmTileService';
 
 const TILE_SIZE = 256;
@@ -37,29 +31,27 @@ function latLonToTilePosition(lat: number, lon: number, zoom: number) {
   return { xTile, yTile, fx, fy };
 }
 
+/**
+ * Mapa da última posição conhecida do idoso. A posição vem por prop (do servidor): o componente não lê o GPS
+ * do aparelho em que está aberto.
+ */
 export interface LiveGpsMapProps {
-  onLocationChange?: (loc: LocalizacaoAtual) => void;
-  latitude?: number;
-  longitude?: number;
-  safeRadiusMeters?: number;
-  addressTitle?: string;
-  addressSubtitle?: string;
-  onPressCenter?: () => void;
+  latitude: number;
+  longitude: number;
+  titulo: string;
+  subtitulo: string;
+  onAtualizar?: () => void;
+  atualizando?: boolean;
 }
 
-export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
-  const [coords, setCoords] = useState({
-    latitude: DEFAULT_COORDS.latitude,
-    longitude: DEFAULT_COORDS.longitude,
-    accuracy: DEFAULT_COORDS.accuracy,
-  });
-  const [addressTitle, setAddressTitle] = useState(
-    'Buscando localização atual...'
-  );
-  const [addressSubtitle, setAddressSubtitle] = useState(
-    'Sincronizando GPS em tempo real'
-  );
-  const [loadingGps, setLoadingGps] = useState(true);
+export default function LiveGpsMap({
+  latitude,
+  longitude,
+  titulo,
+  subtitulo,
+  onAtualizar,
+  atualizando = false,
+}: LiveGpsMapProps) {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const lastPanRef = useRef({ x: 0, y: 0 });
 
@@ -68,9 +60,6 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3,
-      onPanResponderGrant: () => {
-        lastPanRef.current = { ...panOffset };
-      },
       onPanResponderMove: (_, gesture) => {
         setPanOffset({
           x: Math.max(-220, Math.min(220, lastPanRef.current.x + gesture.dx)),
@@ -86,46 +75,15 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
     })
   ).current;
 
-  const atualizarPosicao = useCallback(async () => {
-    try {
-      setLoadingGps(true);
-      setPanOffset({ x: 0, y: 0 });
-      lastPanRef.current = { x: 0, y: 0 };
-
-      const loc = await obterLocalizacaoAtual();
-
-      const nextCoords = {
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        accuracy: loc.accuracy || 5,
-      };
-      setCoords(nextCoords);
-
-      if (loc.permissaoConcedida) {
-        setAddressTitle(loc.endereco || 'Localização Atual');
-        setAddressSubtitle(
-          `Dentro do Perímetro Seguro • Precisão ~${nextCoords.accuracy}m`
-        );
-      } else {
-        setAddressTitle(loc.endereco || 'Em casa (Rua das Flores, 142)');
-        setAddressSubtitle('Permita o acesso à localização no navegador');
-      }
-
-      if (onLocationChange) {
-        onLocationChange(loc);
-      }
-    } finally {
-      setLoadingGps(false);
-    }
-  }, [onLocationChange]);
-
+  // Posição nova: recentraliza no pino.
   useEffect(() => {
-    atualizarPosicao();
-  }, [atualizarPosicao]);
+    setPanOffset({ x: 0, y: 0 });
+    lastPanRef.current = { x: 0, y: 0 };
+  }, [latitude, longitude]);
 
   const tileData = useMemo(
-    () => latLonToTilePosition(coords.latitude, coords.longitude, ZOOM_LEVEL),
-    [coords.latitude, coords.longitude]
+    () => latLonToTilePosition(latitude, longitude, ZOOM_LEVEL),
+    [latitude, longitude]
   );
 
   const tiles = useMemo(() => {
@@ -170,7 +128,7 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
         </View>
       </View>
 
-      {/* Sinalizador (Radar + Pino da Dona Maria) sobreposto e centralizado na área visível */}
+      {/* Sinalizador (Radar + Pino do idoso) sobreposto e centralizado na área visível */}
       <View style={styles.radarAndPinOverlay} pointerEvents="none">
         <View
           style={[
@@ -202,28 +160,28 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
       {/* Barra Branca de Endereço Sobreposta dentro do Mapa */}
       <View style={styles.mapAddressBar}>
         <View style={styles.addressLeft}>
-          <Icon name="shield_check" size={18} color={colors.successDark} />
+          <Icon name="schedule" size={18} color={colors.successDark} />
           <View style={{ marginLeft: 8, flex: 1 }}>
             <Text style={styles.addressText} numberOfLines={1}>
-              {addressTitle}
+              {titulo}
             </Text>
             <Text style={styles.safeZoneText} numberOfLines={1}>
-              {addressSubtitle}
+              {subtitulo}
             </Text>
           </View>
         </View>
-        {loadingGps ? (
+        {atualizando ? (
           <View style={styles.targetLoading}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
-        ) : (
+        ) : onAtualizar ? (
           <IconButton
-            icon="my_location"
+            icon="refresh"
             variant="neutral"
-            accessibilityLabel="Atualizar localização"
-            onPress={atualizarPosicao}
+            accessibilityLabel="Atualizar localização do idoso"
+            onPress={onAtualizar}
           />
-        )}
+        ) : null}
       </View>
     </View>
   );

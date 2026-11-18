@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import { colors, rounded, shadows, typography, font } from '../theme';
@@ -24,6 +24,7 @@ export interface PremiumScreenProps {
 }
 
 export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [direito, setDireito] = useState<DireitoPremium | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
     <ScreenWrapper>
       <AppHeader title="Premium" onNavigate={onNavigate} />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         {carregando ? (
           <View style={styles.card}>
             <ActivityIndicator color={colors.primaryNavy} size="small" />
@@ -129,7 +130,7 @@ export default function PremiumScreen({ onNavigate }: PremiumScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: rounded.card,

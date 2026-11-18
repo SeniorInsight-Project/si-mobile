@@ -1,42 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { colors, font, rounded, shadows, sizes } from '../theme';
+import { gerarSemana, type DiaDaSemana } from '../services/semanaRemedios';
 
-export interface DiaDaSemana {
-  id: string;
-  diaSemana: string;
-  diaNumero: string;
-  labelCompleta: string;
-}
-
+export type { DiaDaSemana } from '../services/semanaRemedios';
 export type DiaSemanaItem = DiaDaSemana;
 
-export const DIAS_DA_SEMANA_PADRAO: DiaDaSemana[] = [
-  { id: '2026-10-21', diaSemana: 'SEG', diaNumero: '21', labelCompleta: 'Segunda-feira, 21 Out' },
-  { id: '2026-10-22', diaSemana: 'TER', diaNumero: '22', labelCompleta: 'Terça-feira, 22 Out' },
-  { id: '2026-10-23', diaSemana: 'QUA', diaNumero: '23', labelCompleta: 'Quarta-feira, 23 Out' },
-  { id: '2026-10-24', diaSemana: 'QUI', diaNumero: '24', labelCompleta: 'Quinta-feira, 24 Out' },
-  { id: '2026-10-25', diaSemana: 'SEX', diaNumero: '25', labelCompleta: 'Sexta-feira, 25 Out' },
-  { id: '2026-10-26', diaSemana: 'SÁB', diaNumero: '26', labelCompleta: 'Sábado, 26 Out' },
-  { id: '2026-10-27', diaSemana: 'DOM', diaNumero: '27', labelCompleta: 'Domingo, 27 Out' },
-];
-
 export interface DayOfWeekSelectorProps {
-  selectedDate?: string;
+  selectedDate: string;
   onSelectDate?: (item: DiaDaSemana) => void;
+  /** Padrão: a semana atual (segunda a domingo). */
   dias?: DiaDaSemana[];
 }
 
 export default function DayOfWeekSelector({
-  selectedDate = '2026-10-24',
+  selectedDate,
   onSelectDate,
-  dias = DIAS_DA_SEMANA_PADRAO,
+  dias = gerarSemana(),
 }: DayOfWeekSelectorProps) {
   return (
     <View style={styles.rowContainer}>
       {dias.map((item) => {
-        const isSelected =
-          item.id === selectedDate || item.diaNumero === selectedDate;
+        const isSelected = item.id === selectedDate;
 
         return (
           <TouchableOpacity
@@ -45,13 +30,13 @@ export default function DayOfWeekSelector({
             onPress={() => onSelectDate && onSelectDate(item)}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={item.labelCompleta}
+            accessibilityLabel={item.ehHoje ? `${item.labelCompleta}, hoje` : item.labelCompleta}
             accessibilityState={{ selected: isSelected }}
           >
             <Text style={[styles.dayName, isSelected && styles.dayNameActive]} numberOfLines={1}>
               {item.diaSemana}
             </Text>
-            <Text style={[styles.dayNumber, isSelected && styles.dayNumberActive]}>
+            <Text style={[styles.dayNumber, isSelected && styles.dayNumberActive]} numberOfLines={1}>
               {item.diaNumero}
             </Text>
             {isSelected && <View style={styles.activeGreenDot} />}

@@ -134,7 +134,7 @@ describe('HU-016 & RN-012: Convidar o Médico do Idoso', () => {
       { papelUsuario: 'ADMIN', ignorarLimite: true }
     );
 
-    const recusado = await recusarConvite(TEST_IDOSO_ID, convite.id);
+    const recusado = (await recusarConvite(TEST_IDOSO_ID, convite.id))!;
 
     assert.equal(recusado.status, 'RECUSADO', 'Status do convite deve ser RECUSADO');
     assert.equal(

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { useFonts } from 'expo-font';
 import {
@@ -18,6 +19,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ConfirmarEmailScreen from './src/screens/ConfirmarEmailScreen';
 import ElderlyModeScreen from './src/screens/ElderlyModeScreen';
+import ElderlyMonitorScreen from './src/screens/ElderlyMonitorScreen';
 import ElderlyProfileScreen from './src/screens/ElderlyProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MedicinesScreen from './src/screens/MedicinesScreen';
@@ -48,6 +50,7 @@ import { Idoso } from './src/services/elderlyService';
 import {
   aoEncerrarSessao,
   decodificarJwt,
+  encerrarSessaoLocal,
   obterAccessTokenValido,
   papeisDoToken,
   sair,
@@ -55,6 +58,9 @@ import {
   type DesfechoAutenticacao,
 } from './src/services/authSession';
 import { apiClient, ApiError } from './src/services/apiClient';
+
+const MENSAGEM_SESSAO_RECUSADA =
+  'O servidor recusou a sua sessão logo após o login. Tente entrar novamente; se persistir, avise o suporte.';
 import {
   inicializarPushUsuario,
   obterIdentificadorAparelho,
@@ -62,6 +68,10 @@ import {
   removerTokenPush,
 } from './src/services/pushService';
 import { pararSincronizacaoOpenWearables } from './src/services/openWearablesService';
+import { ehExpoGo } from './src/config/expoGo';
+import { iniciarEnvioStatusCelular } from './src/services/statusCelularIdosoService';
+import { obterConsentimentos } from './src/services/consentimentoService';
+import { aplicarConsentimentoLocalizacao, pararRastreamentoLocalizacao } from './src/services/locationService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -94,6 +104,7 @@ export default function App() {
   }, [fontError]);
 
   const [telaAtual, setTelaAtual] = useState<string>('Onboarding');
+  const [avisoLogin, setAvisoLogin] = useState<string | null>(null);
   const [restaurandoSessao, setRestaurandoSessao] = useState<boolean>(true);
   const [idosoSelecionadoId, setIdosoSelecionadoId] = useState<string | null>(null);
   const [nomeIdosoSelecionado, setNomeIdosoSelecionado] = useState<string | null>(null);
@@ -111,6 +122,9 @@ export default function App() {
   const papelAcessoAtual = papeis.includes('familiar') ? 'ADMIN' : papeis.includes('idoso') ? 'IDOSO' : '';
   // Papel de visão (RN-011): vem sempre do token, nunca de um botão. Mesma prioridade de telaInicialPorPapeis.
   const papel: PapelApp | null = papeis.includes('idoso') ? 'IDOSO' : papeis.includes('familiar') ? 'FAMILIAR' : null;
+  // Lido no encerramento da sessão: só a sessão do idoso tem sincronização do relógio a parar.
+  const papelRef = useRef<PapelApp | null>(null);
+  papelRef.current = papel;
   const [pareamento, setPareamento] = useState<ResultadoPareamento | null>(null);
   const [idosoRecemCadastrado, setIdosoRecemCadastrado] = useState<Idoso | null>(null);
   const [primeiroUsoIdoso, setPrimeiroUsoIdoso] = useState<boolean>(false);
@@ -119,7 +133,7 @@ export default function App() {
   /**
    * Com token válido: busca o perfil e abre a tela do papel. Retorna false se não há sessão.
    */
-  const entrarComSessaoSalva = useCallback(async (): Promise<boolean> => {
+  const entrarComSessaoSalva = useCallback(async (origem: 'restauracao' | 'login' = 'restauracao'): Promise<boolean> => {
     const token = await obterAccessTokenValido();
     if (!token) return false;
 
@@ -132,7 +146,15 @@ export default function App() {
     try {
       perfil = await apiClient.get<PerfilIdentity>('/api/v1/identity/me');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) return false;
+      if (err instanceof ApiError && err.status === 401) {
+        console.warn(`[App] Servidor recusou a sessão (status ${err.status}) em /api/v1/identity/me (${origem})`);
+        // Login recém-concluído recusado: limpa a sessão e avisa na tela de login, em vez de voltar em silêncio.
+        if (origem === 'login') {
+          await encerrarSessaoLocal('expirada');
+          setAvisoLogin(MENSAGEM_SESSAO_RECUSADA);
+        }
+        return false;
+      }
       // 404 (idoso ainda sem perfil), sem rede etc.: segue com os dados do token.
       console.warn('[App] Não foi possível carregar o perfil:', (err as Error)?.message);
     }
@@ -168,9 +190,11 @@ export default function App() {
   useEffect(
     () =>
       aoEncerrarSessao(() => {
-        pararSincronizacaoOpenWearables().catch((err) =>
-          console.warn('[App] Falha ao parar a sincronização do relógio:', err?.message),
-        );
+        if (papelRef.current === 'IDOSO') {
+          pararSincronizacaoOpenWearables().catch((err) =>
+            console.warn('[App] Falha ao parar a sincronização do relógio:', err?.message),
+          );
+        }
         conviteRef.current = null;
         sessaoAtivaRef.current = false;
         setCodigoDoLink(null);
@@ -186,7 +210,8 @@ export default function App() {
   );
 
   const handleLogout = useCallback(() => {
-    removerTokenPush(obterIdentificadorAparelho())
+    // No Expo Go nenhum token de push foi registrado.
+    (ehExpoGo ? Promise.resolve() : removerTokenPush(obterIdentificadorAparelho()))
       .catch((err) => console.warn('[App] Falha ao remover token de push:', err?.message))
       .finally(() => {
         sair().catch((err) => console.warn('[App] Falha ao sair:', err?.message));
@@ -194,11 +219,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!usuarioLogado?.id) return;
+    // Push remoto não existe no Expo Go: só funciona no app instalado.
+    if (!usuarioLogado?.id || ehExpoGo) return;
     inicializarPushUsuario().catch((err) =>
       console.warn('[App] Falha ao inicializar notificações push:', err?.message)
     );
   }, [usuarioLogado?.id]);
+
+  // Sessão do idoso: envia bateria, modelo, sistema e versão do celular para a família (ao abrir, ao voltar ao
+  // primeiro plano e a cada 15 min com o app aberto). Para no logout, quando o papel deixa de ser IDOSO.
+  useEffect(() => {
+    if (papel !== 'IDOSO' || !idosoSelecionadoId) return;
+    return iniciarEnvioStatusCelular(idosoSelecionadoId);
+  }, [papel, idosoSelecionadoId]);
+
+  // Sessão do idoso com "Compartilhar sempre" ligado (consentimento LOCALIZACAO): o GPS fica ligado enquanto o
+  // app está aberto. Desligado, a posição só é buscada no SOS. Para no logout.
+  useEffect(() => {
+    if (papel !== 'IDOSO' || !idosoSelecionadoId) return;
+    let ativo = true;
+    obterConsentimentos(idosoSelecionadoId)
+      .then((c) => {
+        if (ativo) return aplicarConsentimentoLocalizacao(c.LOCALIZACAO);
+      })
+      .catch((err) => console.warn('[App] Não foi possível ler o consentimento de localização:', err?.message));
+    return () => {
+      ativo = false;
+      pararRastreamentoLocalizacao();
+    };
+  }, [papel, idosoSelecionadoId]);
 
   useEffect(() => {
     return registrarOuvinteToqueNotificacao((destino) => {
@@ -238,7 +287,8 @@ export default function App() {
   );
 
   const handleLoginConcluido = useCallback(() => {
-    entrarComSessaoSalva()
+    setAvisoLogin(null);
+    entrarComSessaoSalva('login')
       .then((ok) => {
         if (!ok) setTelaAtual('Login');
       })
@@ -317,7 +367,7 @@ export default function App() {
       case 'Onboarding':
         return <OnboardingScreen onNavigate={navegar} />;
       case 'Login':
-        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} />;
+        return <LoginScreen onDesfecho={handleDesfechoAutenticacao} aviso={avisoLogin} />;
       case 'ConfirmarEmail':
         return <ConfirmarEmailScreen onNavigate={navegar} onDesfecho={handleDesfechoAutenticacao} />;
       case 'EntryApp':
@@ -393,13 +443,21 @@ export default function App() {
         return <AcessoRestritoScreen onLogout={handleLogout} />;
       case 'ElderlyMode':
         return <ElderlyModeScreen onNavigate={navegar} onLogout={handleLogout} />;
+      case 'ElderlyMonitor':
+        return (
+          <ElderlyMonitorScreen
+            onNavigate={navegar}
+            onAbrirSos={(alarmeId) => {
+              setAlarmeSelecionadoId(alarmeId);
+              setTelaAtual('SosReceived');
+            }}
+          />
+        );
       case 'ElderlyProfile':
         return (
           <ElderlyProfileScreen
             onNavigate={navegar}
-           
             accessRole={papelAcessoAtual}
-            familiarId={usuarioLogado?.id}
           />
         );
       case 'Home':
@@ -407,7 +465,6 @@ export default function App() {
           <HomeScreen
             onNavigate={navegar}
             onLogout={handleLogout}
-            familiarId={usuarioLogado?.id}
           />
         );
       case 'Medicines':
@@ -427,7 +484,7 @@ export default function App() {
         return (
           <AcceptInviteScreen
             onNavigate={navegar}
-            inviteToken={inviteToken || 'token-exemplo'}
+            inviteToken={inviteToken ?? undefined}
             isAuthenticated={Boolean(usuarioLogado)}
             currentUser={usuarioLogado}
             onDesfecho={handleDesfechoAutenticacao}
@@ -439,6 +496,7 @@ export default function App() {
   };
 
   return (
+    <SafeAreaProvider>
     <PapelProvider value={papel}>
       <UsuarioProvider value={usuarioLogado?.nome ?? null}>
       <IdosoProvider
@@ -460,5 +518,6 @@ export default function App() {
       </IdosoProvider>
       </UsuarioProvider>
     </PapelProvider>
+    </SafeAreaProvider>
   );
 }

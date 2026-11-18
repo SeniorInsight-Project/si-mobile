@@ -154,7 +154,11 @@ export function enriquecerDadosVisuais(rotina: Partial<RotinaMedicamento> & Reco
  * Normaliza objetos retornados pela API (RotinaMedicamento do contrato care-v1).
  */
 export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicamento {
-  const statusContrato = String(apiItem.statusHoje ?? apiItem.status ?? 'PENDENTE').toUpperCase();
+  const statusServidor = String(apiItem.statusHoje ?? apiItem.status ?? 'PENDENTE').toUpperCase();
+  const horarioIngestaoHoje = formatarHoraIngestao(apiItem.horarioIngestaoHoje);
+  // O servidor grava como ATRASADO a dose confirmada depois da janela de tolerância. Ela foi tomada:
+  // tratar como pendente faria o remédio voltar para a tela depois de confirmado.
+  const statusContrato = statusServidor === 'ATRASADO' && horarioIngestaoHoje ? 'TOMADO' : statusServidor;
 
   return enriquecerDadosVisuais({
     id: apiItem.id,
@@ -172,9 +176,18 @@ export function normalizarRotinaApi(apiItem: Record<string, any>): RotinaMedicam
     tipoFormato: apiItem.tipoFormato,
     ativo: apiItem.ativo !== undefined ? Boolean(apiItem.ativo) : true,
     statusHoje: statusContrato,
-    horarioIngestaoHoje: apiItem.horarioIngestaoHoje || null,
+    horarioIngestaoHoje,
     isProximo: false,
   });
+}
+
+/** "2026-11-11T08:05:00Z" → "05:05" (hora local). Já em "HH:mm" fica como está; vazio vira null. */
+export function formatarHoraIngestao(valor: unknown): string | null {
+  if (typeof valor !== 'string' || !valor.trim()) return null;
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(valor.trim())) return valor.trim().slice(0, 5).padStart(5, '0');
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return null;
+  return `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`;
 }
 
 export interface OpcoesRede {

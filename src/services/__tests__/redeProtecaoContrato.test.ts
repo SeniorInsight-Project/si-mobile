@@ -9,6 +9,8 @@ import {
   listarConvitesPendentes,
   cancelarConvite,
   editarConvite,
+  recusarConvite,
+  descartarConviteRecusado,
 } from '../redeProtecaoService';
 import { ApiError } from '../apiClient';
 
@@ -193,5 +195,21 @@ describe('Rede de proteção pelo apiClient, contrato care-v1 (HU16 / HU-013 / H
     assert.deepEqual(c.chamadas.map((x) => `${x.metodo} ${x.caminho}`), ['DELETE /api/v1/convites/c-1', 'PATCH /api/v1/convites/c-1']);
     assert.deepEqual(c.chamadas[1].corpo, { grauParentesco: 'Tio' });
     assert.equal(r?.grauParentescoSugerido, 'Tio');
+  });
+
+  test('recusar e descartar convite usam DELETE /api/v1/convites/{id} (rotas do care), nunca /idosos/{id}/convites/...', async () => {
+    const c = cliente();
+    assert.equal(await recusarConvite(IDOSO, 'c-1', undefined, { cliente: c }), null);
+    assert.equal(await descartarConviteRecusado(IDOSO, 'c-2', { cliente: c }), true);
+    assert.deepEqual(c.chamadas.map((x) => `${x.metodo} ${x.caminho}`), ['DELETE /api/v1/convites/c-1', 'DELETE /api/v1/convites/c-2']);
+  });
+
+  test('descartar convite já encerrado (404/409) conta como feito; outros erros lançam', async () => {
+    for (const status of [404, 409]) {
+      const c = cliente({ 'DELETE /api/v1/convites/c-1': new ApiError(status, null, '/x') });
+      assert.equal(await descartarConviteRecusado(IDOSO, 'c-1', { cliente: c }), true);
+    }
+    const c = cliente({ 'DELETE /api/v1/convites/c-1': new ApiError(403, null, '/x') });
+    await assert.rejects(descartarConviteRecusado(IDOSO, 'c-1', { cliente: c }), (e: any) => e.status === 403);
   });
 });

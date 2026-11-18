@@ -11,17 +11,11 @@ import {
 } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
+import { AVISO_SEM_CONTATO, destinoLigacaoEmergencia } from '../services/discagemEmergencia';
 import SosHoldButton from '../components/SosHoldButton';
-import WatchStatusCard from '../components/WatchStatusCard';
-import ElderlyMetricsCards from '../components/ElderlyMetricsCards';
 import { usePapel } from '../context/PapelContext';
-import {
-  carregarStatusRelogioIdoso,
-  StatusRelogioIdoso,
-} from '../services/relogioStatusService';
-import { carregarBiometriaIdoso, type BiometriaIdoso } from '../services/elderlyTelemetryService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -38,10 +32,12 @@ import {
   atualizarStatusAlarme,
   AlarmeEmergencia,
 } from '../services/alarmeSosService';
-import { obterLocalizacaoRapida } from '../services/locationService';
+import { buscarPosicaoSos } from '../services/locationService';
+import { lerNivelBateria } from '../services/bateriaService';
 import {
   enfileirarSos,
   iniciarCicloEnvio,
+  atualizarLocalizacaoSos,
   cancelarFilaSos,
   retomarPendentes,
   SosQueueStatusInfo,
@@ -51,6 +47,32 @@ import {
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
 import { useIdoso } from '../context/IdosoContext';
+
+const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+/** "Quarta-feira, 14:05" com a hora do aparelho. */
+export function formatarDiaHora(data: Date): string {
+  const hh = String(data.getHours()).padStart(2, '0');
+  const mm = String(data.getMinutes()).padStart(2, '0');
+  return `${DIAS_SEMANA[data.getDay()]}, ${hh}:${mm}`;
+}
+
+/** Hora atual que se atualiza a cada virada de minuto. */
+function useRelogioMinuto(): Date {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    let intervalo: ReturnType<typeof setInterval> | undefined;
+    const atraso = setTimeout(() => {
+      setAgora(new Date());
+      intervalo = setInterval(() => setAgora(new Date()), 60000);
+    }, 60000 - (Date.now() % 60000));
+    return () => {
+      clearTimeout(atraso);
+      if (intervalo) clearInterval(intervalo);
+    };
+  }, []);
+  return agora;
+}
 
 export interface ElderlyModeScreenProps {
   onNavigate?: (screen: string) => void;
@@ -63,6 +85,7 @@ export default function ElderlyModeScreen({
   idosoId: idosoIdProp,
   onLogout,
 }: ElderlyModeScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto, nomeIdoso: nomeIdosoContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -103,14 +126,12 @@ export default function ElderlyModeScreen({
   const [primeiroContato, setPrimeiroContato] = useState<ContatoEmergencia | null>(null);
   const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
-  const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
-  const [biometria, setBiometria] = useState<BiometriaIdoso | null>(null);
+  const agora = useRelogioMinuto();
 
 
   useEffect(() => {
     if (!idAtivo) {
       setRotinas([]);
-      setBiometria(null);
       return;
     }
 
@@ -125,23 +146,6 @@ export default function ElderlyModeScreen({
       })
       .catch((err) => {
         console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
-      });
-
-    // Passos e batimentos de hoje (HU-030): só os tipos autorizados; sem leitura, "Sem dados".
-    carregarBiometriaIdoso(idAtivo)
-      .then(setBiometria)
-      .catch((err) => {
-        setBiometria(null);
-        console.warn('[ElderlyModeScreen] Passos e batimentos indisponíveis:', err?.name);
-      });
-
-    // 0. Carrega status de sincronização do relógio (HU-025)
-    carregarStatusRelogioIdoso(idAtivo)
-      .then(setWatchStatus)
-      .catch((err) => {
-        // Sem API e sem cache: o card fica oculto em vez de mostrar um status inventado.
-        setWatchStatus(null);
-        console.warn('[ElderlyModeScreen] Status do relógio indisponível:', err?.message);
       });
 
     obterRotinasDoCache(idAtivo)
@@ -193,8 +197,9 @@ export default function ElderlyModeScreen({
       },
       onTimeout: ({ primeiroContato: contato }) => {
         if (contato) setPrimeiroContato(contato);
-        const telSanitizado = (contato?.telefone || '11987654321').replace(/\D/g, '');
-        Linking.openURL(`tel:${telSanitizado}`).catch((err) => {
+        // Sem contato de emergência cadastrado, liga para o SAMU (192): nunca um número fictício.
+        const destino = destinoLigacaoEmergencia(contato);
+        Linking.openURL(`tel:${destino.telefone}`).catch((err) => {
           console.warn('[ElderlyModeScreen] Não foi possível abrir a ligação de emergência:', err?.name);
         });
       },
@@ -300,14 +305,14 @@ export default function ElderlyModeScreen({
     }
     setDisparandoSos(true);
     try {
-      // 1. Obtém localização rápida (cache ou 1.5s timeout, sem bloqueio de geocoding reverso)
-      const loc = await obterLocalizacaoRapida();
+      // 1. Bateria (leitura local, instantânea). A posição NÃO é esperada: o SOS sai na hora.
+      const nivelBateria = await lerNivelBateria();
 
       // 2. Enfileira imediatamente no SQLite e memória com chave de idempotência UUID única
       const registro = await enfileirarSos(idSos, {
-        latitude: loc?.latitude ?? null,
-        longitude: loc?.longitude ?? null,
-        nivelBateria: null,
+        latitude: null,
+        longitude: null,
+        nivelBateria,
         observacao: 'SOS acionado pelo idoso (pressão contínua de 2s).',
       });
 
@@ -316,8 +321,6 @@ export default function ElderlyModeScreen({
         idempotencyKey: registro.idempotencyKey,
         status: 'DISPARADO',
         criadoEm: new Date(registro.criadoEm).toISOString(),
-        latitude: loc?.latitude,
-        longitude: loc?.longitude,
       };
       setAlarmeAtivo(alarmeInicial);
       setFilaStatus({
@@ -341,17 +344,25 @@ export default function ElderlyModeScreen({
           setFilaStatus({ status: 'EXPIRADO', tempoRestanteSegundos: 0 });
           if (contato) setPrimeiroContato(contato);
 
-          const destino = contato || primeiroContato;
-          const telSanitizado = (destino?.telefone || '11987654321').replace(/\D/g, '');
-
-          // Cenário 3: 60s sem resposta -> abre discador telefônico
-          Linking.openURL(`tel:${telSanitizado}`).catch(() => {
+          // Cenário 3: 60s sem resposta -> abre o discador com o contato ou, sem contato, com o SAMU (192).
+          const destino = destinoLigacaoEmergencia(contato || primeiroContato);
+          Linking.openURL(`tel:${destino.telefone}`).catch(() => {
             Alert.alert(
               'Tempo de Conexão Esgotado',
-              `Não foi possível enviar via internet após 60s. Por favor, ligue para ${destino?.nome || 'seu contato de emergência'}.`
+              destino.semContato
+                ? `Não foi possível enviar via internet após 60s. ${AVISO_SEM_CONTATO}`
+                : `Não foi possível enviar via internet após 60s. Por favor, ligue para ${destino.nome} (${destino.telefone}).`
             );
           });
         },
+      });
+
+      // 4. Continua buscando a posição (até ~20 s) e a manda quando chegar: no próximo POST da fila, se o SOS
+      // ainda não saiu, ou por PATCH /api/v1/sos/{id}/localizacao, se já saiu.
+      buscarPosicaoSos((coords) => {
+        atualizarLocalizacaoSos(registro.idempotencyKey, coords).catch((e: any) =>
+          console.warn('[ElderlyModeScreen] Falha ao registrar a posição do SOS:', e?.message)
+        );
       });
     } catch (err: any) {
       console.warn('Erro ao disparar SOS:', err?.message);
@@ -401,7 +412,7 @@ export default function ElderlyModeScreen({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
       >
         {/* CARTÃO DE SAUDAÇÃO (rx=32, #FFFFFF) */}
         <View style={styles.greetingCard}>
@@ -413,7 +424,7 @@ export default function ElderlyModeScreen({
               <View style={styles.onlineDot} />
             </View>
             <View style={styles.greetingTexts}>
-              <Text style={styles.greetingSub}>Quinta-feira, 10:02</Text>
+              <Text style={styles.greetingSub}>{formatarDiaHora(agora)}</Text>
               <Text style={styles.greetingTitle}>{saudacao}</Text>
             </View>
           </View>
@@ -426,15 +437,6 @@ export default function ElderlyModeScreen({
             style={{ backgroundColor: colors.mint.background }}
           />
         </View>
-
-{/* STATUS DO RELÓGIO (HU-025 / RNF-006) */}
-        <WatchStatusCard
-          status={watchStatus}
-          onPress={() => onNavigate && onNavigate('ElderlyWatch')}
-        />
-
-        {/* PASSOS E BATIMENTOS DE HOJE (HU-030 / RNF-006) */}
-        <ElderlyMetricsCards biometria={biometria} />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
         {loading ? (
@@ -552,7 +554,9 @@ export default function ElderlyModeScreen({
                   ? `${proximoRemedio.horario} — ${proximoRemedio.medicamentoNome || proximoRemedio.nomeMedicamento || 'Medicamento'}`
                   : todosTomados
                   ? `${totalAtivos} doses registradas com sucesso`
-                  : '14:00 — Vitamina D3 (1 cápsula)'}
+                  : totalAtivos === 0
+                  ? 'Nenhum remédio cadastrado'
+                  : 'Ver todos os remédios de hoje'}
               </Text>
             </View>
           </View>
@@ -640,7 +644,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 100,
   },
   greetingCard: {
     width: '100%',

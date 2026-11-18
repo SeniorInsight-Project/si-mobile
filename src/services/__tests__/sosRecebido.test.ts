@@ -8,6 +8,8 @@ import {
   buscarAlarmeAtivo,
   assumirChamado,
   encerrarChamado,
+  buscarUltimaPosicaoIdoso,
+  formatarMomentoPosicao,
   SosError,
   type AlarmeApi,
 } from '../sosRecebidoService';
@@ -132,5 +134,32 @@ describe('SOS recebido pelo familiar, pelo contrato care-v1 (HU-065 / HU-066 / H
   test('SEM dados de exemplo: chamado inexistente ou erro de servidor lançam erro', async () => {
     await assert.rejects(buscarAlarme('nao-existe', { cliente: cliente({}) }), /não foi encontrado/);
     await assert.rejects(buscarAlarmeAtivo('i-1', { cliente: cliente({ 'GET /api/v1/idosos/i-1/sos': new ApiError(500, null, 'u') }) }), SosError);
+  });
+
+  test('mapa da Home: última posição é a do SOS mais recente que tem coordenada', async () => {
+    const c = cliente({
+      'GET /api/v1/idosos/i-1/sos': [
+        alarme({ id: 'novo', latitude: null, longitude: null }),
+        alarme({ id: 'meio', latitude: -22.9, longitude: -43.2 }),
+        alarme({ id: 'velho', latitude: -10, longitude: -10 }),
+      ],
+    });
+    const p = await buscarUltimaPosicaoIdoso('i-1', { cliente: c });
+    assert.deepEqual(p, { latitude: -22.9, longitude: -43.2, medidaEm: Date.parse(criadoEm) });
+  });
+
+  test('mapa da Home: sem SOS com coordenada não há posição (nada de posição padrão)', async () => {
+    const c = cliente({ 'GET /api/v1/idosos/i-1/sos': [alarme({ latitude: null, longitude: null })] });
+    assert.equal(await buscarUltimaPosicaoIdoso('i-1', { cliente: c }), null);
+    assert.equal(await buscarUltimaPosicaoIdoso('i-1', { cliente: cliente({ 'GET /api/v1/idosos/i-1/sos': [] }) }), null);
+  });
+
+  test('mapa da Home: erro da API sai com o status HTTP', async () => {
+    const c = cliente({ 'GET /api/v1/idosos/i-1/sos': new ApiError(403, null, 'u') });
+    await assert.rejects(buscarUltimaPosicaoIdoso('i-1', { cliente: c }), (e: any) => e.status === 403);
+  });
+
+  test('mapa da Home: data e hora da posição', () => {
+    assert.equal(formatarMomentoPosicao(new Date(2026, 10, 4, 14, 32).getTime()), '04/11 às 14:32');
   });
 });

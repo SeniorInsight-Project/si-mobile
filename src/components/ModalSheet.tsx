@@ -6,12 +6,12 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import IconButton from './IconButton';
 import { colors, font, rounded, shadows } from '../theme';
 
@@ -52,6 +52,8 @@ export default function ModalSheet({
       useNativeDriver: true,
     }).start();
   }, [visible, entrada]);
+  // A folha encosta na base da tela: o conteúdo fica acima do indicador inicial do iPhone.
+  const { bottom: insetInferior } = useSafeAreaInsets();
   const deslize = entrada.interpolate({ inputRange: [0, 1], outputRange: [48, 0] });
 
   return (
@@ -74,7 +76,7 @@ export default function ModalSheet({
           style={styles.keyboardWrapper}
         >
           <Animated.View style={[styles.sheet, { opacity: entrada, transform: [{ translateY: deslize }] }]}>
-            <SafeAreaView style={styles.safeArea}>
+            <View style={[styles.safeArea, { paddingBottom: insetInferior }]}>
               <View style={styles.header}>
                 <View style={styles.headerText}>
                   <Text style={styles.title}>{title}</Text>
@@ -98,7 +100,7 @@ export default function ModalSheet({
               </ScrollView>
 
               {footer ? <View style={styles.footer}>{footer}</View> : null}
-            </SafeAreaView>
+            </View>
           </Animated.View>
         </KeyboardAvoidingView>
       </View>

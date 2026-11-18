@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import TextField from '../components/TextField';
@@ -48,6 +48,7 @@ export default function AlertsCenterScreen({
   nomeIdoso = 'o idoso',
   telefoneIdoso,
 }: AlertsCenterScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState('');
@@ -291,7 +292,7 @@ export default function AlertsCenterScreen({
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         {carregando ? (
           <ActivityIndicator color={colors.primary} />
         ) : erroCarga ? (
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
   filtroAtivo: { backgroundColor: colors.primary, borderColor: colors.primary },
   filtroTexto: { fontSize: 14,  color: colors.textSecondary, ...font('body', 700) },
   filtroTextoAtivo: { color: colors.white },
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: rounded.card, padding: 20, gap: 8, ...shadows.tier1 },
   cardCritico: { backgroundColor: colors.peachBg, borderWidth: 1, borderColor: colors.peachBorder },
   cardTecnico: { flexDirection: 'row', alignItems: 'center', gap: 14 },

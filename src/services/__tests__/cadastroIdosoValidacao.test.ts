@@ -6,6 +6,8 @@ import {
   formatarCelular,
   parseDataBr,
   dataBrParaIso,
+  isoParaDataBr,
+  SEXOS_IDOSO,
   calcularIdade,
   IDADE_MINIMA_SCORE,
 } from '../cadastroIdosoValidacao';
@@ -80,5 +82,19 @@ describe('Cadastro do idoso - validação (HU-008)', () => {
     assert.equal(dataBrParaIso('01/01/2000', HOJE), '2000-01-01');
     assert.equal(dataBrParaIso('31/02/1950', HOJE), null);
     assert.equal(dataBrParaIso('', HOJE), null);
+  });
+
+  test('isoParaDataBr converte a data da API para o formulário e volta igual', () => {
+    assert.equal(isoParaDataBr('1946-05-10'), '10/05/1946');
+    assert.equal(isoParaDataBr('1946-05-10T00:00:00Z'), '10/05/1946');
+    assert.equal(dataBrParaIso(isoParaDataBr('1948-05-14')!, HOJE), '1948-05-14');
+    assert.equal(isoParaDataBr('1950-02-31'), null);
+    assert.equal(isoParaDataBr('10/05/1946'), null);
+    assert.equal(isoParaDataBr(''), null);
+    assert.equal(isoParaDataBr(null), null);
+  });
+
+  test('sexos do cadastro e da edição são os mesmos, sem "Outro"', () => {
+    assert.deepEqual([...SEXOS_IDOSO], ['Feminino', 'Masculino']);
   });
 });

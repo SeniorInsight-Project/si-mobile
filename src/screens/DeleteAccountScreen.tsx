@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import TextField from '../components/TextField';
@@ -37,6 +37,7 @@ const O_QUE_SERA_APAGADO = [
  * Aceito o pedido, os dados do aparelho são apagados antes de mostrar o comprovante; "Concluir" volta à entrada.
  */
 export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = false }: DeleteAccountScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const papel = usePapel();
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -65,7 +66,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
     return (
       <ScreenWrapper>
         <AppHeader title="Excluir Conta" onNavigate={avisarContaExcluida} />
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
           <View style={styles.card} testID="exclusao-concluida">
             <View style={[styles.badge, { backgroundColor: colors.mintBg }]}>
               <Icon name="check_circle" size={28} color={colors.successDark} />
@@ -97,7 +98,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
   return (
     <ScreenWrapper>
       <AppHeader title="Excluir conta" onNavigate={onNavigate} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={[styles.badge, { backgroundColor: colors.peach.background }]}>
             <Icon name="delete" size={28} color={colors.coralDark} />
@@ -177,7 +178,7 @@ export default function DeleteAccountScreen({ onNavigate, assinaturaAtiva = fals
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: rounded.card, padding: 20, gap: 12, ...shadows.tier1 },
   badge: { width: 56, height: 56, borderRadius: rounded.full, alignItems: 'center', justifyContent: 'center' },
   badgePequeno: { width: 48, height: 48, borderRadius: rounded.full },

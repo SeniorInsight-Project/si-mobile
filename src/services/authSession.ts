@@ -149,6 +149,7 @@ let agora: () => number = () => Date.now();
 let fetchHttp: typeof fetch = (...args) => globalThis.fetch(...args);
 let refreshOidcCustom: ((refreshToken: string) => Promise<RespostaTokens>) | null = null;
 let timeoutRenovacaoMs = TIMEOUT_REDE_MS;
+let obterAparelhoPareadoSessao: () => Promise<{ sessaoAparelhoId?: string | null } | null> = obterAparelhoPareado;
 
 export interface ConfiguracaoSessao {
   provedor?: ProvedorOidc;
@@ -157,6 +158,8 @@ export interface ConfiguracaoSessao {
   fetch?: typeof fetch;
   refreshOidc?: (refreshToken: string) => Promise<RespostaTokens>;
   timeoutRenovacaoMs?: number;
+  /** Aparelho pareado do idoso (para o logout não revogar com o client errado). */
+  obterAparelhoPareado?: () => Promise<{ sessaoAparelhoId?: string | null } | null>;
 }
 
 /** Troca dependências (testes). Chame sem argumentos para voltar ao padrão. */
@@ -167,6 +170,7 @@ export function configurarSessao(config: ConfiguracaoSessao = {}): void {
   fetchHttp = config.fetch ?? ((...args) => globalThis.fetch(...args));
   refreshOidcCustom = config.refreshOidc ?? null;
   timeoutRenovacaoMs = config.timeoutRenovacaoMs ?? TIMEOUT_REDE_MS;
+  obterAparelhoPareadoSessao = config.obterAparelhoPareado ?? obterAparelhoPareado;
   renovacaoEmAndamento = null;
 }
 
@@ -307,17 +311,52 @@ export function avisarContaExcluida(): void {
 }
 
 /**
- * Sair da conta: revoga o refresh token no Keycloak (melhor esforço, sem rede o
- * logout local acontece do mesmo jeito), limpa o secure store e o SQLite.
+ * O refresh token pode ser revogado no Keycloak com o client `si-mobile`?
+ *
+ * Não quando a sessão é do aparelho pareado do idoso: esses tokens são emitidos pelo identity-service para
+ * outro client, e o Keycloak recusa a revogação ("Unmatching clients"). Também não quando o token diz ser de
+ * outro client (`azp`). Nesses casos o logout só limpa a sessão local; a revogação certa depende de uma rota
+ * do identity-service (ver README, "Pendências").
+ */
+export function deveRevogarComClientMobile({
+  accessToken,
+  refreshToken,
+  sessaoAparelhoId,
+}: {
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  sessaoAparelhoId?: string | null;
+}): boolean {
+  if (!refreshToken) return false;
+  if (sessaoAparelhoId) return false;
+  const azp = decodificarJwt(refreshToken)?.azp ?? decodificarJwt(accessToken)?.azp;
+  return typeof azp !== 'string' || azp === KEYCLOAK_CLIENT_ID;
+}
+
+async function sessaoDoAparelhoPareado(): Promise<string | null> {
+  try {
+    return (await obterAparelhoPareadoSessao())?.sessaoAparelhoId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sair da conta: revoga o refresh token no Keycloak quando ele é do client `si-mobile` (melhor esforço, sem
+ * rede o logout local acontece do mesmo jeito) e limpa o secure store e o SQLite. Na sessão do aparelho
+ * pareado do idoso não revoga (ver deveRevogarComClientMobile): só limpa a sessão local.
  */
 export async function sair(): Promise<void> {
-  const { refreshToken } = await obterTokens();
-  if (refreshToken) {
+  const { accessToken, refreshToken } = await obterTokens();
+  const sessaoAparelhoId = refreshToken ? await sessaoDoAparelhoPareado() : null;
+  if (refreshToken && deveRevogarComClientMobile({ accessToken, refreshToken, sessaoAparelhoId })) {
     try {
       await provedor.revogar(refreshToken);
     } catch (err) {
       console.warn('[authSession] Falha ao revogar o refresh token:', (err as Error)?.message);
     }
+  } else if (refreshToken) {
+    console.info('[authSession] Sessão do aparelho pareado: logout só local (revogação depende do identity-service).');
   }
   await encerrarSessaoLocal('logout');
 }

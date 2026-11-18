@@ -11,15 +11,22 @@ import {
 import Icon from '../components/Icon';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import RescueCommandCard from '../components/RescueCommandCard';
 import LiveGpsMap from '../components/LiveGpsMap';
 import DeviceStatusModal from '../components/DeviceStatusModal';
 import SemIdosoCard from '../components/SemIdosoCard';
 import { atualizarStatusAlarme, obterAlarmeAtivo } from '../services/alarmeSosService';
+import {
+  buscarUltimaPosicaoIdoso,
+  formatarMomentoPosicao,
+  type LocalizacaoSos,
+} from '../services/sosRecebidoService';
 import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyService';
 import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
+import { extrairMensagemErro } from '../services/erroHelper';
 import { useIdoso } from '../context/IdosoContext';
+import { useNomeUsuario } from '../context/UsuarioContext';
 import {
   buscarStatusDispositivo,
   LIMITE_BATERIA_BAIXA,
@@ -28,13 +35,14 @@ import {
   ResultadoPerdaDados,
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
+import { listarRotinas, type RotinaMedicamento } from '../services/medicamentoService';
 import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
+import { consentimentosDosTiposAtivos } from '../services/mappers/consentimentos';
 import {
-  obterConsentimentos,
   statusMonitoramento,
   mensagemParaFamilia,
-  type Consentimentos,
 } from '../services/consentimentoService';
+import type { Consentimentos } from '../services/mappers/consentimentos';
 import {
   avisoFimTrial,
   DireitoPremium,
@@ -63,7 +71,6 @@ function calcularIdade(dataNascimento?: string): number | null {
 export interface HomeScreenProps {
   onNavigate?: (screen: string) => void;
   onSelectElderly?: (idosoId: string | null) => void;
-  familiarId?: string | null;
   plano?: string;
   onLogout?: () => void;
 }
@@ -72,13 +79,15 @@ export default function HomeScreen({
   onNavigate,
   onSelectElderly,
   onLogout,
-  familiarId,
   plano: planoProp,
 }: HomeScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
+  const nomeUsuario = useNomeUsuario();
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
   const [loadingIdosos, setLoadingIdosos] = useState<boolean>(false);
+  const [erroIdosos, setErroIdosos] = useState<string | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<StatusDispositivo | null>(null);
   const [modalDeviceVisible, setModalDeviceVisible] = useState<boolean>(false);
   const [perdaDados, setPerdaDados] = useState<ResultadoPerdaDados | null>(null);
@@ -88,6 +97,11 @@ export default function HomeScreen({
   const [modalSemaforoVisible, setModalSemaforoVisible] = useState<boolean>(false);
   const [direitoPremium, setDireitoPremium] = useState<DireitoPremium | null>(null);
   const [erroPlano, setErroPlano] = useState<string | null>(null);
+  // Última posição conhecida do idoso, vinda do servidor (último SOS com coordenada).
+  const [posicaoIdoso, setPosicaoIdoso] = useState<LocalizacaoSos | null>(null);
+  const [carregandoPosicao, setCarregandoPosicao] = useState<boolean>(false);
+  // Última dose confirmada hoje (rotinas do servidor); null quando nenhuma foi tomada.
+  const [ultimaDose, setUltimaDose] = useState<RotinaMedicamento | null>(null);
 
   const carregarPlano = useCallback(async () => {
     setErroPlano(null);
@@ -124,32 +138,39 @@ export default function HomeScreen({
     [setIdosoId, setNomeIdoso, onSelectElderly]
   );
 
-  // Lista dos idosos do familiar (HU-008): mantém a seleção atual se ainda existir, senão cai no primeiro.
-  useEffect(() => {
-    async function carregarIdosos() {
-      try {
-        setLoadingIdosos(true);
-        const data = await listarIdososDoFamiliar(familiarId);
-        const lista = Array.isArray(data) ? data : [];
-        setIdosos(lista);
+  // Lista dos idosos do familiar (HU-008), pelo `sub` da sessão: mantém a seleção atual se ainda existir,
+  // senão cai no primeiro. Em erro mostra a falha e limpa a seleção, que não foi confirmada pela API.
+  const carregarIdosos = useCallback(async () => {
+    try {
+      setLoadingIdosos(true);
+      setErroIdosos(null);
+      const data = await listarIdososDoFamiliar();
+      const lista = Array.isArray(data) ? data : [];
+      setIdosos(lista);
 
-        const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
-        if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
-          selecionarIdoso(escolhido);
-        } else if (escolhido) {
-          // Mesmo idoso: só garante o nome no contexto.
-          setNomeIdoso(escolhido.nome || null);
-        }
-      } catch (error: any) {
-        console.warn('Erro ao carregar idosos na Home:', error?.message);
-      } finally {
-        setLoadingIdosos(false);
+      const escolhido = escolherIdosoSelecionado(lista, idosoSelecionadoRef.current);
+      if (escolhido?.idosoId !== idosoSelecionadoRef.current) {
+        selecionarIdoso(escolhido);
+      } else if (escolhido) {
+        // Mesmo idoso: só garante o nome no contexto.
+        setNomeIdoso(escolhido.nome || null);
       }
+    } catch (error: any) {
+      console.warn(`[HomeScreen] Erro ao carregar idosos (HTTP ${error?.status ?? '?'}):`, error?.message);
+      setIdosos([]);
+      selecionarIdoso(null);
+      setErroIdosos(
+        extrairMensagemErro(error, 'Não foi possível carregar seus idosos agora. Verifique a conexão e tente de novo.')
+      );
+    } finally {
+      setLoadingIdosos(false);
     }
+  }, [selecionarIdoso, setNomeIdoso]);
 
+  useEffect(() => {
     carregarIdosos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [familiarId]);
+  }, []);
 
   // Status do celular, telemetria e score do idoso SELECIONADO (HU-027, HU-028, HU-031, HU-032 e HU-033).
   useEffect(() => {
@@ -170,6 +191,8 @@ export default function HomeScreen({
         if (!ativo) return;
         setDeviceStatus(status);
         setPerdaDados(verificarPerdaDados(status.ultimaSincronizacao, nomeAlvo, 3));
+        // Tipos autorizados pelo idoso: vêm no próprio /status (tiposAtivos); a família não lê /consentimentos.
+        setConsentimentosIdoso(consentimentosDosTiposAtivos(status.sensores));
 
         const estadoTelemetria = await buscarEstadoAtual(id);
         if (!ativo) return;
@@ -178,15 +201,8 @@ export default function HomeScreen({
         const scoreResult = await buscarScoreBemEstar(id, plano);
         if (!ativo) return;
         setScoreData(scoreResult);
-
-        try {
-          const consent = await obterConsentimentos(id);
-          if (ativo) setConsentimentosIdoso(consent);
-        } catch (consentErr: any) {
-          console.warn('[HomeScreen] Erro ao carregar consentimentos do idoso:', consentErr?.message);
-        }
       } catch (error: any) {
-        console.warn('Erro ao carregar dados do idoso na Home:', error?.message);
+        console.warn(`[HomeScreen] Erro ao carregar dados do idoso (HTTP ${error?.status ?? '?'}):`, error?.message);
       }
     }
 
@@ -195,6 +211,51 @@ export default function HomeScreen({
       ativo = false;
     };
   }, [idosoSelecionadoId, idosoSelecionado?.nome, plano]);
+
+  const carregarPosicaoIdoso = useCallback(async (id: string | null) => {
+    if (!id) {
+      setPosicaoIdoso(null);
+      return;
+    }
+    setCarregandoPosicao(true);
+    try {
+      const posicao = await buscarUltimaPosicaoIdoso(id);
+      if (idosoSelecionadoRef.current === id) setPosicaoIdoso(posicao);
+    } catch (erro: any) {
+      console.warn(
+        `[HomeScreen] Erro ao carregar a localização do idoso (HTTP ${erro?.status ?? '?'}):`,
+        erro?.message
+      );
+      if (idosoSelecionadoRef.current === id) setPosicaoIdoso(null);
+    } finally {
+      if (idosoSelecionadoRef.current === id) setCarregandoPosicao(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setPosicaoIdoso(null);
+    carregarPosicaoIdoso(idosoSelecionadoId);
+  }, [idosoSelecionadoId, carregarPosicaoIdoso]);
+
+  useEffect(() => {
+    setUltimaDose(null);
+    if (!idosoSelecionadoId) return;
+    let ativo = true;
+    listarRotinas(idosoSelecionadoId)
+      .then((rotinas) => {
+        if (!ativo) return;
+        const tomadas = rotinas
+          .filter((r) => r.statusHoje === 'TOMADO' && r.horarioIngestaoHoje)
+          .sort((a, b) => (b.horarioIngestaoHoje ?? '').localeCompare(a.horarioIngestaoHoje ?? ''));
+        setUltimaDose(tomadas[0] ?? null);
+      })
+      .catch((erro: any) =>
+        console.warn(`[HomeScreen] Erro ao carregar os remédios do idoso (HTTP ${erro?.status ?? '?'}):`, erro?.message)
+      );
+    return () => {
+      ativo = false;
+    };
+  }, [idosoSelecionadoId]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -311,11 +372,23 @@ export default function HomeScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {loadingIdosos ? (
           <ActivityIndicator color={colors.primary} size="small" style={{ marginVertical: 24 }} />
+        ) : erroIdosos ? (
+          <View style={styles.erroIdososCard} testID="home-erro-idosos">
+            <Icon name="warning" size={22} color={colors.coralDark} />
+            <Text style={styles.erroIdososTexto}>{erroIdosos}</Text>
+            <Button
+              title="Tentar novamente"
+              iconLeft="refresh"
+              variant="secondary"
+              fullWidth={false}
+              onPress={carregarIdosos}
+            />
+          </View>
         ) : idosos.length === 0 ? (
           <SemIdosoCard onNavigate={onNavigate} />
         ) : (
@@ -368,7 +441,6 @@ export default function HomeScreen({
                       </View>
                     )}
                   </View>
-                  <Text style={styles.monitoredBy}>Monitorada por Dr. Ricardo</Text>
                 </View>
               </View>
 
@@ -644,43 +716,58 @@ export default function HomeScreen({
                   <Text style={styles.subCardTitle}>Último Remédio</Text>
                 </View>
                 <View style={styles.subCardValueRow}>
-                  <Text style={styles.subCardValue}>10:02</Text>
-                  <Text style={styles.remedioStatusTag}>Tomado</Text>
+                  <Text style={styles.subCardValue}>{ultimaDose?.horarioIngestaoHoje ?? '--'}</Text>
+                  {ultimaDose ? <Text style={styles.remedioStatusTag}>Tomado</Text> : null}
                 </View>
               </View>
             </View>
           </View>
         )}
 
-        {/* CARD 3: LOCALIZAÇÃO EM TEMPO REAL (rx=32, #FFFFFF) */}
+        {/* CARD 3: ÚLTIMA LOCALIZAÇÃO CONHECIDA DO IDOSO (do servidor, nunca o GPS deste aparelho) */}
         <View style={styles.mapCard}>
           <View style={styles.mapHeader}>
             <View style={styles.mapTitleGroup}>
               <View style={styles.mapPinBadge}>
                 <Icon name="location_on" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.mapTitle}>Localização em Tempo Real</Text>
-            </View>
-            <View style={styles.gpsAtivoBadge}>
-              <View style={styles.gpsDot} />
-              <Text style={styles.gpsAtivoText}>GPS Ativo</Text>
+              <Text style={styles.mapTitle}>Última localização</Text>
             </View>
           </View>
 
-          {/* Mapa Interativo com Perímetro Seguro, Pino da Dona Maria e Barra de Endereço */}
-          <LiveGpsMap
-            latitude={-23.55052}
-            longitude={-46.633308}
-            safeRadiusMeters={120}
-            addressTitle="Em casa (Rua das Flores, 142)"
-            addressSubtitle="Dentro do Perímetro Seguro"
-            onPressCenter={() =>
-              Alert.alert(
-                'Coordenadas GPS',
-                'Latitude: -23.550520\nLongitude: -46.633308\nPrecisão: 5 metros (Excelente)'
-              )
-            }
-          />
+          {posicaoIdoso ? (
+            <LiveGpsMap
+              latitude={posicaoIdoso.latitude}
+              longitude={posicaoIdoso.longitude}
+              titulo={`${posicaoIdoso.latitude.toFixed(4)}, ${posicaoIdoso.longitude.toFixed(4)}`}
+              subtitulo={`Enviada no SOS de ${formatarMomentoPosicao(posicaoIdoso.medidaEm)}`}
+              atualizando={carregandoPosicao}
+              onAtualizar={() => carregarPosicaoIdoso(idosoSelecionadoId)}
+            />
+          ) : (
+            <View style={styles.mapVazio} testID="home-localizacao-vazia">
+              {carregandoPosicao ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <>
+                  <Icon name="location_off" size={24} color={colors.textSecondary} />
+                  <Text style={styles.semDadosText}>Localização do idoso indisponível</Text>
+                  <Text style={styles.mapVazioTexto}>
+                    A posição aparece aqui quando o celular do idoso enviar um SOS com localização.
+                  </Text>
+                  {idosoSelecionadoId ? (
+                    <Button
+                      title="Tentar de novo"
+                      iconLeft="refresh"
+                      variant="secondary"
+                      fullWidth={false}
+                      onPress={() => carregarPosicaoIdoso(idosoSelecionadoId)}
+                    />
+                  ) : null}
+                </>
+              )}
+            </View>
+          )}
         </View>
 
         {/* SEÇÃO ESTADO ATUAL CONSOLIDADO DO DIA (HU-031 / RF-025) */}
@@ -811,7 +898,7 @@ export default function HomeScreen({
           onAssumirResgate={handleAssumirResgate}
           onVerContatos={handleVerContatos}
           resgateAtivo={resgateAtivo}
-          responsavelNome="Carlos Silva"
+          responsavelNome={nomeUsuario ?? undefined}
         />
           </>
         )}
@@ -840,13 +927,29 @@ export default function HomeScreen({
 }
 
 const styles = StyleSheet.create({
+  erroIdososCard: {
+    alignItems: 'center',
+    gap: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    borderColor: colors.peach.border,
+    backgroundColor: colors.peach.background,
+  },
+  erroIdososTexto: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: colors.coralDark,
+    ...font('body', 600),
+  },
   addElderlyWrapper: {
     marginBottom: 18,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 100,
   },
   dataLossAlertBanner: {
     flexDirection: 'row',
@@ -943,11 +1046,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     ...font('heading', 700),
-  },
-  monitoredBy: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    ...font('body', 500),
   },
   elderlyBadgesRight: {
     alignItems: 'flex-end',
@@ -1297,25 +1395,20 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...font('heading', 700),
   },
-  gpsAtivoBadge: {
-    flexDirection: 'row',
+  mapVazio: {
+    minHeight: 176,
+    backgroundColor: colors.infoSurface,
+    borderRadius: rounded.card,
+    padding: 16,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.mint.background,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: rounded.full,
-    gap: 6,
+    gap: 8,
   },
-  gpsDot: {
-    width: 8,
-    height: 8,
-    borderRadius: rounded.sm,
-    backgroundColor: colors.success,
-  },
-  gpsAtivoText: {
+  mapVazioTexto: {
     fontSize: 14,
-    color: colors.mint.textDark,
-    ...font('heading', 700),
+    color: colors.textMuted,
+    textAlign: 'center',
+    ...font('body', 400),
   },
   mapVisualContainer: {
     height: 176,

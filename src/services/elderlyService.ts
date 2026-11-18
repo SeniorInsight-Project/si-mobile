@@ -1,7 +1,7 @@
 import { mockPermitido } from '../config/ambiente';
-import type { IdosoRequest } from '../types/api';
+import type { IdosoApi, IdosoRequest } from '../types/api';
 import { apiClient, type ApiClient } from './apiClient';
-import { dataBrParaIso } from './cadastroIdosoValidacao';
+import { dataBrParaIso, isoParaDataBr } from './cadastroIdosoValidacao';
 import { decodificarJwt, obterAccessTokenValido } from './authSession';
 
 export interface OpcoesRede {
@@ -50,7 +50,8 @@ function normalizarIdoso(idoso: any): Idoso {
   return {
     idosoId: idoso.idosoId || idoso.id || `${PREFIXO_ID_LOCAL}${Date.now()}`,
     nome: idoso.nome || idoso.nomeCompleto || '',
-    dataNascimento: idoso.dataNascimento || '',
+    // O contrato manda ISO (1946-05-10); as telas trabalham com DD/MM/AAAA.
+    dataNascimento: isoParaDataBr(idoso.dataNascimento) ?? (idoso.dataNascimento || ''),
     sexo: idoso.sexo || idoso.genero || '',
     celular: idoso.celular || idoso.telefone || '',
   };
@@ -68,22 +69,30 @@ function paraIdosoRequest(dados: CadastroIdosoInput): IdosoRequest {
   };
 }
 
-/**
- * Idosos do familiar: GET /api/v1/familiares/{familiarId}/idosos. Sem `familiarId`, usa o `sub` do JWT da
- * sessão e, sem token, o alias `me`. Lista vazia fica vazia; em erro lança (a tela mostra a falha). Com mock
- * permitido (dev), erro ou lista vazia caem nos idosos de demonstração.
- */
-export async function listarIdososDoFamiliar(
-  familiarId?: string | null,
-  {
-    cliente = apiClient,
-    obterToken = obterAccessTokenValido,
-  }: OpcoesRede & { obterToken?: () => Promise<string | null> } = {}
-): Promise<Idoso[]> {
-  const idFamiliar = familiarId || decodificarJwt(await obterToken().catch(() => null))?.sub || 'me';
+/** A sessão não traz o `sub` do familiar (token ausente, ilegível ou sem a claim). */
+export class SessaoSemFamiliarError extends Error {
+  constructor() {
+    super('Não foi possível identificar sua conta. Entre de novo para ver seus idosos.');
+    this.name = 'SessaoSemFamiliarError';
+  }
+}
 
+/**
+ * Idosos do familiar logado: GET /api/v1/familiares/{sub}/idosos, sempre com o `sub` do JWT da sessão
+ * (DAS v2.1 §4.1: o care aceita o id interno ou o sub; o `perfil.id` do identity não é nenhum dos dois).
+ * Home, Perfil do idoso e o seletor do header usam esta mesma função. Sem `sub` lança
+ * `SessaoSemFamiliarError`; lista vazia fica vazia; erro da API é propagado. Com mock permitido (dev), erro
+ * ou lista vazia caem nos idosos de demonstração.
+ */
+export async function listarIdososDoFamiliar({
+  cliente = apiClient,
+  obterToken = obterAccessTokenValido,
+}: OpcoesRede & { obterToken?: () => Promise<string | null> } = {}): Promise<Idoso[]> {
   try {
-    const data = await cliente.get<any[]>(`/api/v1/familiares/${idFamiliar}/idosos`);
+    const sub = decodificarJwt(await obterToken().catch(() => null))?.sub?.trim();
+    if (!sub) throw new SessaoSemFamiliarError();
+
+    const data = await cliente.get<any[]>(`/api/v1/familiares/${encodeURIComponent(sub)}/idosos`);
     if (Array.isArray(data) && data.length > 0) {
       localElderliesStore = data.map(normalizarIdoso);
       return [...localElderliesStore];
@@ -140,41 +149,96 @@ export async function salvarCadastroIdoso(
   return novoIdoso;
 }
 
-/**
- * Atualiza o idoso: PUT /api/v1/idosos/{idosoId} (IdosoRequest). Em erro lança; só com mock permitido (dev)
- * atualiza no aparelho.
- */
-export async function atualizarDadosIdoso(
-  idosoId: string,
-  dadosIdoso: CadastroIdosoInput,
-  { cliente = apiClient }: OpcoesRede = {}
-): Promise<Idoso> {
-  const payload = paraIdosoRequest(dadosIdoso);
+/** Campos que a ficha do idoso deixa editar; o resto do cadastro é preservado no PUT. */
+export interface EdicaoIdoso {
+  nome: string;
+  /** DD/MM/AAAA, como no formulário. */
+  dataNascimento: string;
+  sexo: string;
+  tipoSanguineo: string | null;
+}
 
+/** Todos os campos do IdosoRequest (care-v1). O PUT do care substitui o cadastro inteiro. */
+const CAMPOS_IDOSO_REQUEST = [
+  'nomeCompleto',
+  'dataNascimento',
+  'genero',
+  'cpf',
+  'fotoPerfilUrl',
+  'tipoSanguineo',
+  'alergias',
+  'logradouro',
+  'numero',
+  'bairro',
+  'cidade',
+  'estado',
+  'cep',
+  'planoSaude',
+  'observacoesSocorros',
+] as const satisfies readonly (keyof IdosoRequest)[];
+
+/** Cadastro completo do idoso: GET /api/v1/idosos/{idosoId} (schema Idoso). Em erro lança. */
+export async function obterIdoso(idosoId: string, { cliente = apiClient }: OpcoesRede = {}): Promise<IdosoApi> {
   try {
-    const atualizado = normalizarIdoso(await cliente.put<any>(`/api/v1/idosos/${idosoId}`, payload));
-    localElderliesStore = localElderliesStore.map((idoso) =>
-      idoso.idosoId === idosoId ? atualizado : idoso
-    );
-    return atualizado;
+    return await cliente.get<IdosoApi>(`/api/v1/idosos/${encodeURIComponent(idosoId)}`);
+  } catch (error: any) {
+    const local = mockPermitido() ? obterIdosoLocalPorId(idosoId) : null;
+    if (!local) throw error;
+    console.warn('[elderlyService] Backend inacessível. Usando idoso de demonstração (mock):', error?.message);
+    return {
+      id: local.idosoId,
+      nomeCompleto: local.nome,
+      dataNascimento: dataBrParaIso(local.dataNascimento) ?? local.dataNascimento,
+      genero: local.sexo || null,
+      comorbidades: [],
+      criadoEm: new Date(0).toISOString(),
+      atualizadoEm: new Date(0).toISOString(),
+    };
+  }
+}
+
+/**
+ * Corpo do PUT a partir do cadastro completo vindo da API: copia todos os campos do IdosoRequest e troca só
+ * os editados na ficha. Assim CPF, alergias, endereço, plano de saúde etc. não são apagados.
+ */
+export function montarIdosoRequestAtualizado(atual: IdosoApi, edicao: EdicaoIdoso): IdosoRequest {
+  const dataIso = dataBrParaIso(edicao.dataNascimento);
+  if (!dataIso) throw new Error('Data de nascimento inválida. Use DD/MM/AAAA.');
+
+  const base: Record<string, unknown> = {};
+  for (const campo of CAMPOS_IDOSO_REQUEST) base[campo] = (atual as Record<string, unknown>)[campo] ?? null;
+
+  return {
+    ...(base as unknown as IdosoRequest),
+    nomeCompleto: edicao.nome.trim(),
+    dataNascimento: dataIso,
+    genero: edicao.sexo || null,
+    tipoSanguineo: edicao.tipoSanguineo?.trim() || null,
+  };
+}
+
+/**
+ * Atualiza o idoso: PUT /api/v1/idosos/{idosoId} com o IdosoRequest completo (ver montarIdosoRequestAtualizado).
+ * Devolve o cadastro salvo. Em erro lança; só com mock permitido (dev) devolve a mescla local.
+ */
+export async function atualizarIdoso(
+  atual: IdosoApi,
+  edicao: EdicaoIdoso,
+  { cliente = apiClient }: OpcoesRede = {}
+): Promise<IdosoApi> {
+  const payload = montarIdosoRequestAtualizado(atual, edicao);
+  let salvo: IdosoApi;
+  try {
+    salvo = await cliente.put<IdosoApi>(`/api/v1/idosos/${encodeURIComponent(atual.id)}`, payload);
   } catch (error: any) {
     if (!mockPermitido()) throw error;
     console.warn('[elderlyService] Backend inacessível. Atualizando idoso só no aparelho (mock):', error?.message);
+    salvo = { ...atual, ...payload };
   }
 
-  const atualizadoLocal: Idoso = {
-    idosoId,
-    nome: dadosIdoso.nome,
-    dataNascimento: dadosIdoso.dataNascimento,
-    sexo: dadosIdoso.sexo,
-    celular: dadosIdoso.celular,
-  };
-
-  localElderliesStore = localElderliesStore.map((idoso) =>
-    idoso.idosoId === idosoId ? atualizadoLocal : idoso
-  );
-
-  return atualizadoLocal;
+  const normalizado = normalizarIdoso(salvo);
+  localElderliesStore = localElderliesStore.map((idoso) => (idoso.idosoId === atual.id ? normalizado : idoso));
+  return salvo;
 }
 
 export function obterIdosoLocalPorId(idosoId: string): Idoso | null {

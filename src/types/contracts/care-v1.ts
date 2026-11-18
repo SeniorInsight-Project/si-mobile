@@ -50,15 +50,18 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                /** @description Id do familiar (perfil no identity-service) */
+                /**
+                 * @description Id interno do care ou sub do Keycloak do familiar (DAS v2.1 §4.1). O app usa o `sub` do token. O id
+                 *     do perfil no identity-service não é aceito e responde 404.
+                 */
                 familiarId: string;
             };
             cookie?: never;
         };
         /**
          * Lista os idosos aos quais um familiar está vinculado
-         * @description Proposta, ainda não implementada no care-service. Usada pelo app da família para montar a lista de
-         *     idosos de um familiar específico. Só o próprio familiar (ou um Familiar Administrador do idoso) pode consultar.
+         * @description Usada pelo app da família para montar a lista de idosos do familiar. Só o próprio familiar (ou um
+         *     Familiar Administrador do idoso) pode consultar.
          */
         get: operations["listarIdososDoFamiliar"];
         put?: never;
@@ -181,8 +184,8 @@ export interface paths {
         };
         /**
          * Lista os convites pendentes do idoso
-         * @description Proposta, ainda não implementada no care-service. Devolve só os convites com status PENDENTE e ainda
-         *     dentro da validade, do mais recente para o mais antigo.
+         * @description Devolve só os convites com status PENDENTE e ainda dentro da validade, do mais recente para o mais
+         *     antigo.
          */
         get: operations["listarConvitesPendentes"];
         put?: never;
@@ -202,9 +205,8 @@ export interface paths {
         };
         /**
          * Consulta o convite pelo token, antes de aceitar
-         * @description Proposta, ainda não implementada no care-service. Mostra quem convidou, o primeiro nome do idoso e o papel
-         *     oferecido, para a tela de aceite exibir antes de chamar `POST /api/v1/convites/aceitar`. A consulta não
-         *     altera o convite.
+         * @description Mostra quem convidou, o primeiro nome do idoso e o papel oferecido, para a tela de aceite exibir antes de
+         *     chamar `POST /api/v1/convites/aceitar`. A consulta não altera o convite.
          *
          *     O token vai em query (`?token=`), como em `/api/v1/convites/aceitar`, porque `/api/v1/convites/{conviteId}`
          *     já usa o segmento seguinte como id do convite.
@@ -251,16 +253,17 @@ export interface paths {
         post?: never;
         /**
          * Cancela um convite pendente
-         * @description Proposta, ainda não implementada no care-service. Só o Familiar Administrador do idoso cancela. O convite
-         *     passa para CANCELADO e o token deixa de ser aceito em /api/v1/convites/aceitar.
+         * @description Só o Familiar Administrador do idoso cancela. O convite passa para CANCELADO e o token deixa de ser
+         *     aceito em /api/v1/convites/aceitar. Não há rota de recusa nem status RECUSADO: um convite que não vai
+         *     ser aceito também é encerrado por aqui.
          */
         delete: operations["cancelarConvite"];
         options?: never;
         head?: never;
         /**
          * Edita um convite pendente (só os campos enviados)
-         * @description Proposta, ainda não implementada no care-service. Só o Familiar Administrador do idoso edita, e só
-         *     convites com status PENDENTE. Trocar o e-mail não renova a validade do convite.
+         * @description Só o Familiar Administrador do idoso edita, e só convites com status PENDENTE. Trocar o e-mail não
+         *     renova a validade do convite.
          */
         patch: operations["editarConvite"];
         trace?: never;
@@ -436,15 +439,84 @@ export interface paths {
         };
         /**
          * Autorizações atuais do idoso, por tipo de dado
-         * @description Proposta, ainda não implementada no care-service. Todo tipo começa desligado.
+         * @description Todo tipo começa desligado.
          */
         get: operations["obterConsentimentos"];
         /**
          * Grava as autorizações do idoso
-         * @description Proposta, ainda não implementada no care-service. Só o idoso pareado altera; o familiar, só com curatela
-         *     registrada (RN-001). Cada mudança fica no histórico e publica `consent.changed`.
+         * @description Só o idoso pareado altera; o familiar, só com curatela registrada (RN-001). Cada mudança fica no
+         *     histórico e publica `consent.changed`.
          */
         put: operations["salvarConsentimentos"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/idosos/{idosoId}/rede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Membros da rede de proteção do idoso, para o notification-service
+         * @description Usada pelo notification-service para saber quem avisar. Lista vazia se ninguém está vinculado.
+         */
+        get: operations["redeInternaDoIdoso"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/idosos/{idosoId}/vinculo/{sub}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+                /** @description Sub do Keycloak do usuário final */
+                sub: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Papel de um usuário no idoso, para o telemetry-service e o insight-service
+         * @description Quem chama já autenticou o usuário e usa o papel para decidir o acesso. Sem vínculo, ou com idoso
+         *     inexistente, responde 404 (não revela se o idoso existe).
+         */
+        get: operations["vinculoInternoDoUsuario"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/idosos/{idosoId}/contexto-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Idade e comorbidades do idoso, para o Score de Risco do insight-service
+         * @description Não devolve nome, CPF nem outros dados pessoais.
+         */
+        get: operations["contextoScoreDoIdoso"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -456,6 +528,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Membro da rede de proteção do idoso, para rotas internas */
+        MembroRedeInterno: {
+            /** @description Sub do Keycloak do familiar */
+            usuarioId?: string | null;
+            nomeCompleto: string;
+            /** Format: email */
+            email?: string | null;
+            papelAcesso: components["schemas"]["PapelAcesso"];
+        };
+        /** @description Papel do usuário no idoso, para rotas internas */
+        VinculoInterno: {
+            /**
+             * @example FAMILIAR_ADMINISTRADOR
+             * @enum {string}
+             */
+            papel: "FAMILIAR_ADMINISTRADOR" | "FAMILIAR_APOIO" | "MEDICO";
+        };
+        /** @description Contexto do idoso para o Score de Risco, para rotas internas */
+        ContextoScore: {
+            /**
+             * @description Idade em anos completos; nula sem data de nascimento cadastrada
+             * @example 80
+             */
+            idade?: number | null;
+            /**
+             * @example [
+             *       "Hipertensão Arterial Sistêmica",
+             *       "Diabetes Mellitus Tipo 2"
+             *     ]
+             */
+            comorbidades: string[];
+        };
         /** @description Corpo de erro do GlobalExceptionHandler */
         Erro: {
             /** Format: date-time */
@@ -980,7 +1084,10 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Id do familiar (perfil no identity-service) */
+                /**
+                 * @description Id interno do care ou sub do Keycloak do familiar (DAS v2.1 §4.1). O app usa o `sub` do token. O id
+                 *     do perfil no identity-service não é aceito e responde 404.
+                 */
                 familiarId: string;
             };
             cookie?: never;
@@ -1768,6 +1875,83 @@ export interface operations {
                 };
             };
             400: components["responses"]["RequisicaoInvalida"];
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    redeInternaDoIdoso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membros da rede */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembroRedeInterno"][];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    vinculoInternoDoUsuario: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+                /** @description Sub do Keycloak do usuário final */
+                sub: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Há vínculo; devolve o papel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VinculoInterno"];
+                };
+            };
+            401: components["responses"]["NaoAutenticado"];
+            403: components["responses"]["AcessoNegado"];
+            404: components["responses"]["NaoEncontrado"];
+        };
+    };
+    contextoScoreDoIdoso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idosoId: components["parameters"]["IdosoId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contexto do idoso */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextoScore"];
+                };
+            };
             401: components["responses"]["NaoAutenticado"];
             403: components["responses"]["AcessoNegado"];
             404: components["responses"]["NaoEncontrado"];

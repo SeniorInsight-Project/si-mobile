@@ -192,7 +192,7 @@ export default function InviteDoctorModal({
       visible={visible}
       onClose={handleReset}
       title="Convidar Médico do Idoso"
-      subtitle="HU-016 • Familiar Administrador • Validade 72h"
+      subtitle="Familiar Administrador • Validade 72h"
       footer={footer}
     >
       {conviteGerado ? (
@@ -257,8 +257,8 @@ export default function InviteDoctorModal({
             />
             <Text style={[styles.limitPillText, limiteAtingido && styles.limitPillTextAlert]}>
               {limiteAtingido
-                ? 'Limite de 2 médicos atingido (RN-012)'
-                : `Médicos na rede: ${totalMedicos} de até 2 permitidos (RN-012)`}
+                ? 'Limite de 2 médicos atingido'
+                : `Médicos na rede: ${totalMedicos} de até 2 permitidos`}
             </Text>
           </View>
 

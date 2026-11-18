@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
 import { colors, typography, shadows, font, rounded } from '../theme';
@@ -15,6 +15,8 @@ import {
   obterEstadoConexao,
 } from '../services/relogioService';
 import { abrirHealthConnect } from '../services/healthConnectLauncher';
+import { buscarEstadoAtual } from '../services/telemetryService';
+import { AVISO_EXPO_GO_RELOGIO, ehExpoGo } from '../config/expoGo';
 import {
   conectarOpenWearables,
   obterEstadoOpenWearables,
@@ -31,9 +33,12 @@ const ROTULO_ESTADO: Record<EstadoPasso, string> = { FEITO: 'FEITO', AGORA: 'AGO
 
 /** Figma: "Idoso - Conectar Relógio" (HU-023, HU-025). Só o idoso chega aqui. */
 export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: ElderlyWatchScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [aviso, setAviso] = useState('');
   const [estadoReal, setEstadoReal] = useState<EstadoOpenWearables | null>(null);
+  // Hora da última medição gravada no servidor: prova de que os dados do relógio chegaram (HU-025).
+  const [ultimaMedicaoServidorMs, setUltimaMedicaoServidorMs] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(false);
   const { idosoId } = useIdoso();
 
@@ -42,10 +47,12 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     Promise.all([
       obterConsentimentos(idosoId).catch(() => CONSENTIMENTO_PADRAO),
       obterEstadoOpenWearables().catch(() => null),
-    ]).then(([consentimentosCarregados, estado]) => {
+      lerUltimaMedicaoServidor(idosoId),
+    ]).then(([consentimentosCarregados, estado, ultimaMedicao]) => {
       if (!ativo) return;
       setConsentimentos(consentimentosCarregados);
       setEstadoReal(estado);
+      setUltimaMedicaoServidorMs(ultimaMedicao);
     });
     return () => {
       ativo = false;
@@ -56,12 +63,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     ? {
         healthConnectInstalado: estadoReal.healthConnectInstalado,
         segundoPlanoAtivo: estadoReal.segundoPlanoAtivo,
-        ultimaMedicaoMs: estadoReal.ultimaSincronizacaoMs,
+        ultimaMedicaoMs: estadoReal.simulado ? Date.now() - 12 * 60_000 : ultimaMedicaoServidorMs,
         simulado: estadoReal.simulado,
       }
     : obterEstadoConexao(Date.now(), false);
   const passos = montarPassos(conexao, consentimentos);
-  const status = classificarSincronizacao(conexao.ultimaMedicaoMs);
+  const sdkConectado = Boolean(estadoReal?.sessaoValida && estadoReal.segundoPlanoAtivo);
+  const status = classificarSincronizacao(conexao.ultimaMedicaoMs, Date.now(), sdkConectado);
   const corStatus =
     status.cor === 'verde'
       ? { fundo: colors.mintBg, icone: colors.successDark, icon: 'check_circle' }
@@ -71,6 +79,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
 
   const abrir = async () => {
     setAviso('');
+    if (ehExpoGo) return;
     if (!idosoId) {
       setAviso('Não encontramos seu cadastro neste aparelho. Peça à sua família um novo pareamento.');
       return;
@@ -78,12 +87,16 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     setCarregando(true);
     try {
       await conectarOpenWearables(idosoId, consentimentos);
-      setEstadoReal(await obterEstadoOpenWearables());
+      const [estado, ultimaMedicao] = await Promise.all([obterEstadoOpenWearables(), lerUltimaMedicaoServidor(idosoId)]);
+      setEstadoReal(estado);
+      setUltimaMedicaoServidorMs(ultimaMedicao);
     } catch (erro) {
       const mensagem = (erro as Error)?.message;
-      const ok = await abrirHealthConnect();
+      // Só leva à Play Store quando falta o Health Connect; outra falha (ex.: token do servidor) fica na tela.
+      const faltaHealthConnect = Boolean(mensagem?.includes('não está instalado'));
+      const ok = faltaHealthConnect && (await abrirHealthConnect());
       setAviso(
-        ok && mensagem?.includes('não está instalado')
+        ok
           ? 'Instale o Health Connect, volte para cá e toque novamente para conectar seu relógio.'
           : mensagem || 'Não foi possível conectar o relógio. Tente novamente.',
       );
@@ -95,7 +108,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
   return (
     <ScreenWrapper>
       <AppHeader title="Meu relógio" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         <View style={styles.card}>
           <Text style={styles.title}>Vamos conectar seu relógio</Text>
           <Text style={styles.body}>Seus dados chegam à família sem você abrir o app todo dia.</Text>
@@ -123,6 +136,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
             </View>
           ))}
         </View>
+
+        {ehExpoGo && (
+          <View style={styles.simulado} testID="relogio-expo-go">
+            <Icon name="info" size={18} color={colors.amber.textDark} />
+            <Text style={styles.simuladoTexto}>{AVISO_EXPO_GO_RELOGIO}</Text>
+          </View>
+        )}
 
         {conexao.simulado && (
           <View style={styles.simulado} testID="relogio-simulado">
@@ -153,7 +173,7 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
           variant="primary"
           size="lg"
           onPress={abrir}
-          disabled={carregando}
+          disabled={carregando || ehExpoGo}
           testID="relogio-abrir"
         />
 
@@ -177,8 +197,20 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
   );
 }
 
+/** coletadoEm de /hoje em ms; null sem medição hoje ou com a API fora (a tela não inventa um horário). */
+async function lerUltimaMedicaoServidor(idosoId: string | null | undefined): Promise<number | null> {
+  if (!idosoId) return null;
+  try {
+    const { coletadoEm } = await buscarEstadoAtual(idosoId);
+    const ms = coletadoEm ? Date.parse(coletadoEm) : NaN;
+    return Number.isFinite(ms) ? ms : null;
+  } catch {
+    return null;
+  }
+}
+
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   card: { backgroundColor: colors.white, borderRadius: rounded.xl, padding: 20, gap: 16, ...shadows.tier1 },
   title: { fontSize: 24, lineHeight: 30,  color: colors.primary, ...font('heading', 800) },
   body: { fontSize: 16, lineHeight: 24, color: colors.textPrimary, ...font('body', 400) },

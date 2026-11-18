@@ -3,6 +3,7 @@ declare module 'node:test' {
   const test: TestFn;
   export const describe: TestFn;
   export function beforeEach(fn: () => void | Promise<void>): void;
+  export function afterEach(fn: () => void | Promise<void>): void;
   export { test };
   export default test;
 }

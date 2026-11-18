@@ -21,9 +21,11 @@ import {
 export interface LoginScreenProps {
   /** Resultado da volta do Keycloak (sessão salva, e-mail a confirmar...). */
   onDesfecho: (desfecho: DesfechoAutenticacao) => void;
+  /** Aviso vindo do App (ex.: o servidor recusou a sessão logo após o login). */
+  aviso?: string | null;
 }
 
-export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
+export default function LoginScreen({ onDesfecho, aviso }: LoginScreenProps) {
   const { pronto, carregando, erro, entrar, criarConta } = useAutenticacaoKeycloak();
 
   const handleEntrar = async () => {
@@ -76,7 +78,7 @@ export default function LoginScreen({ onDesfecho }: LoginScreenProps) {
               disabled={!pronto || carregando}
             />
 
-            {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
+            {erro || aviso ? <Text style={styles.errorText}>{erro || aviso}</Text> : null}
 
             <View style={styles.forgotWrapper}>
               <Button

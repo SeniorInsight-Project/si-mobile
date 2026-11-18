@@ -17,7 +17,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
 import ModalSheet from '../components/ModalSheet';
@@ -310,6 +310,7 @@ export default function EmergencyContactsScreen({
   onNavigate,
   idosoId: idosoIdProp,
 }: EmergencyContactsScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   // O idoso vem do contexto; a prop `idosoId` serve só de override (testes).
   const { idosoId: idosoIdContexto } = useIdoso();
   const idosoId = idosoIdProp ?? idosoIdContexto;
@@ -403,7 +404,7 @@ export default function EmergencyContactsScreen({
     if (contatos.length >= LIMITE_CONTATOS_EMERGENCIA) {
       Alert.alert(
         'Limite Atingido',
-        `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência (RN-002).`
+        `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência.`
       );
       return;
     }
@@ -477,7 +478,7 @@ export default function EmergencyContactsScreen({
 
   const handleVoltar = () => {
     if (onNavigate) {
-      onNavigate('ElderlyMode');
+      onNavigate('Home');
     }
   };
 
@@ -490,7 +491,7 @@ export default function EmergencyContactsScreen({
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: espacoInferior }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Lista de Contatos Cadastrados */}
@@ -594,7 +595,7 @@ export default function EmergencyContactsScreen({
           {comoFuncionaAberto && (
             <View style={styles.accordionBody}>
               <Text style={styles.accordionBodyText}>
-                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
+                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 2 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
               </Text>
               <View style={styles.accordionStepRow}>
                 <View style={styles.accordionStepNumber}>
@@ -711,7 +712,6 @@ export default function EmergencyContactsScreen({
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
-    paddingBottom: 120,
   },
   infoBanner: {
     flexDirection: 'row',

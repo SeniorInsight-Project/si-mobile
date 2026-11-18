@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Alert, Linking } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
 import ToggleSwitch from '../components/ToggleSwitch';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -19,6 +19,7 @@ import {
   salvarConsentimentos,
   statusMonitoramento,
 } from '../services/consentimentoService';
+import { aplicarConsentimentoLocalizacao } from '../services/locationService';
 
 export interface ElderlyDataScreenProps {
   onNavigate: (screen: string) => void;
@@ -42,6 +43,7 @@ const LINHAS_SAUDE: LinhaDado[] = [
 
 /** Figma: "Idoso - Autorizar meus dados" (HU-018, HU-019, RN-001). Só o idoso chega aqui. */
 export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: ElderlyDataScreenProps) {
+  const espacoInferior = useEspacoBarraInferior();
   const papel = usePapel();
   // TODO(care#111): cadastro de curatela — quando existir no back, liberar edição para familiar curador autorizado
   const isFamiliar = papel !== 'IDOSO';
@@ -86,12 +88,28 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
       setSalvando(false);
       return;
     }
+    // "Compartilhar sempre": liga o GPS agora (pede a permissão do sistema) ou desliga.
+    const gpsLigado = await aplicarConsentimentoLocalizacao(consentimentos.LOCALIZACAO);
     setSalvando(false);
-    if (primeiroUso) {
-      onNavigate('ElderlyWatch');
+    const seguir = () => {
+      if (primeiroUso) {
+        onNavigate('ElderlyWatch');
+        return;
+      }
+      setAviso('Escolhas salvas. Sua família já vê o que está desligado.');
+    };
+    if (consentimentos.LOCALIZACAO && !gpsLigado) {
+      Alert.alert(
+        'Localização bloqueada',
+        'Sua escolha foi salva, mas o celular não liberou a localização. Permita a localização para o Senior Insight nos ajustes do celular.',
+        [
+          { text: 'Abrir ajustes', onPress: () => { Linking.openSettings().catch(() => {}); seguir(); } },
+          { text: 'Continuar', style: 'cancel', onPress: seguir },
+        ]
+      );
       return;
     }
-    setAviso('Escolhas salvas. Sua família já vê o que está desligado.');
+    seguir();
   };
 
   const pausado = statusMonitoramento(consentimentos) === 'PAUSADO';
@@ -99,7 +117,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
   return (
     <ScreenWrapper>
       <AppHeader title="Meus dados" onNavigate={onNavigate} onPressLogo={() => onNavigate('ElderlyData')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: espacoInferior }]}>
         {isFamiliar && (
           <View style={styles.curatelaBanner} testID="aviso-curatela-familiar">
             <Icon name="gavel" size={20} color={colors.coralDark} />
@@ -242,7 +260,7 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 120, gap: 16 },
+  content: { padding: 16, gap: 16 },
   curatelaBanner: {
     flexDirection: 'row',
     alignItems: 'center',

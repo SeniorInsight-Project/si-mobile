@@ -52,35 +52,10 @@ export default function RescueCommandCard({
         onPress={onVerContatos}
         activeOpacity={0.85}
         accessibilityRole="button"
+        accessibilityLabel="Ver contatos de emergência"
       >
-        <View style={styles.presenceLeft}>
-          <Text style={styles.redeAtentaLabel}>Rede Atenta:</Text>
-          <View style={styles.avatarGroup}>
-            <View style={[styles.caregiverAvatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.caregiverInitials}>CS</Text>
-            </View>
-            <View
-              style={[
-                styles.caregiverAvatar,
-                styles.avatarOverlap,
-                { backgroundColor: colors.mint.textDark },
-              ]}
-            >
-              <Text style={styles.caregiverInitials}>RS</Text>
-            </View>
-            <View
-              style={[
-                styles.caregiverAvatar,
-                styles.avatarOverlap,
-                { backgroundColor: colors.coralDark },
-              ]}
-            >
-              <Text style={styles.caregiverInitials}>JC</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.onlineStatusText}>3 Cuidadores Online</Text>
+        <Text style={styles.redeAtentaLabel}>Ver contatos de emergência</Text>
+        <Icon name="chevron_right" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );
@@ -140,40 +115,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  presenceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   redeAtentaLabel: {
+    flexShrink: 1,
     fontSize: 14,
     color: colors.textSecondary,
-    marginRight: 8,
     ...font('body', 600),
-  },
-  avatarGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  caregiverAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: rounded.full,
-    borderWidth: 2,
-    borderColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  caregiverInitials: {
-    fontSize: 14,
-    ...font('body', 700),
-    color: colors.white,
-  },
-  avatarOverlap: {
-    marginLeft: -8,
-  },
-  onlineStatusText: {
-    fontSize: 14,
-    color: colors.successDark,
-    ...font('heading', 700),
   },
 });
