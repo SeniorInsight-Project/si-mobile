@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   listarIdososDoFamiliar,
   salvarCadastroIdoso,
-  atualizarDadosIdoso,
+  atualizarIdoso,
+  obterIdoso,
+  montarIdosoRequestAtualizado,
   idosoIdDoServidor,
 } from '../elderlyService';
 import { buscarScoreBemEstar } from '../riskScoreService';
@@ -44,21 +46,103 @@ describe('Idosos e score pelo apiClient', () => {
     await assert.rejects(listarIdososDoFamiliar({ cliente: cliente({ 'GET /api/v1/familiares/fam-1/idosos': erro }), obterToken: tokenFam1 }), (e: any) => e === erro);
   });
 
-  test('idosos: salvar e atualizar mandam IdosoRequest e, em erro, lançam sem criar idoso local', async () => {
+  test('idosos: salvar manda IdosoRequest e, em erro, lança sem criar idoso local', async () => {
     const dados = { nome: ' Maria Silva ', dataNascimento: '02/03/1950', sexo: 'F', celular: '11999990000' };
     const c = cliente({
       'POST /api/v1/idosos': { id: IDOSO, nomeCompleto: 'Maria Silva', dataNascimento: '1950-03-02', genero: 'F' },
-      [`PUT /api/v1/idosos/${IDOSO}`]: { id: IDOSO, nomeCompleto: 'Maria Silva', dataNascimento: '1950-03-02', genero: 'F' },
     });
     const criado = await salvarCadastroIdoso(dados, { cliente: c });
     assert.deepEqual(c.chamadas[0].corpo, { nomeCompleto: 'Maria Silva', dataNascimento: '1950-03-02', genero: 'F' });
     assert.equal(criado.idosoId, IDOSO);
-    await atualizarDadosIdoso(IDOSO, dados, { cliente: c });
-    assert.equal(c.chamadas[1].caminho, `/api/v1/idosos/${IDOSO}`);
+    assert.equal(criado.dataNascimento, '02/03/1950', 'data ISO da API vira DD/MM/AAAA no modelo da tela');
 
-    const falha = cliente({ 'POST /api/v1/idosos': new ApiError(400, null, '/x'), [`PUT /api/v1/idosos/${IDOSO}`]: new ApiError(403, null, '/x') });
+    const falha = cliente({ 'POST /api/v1/idosos': new ApiError(400, null, '/x') });
     await assert.rejects(salvarCadastroIdoso(dados, { cliente: falha }), (e: any) => e.status === 400);
-    await assert.rejects(atualizarDadosIdoso(IDOSO, dados, { cliente: falha }), (e: any) => e.status === 403);
+  });
+
+  const COMPLETO = {
+    id: IDOSO,
+    nomeCompleto: 'João Pereira',
+    dataNascimento: '1946-05-10',
+    genero: 'Masculino',
+    cpf: '123.456.789-00',
+    fotoPerfilUrl: 'https://exemplo.org/f.png',
+    tipoSanguineo: 'A+',
+    alergias: 'Dipirona',
+    logradouro: 'Rua A',
+    numero: '10',
+    bairro: 'Centro',
+    cidade: 'Recife',
+    estado: 'PE',
+    cep: '50000-000',
+    planoSaude: 'Plano X',
+    observacoesSocorros: 'Usa marca-passo',
+    comorbidades: ['Hipertensão Arterial Sistêmica'],
+    limitesBasais: {},
+    criadoEm: '2026-11-18T03:30:06Z',
+    atualizadoEm: '2026-11-18T03:30:06Z',
+  };
+
+  test('perfil: carrega por GET /api/v1/idosos/{id} e erro lança (mock desligado)', async () => {
+    const c = cliente({ [`GET /api/v1/idosos/${IDOSO}`]: COMPLETO });
+    assert.deepEqual(await obterIdoso(IDOSO, { cliente: c }), COMPLETO);
+    assert.equal(c.chamadas[0].caminho, `/api/v1/idosos/${IDOSO}`);
+    const erro = new ApiError(404, null, '/x');
+    await assert.rejects(obterIdoso(IDOSO, { cliente: cliente({ [`GET /api/v1/idosos/${IDOSO}`]: erro }) }), (e: any) => e === erro);
+  });
+
+  test('perfil: PUT parte do cadastro completo e troca só os campos editados', async () => {
+    const edicao = { nome: ' João P. Pereira ', dataNascimento: '11/05/1946', sexo: 'Masculino', tipoSanguineo: 'O-' };
+    const corpo = montarIdosoRequestAtualizado(COMPLETO as any, edicao);
+    assert.deepEqual(corpo, {
+      nomeCompleto: 'João P. Pereira',
+      dataNascimento: '1946-05-11',
+      genero: 'Masculino',
+      cpf: '123.456.789-00',
+      fotoPerfilUrl: 'https://exemplo.org/f.png',
+      tipoSanguineo: 'O-',
+      alergias: 'Dipirona',
+      logradouro: 'Rua A',
+      numero: '10',
+      bairro: 'Centro',
+      cidade: 'Recife',
+      estado: 'PE',
+      cep: '50000-000',
+      planoSaude: 'Plano X',
+      observacoesSocorros: 'Usa marca-passo',
+    });
+    assert.equal('celular' in corpo, false, 'celular não existe no contrato');
+    assert.equal('comorbidades' in corpo, false, 'campos só de resposta não vão no PUT');
+  });
+
+  test('perfil: campos ausentes na resposta vão como null e tipo sanguíneo vazio limpa', () => {
+    const minimo = { id: IDOSO, nomeCompleto: 'Ana', dataNascimento: '1950-01-01', comorbidades: [], criadoEm: '', atualizadoEm: '' };
+    const corpo = montarIdosoRequestAtualizado(minimo as any, { nome: 'Ana', dataNascimento: '01/01/1950', sexo: '', tipoSanguineo: '' });
+    assert.equal(corpo.cpf, null);
+    assert.equal(corpo.genero, null);
+    assert.equal(corpo.tipoSanguineo, null);
+  });
+
+  test('perfil: data inválida não monta o PUT', () => {
+    assert.throws(() =>
+      montarIdosoRequestAtualizado(COMPLETO as any, { nome: 'João', dataNascimento: '1946-05-10', sexo: 'Masculino', tipoSanguineo: null })
+    );
+  });
+
+  test('perfil: atualizarIdoso faz o PUT no id do cadastro e devolve a resposta; erro lança', async () => {
+    const salvo = { ...COMPLETO, tipoSanguineo: 'O-' };
+    const c = cliente({ [`PUT /api/v1/idosos/${IDOSO}`]: salvo });
+    const r = await atualizarIdoso(COMPLETO as any, { nome: 'João Pereira', dataNascimento: '10/05/1946', sexo: 'Masculino', tipoSanguineo: 'O-' }, { cliente: c });
+    assert.equal(c.chamadas[0].metodo, 'PUT');
+    assert.equal(c.chamadas[0].caminho, `/api/v1/idosos/${IDOSO}`);
+    assert.equal(c.chamadas[0].corpo.cpf, '123.456.789-00');
+    assert.equal(r.tipoSanguineo, 'O-');
+
+    const falha = cliente({ [`PUT /api/v1/idosos/${IDOSO}`]: new ApiError(403, null, '/x') });
+    await assert.rejects(
+      atualizarIdoso(COMPLETO as any, { nome: 'João', dataNascimento: '10/05/1946', sexo: 'Masculino', tipoSanguineo: null }, { cliente: falha }),
+      (e: any) => e.status === 403
+    );
   });
 
   test('idosoIdDoServidor: id local, vazio ou nulo não vai para a rede', () => {

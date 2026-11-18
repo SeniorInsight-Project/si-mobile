@@ -6,6 +6,12 @@
 /** Idade mínima para a qual o Score de Risco foi calibrado (DRS, HU-008 cenário 3). */
 export const IDADE_MINIMA_SCORE = 49;
 
+/** Sexos oferecidos no cadastro e na edição do idoso (vão em `genero` no contrato). */
+export const SEXOS_IDOSO: readonly string[] = ['Feminino', 'Masculino'];
+
+/** Tipos sanguíneos aceitos em `tipoSanguineo` (até 5 caracteres no care). */
+export const TIPOS_SANGUINEOS: readonly string[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
 export interface CadastroIdosoForm {
   nome: string;
   dataNascimento: string;
@@ -66,6 +72,18 @@ export function dataBrParaIso(data: string, hoje: Date = new Date()): string | n
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** "1948-05-14" (ou "1948-05-14T00:00:00Z") -> "14/05/1948"; null se não for uma data ISO válida. */
+export function isoParaDataBr(iso: string | null | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(iso?.trim() ?? '');
+  if (!match) return null;
+  const [, ano, mes, dia] = match;
+  const d = new Date(Number(ano), Number(mes) - 1, Number(dia));
+  if (d.getFullYear() !== Number(ano) || d.getMonth() !== Number(mes) - 1 || d.getDate() !== Number(dia)) {
+    return null;
+  }
+  return `${dia}/${mes}/${ano}`;
 }
 
 export function calcularIdade(dataNascimento: string, hoje: Date = new Date()): number | null {

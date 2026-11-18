@@ -17,6 +17,7 @@ import {
   formatarCelular,
   formatarData,
   validarCadastroIdoso,
+  SEXOS_IDOSO,
 } from '../services/cadastroIdosoValidacao';
 
 export interface RegisterElderlyScreenProps {
@@ -24,7 +25,7 @@ export interface RegisterElderlyScreenProps {
   onCadastrado: (idoso: Idoso) => void;
 }
 
-const SEXOS = ['Feminino', 'Masculino'];
+const SEXOS = SEXOS_IDOSO;
 
 /** Figma: "Cadastrar Idoso" — passo 1 de 2 (HU-008). */
 export default function RegisterElderlyScreen({ onNavigate, onCadastrado }: RegisterElderlyScreenProps) {

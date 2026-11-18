@@ -16,7 +16,6 @@ import AddComorbidityModal from '../components/AddComorbidityModal';
 import Icon from '../components/Icon';
 import SemIdosoCard from '../components/SemIdosoCard';
 import Button from '../components/Button';
-import IconButton from '../components/IconButton';
 import TextField from '../components/TextField';
 import ChoiceChip from '../components/ChoiceChip';
 import { colors, font, rounded, shadows, typography } from '../theme';
@@ -28,22 +27,26 @@ import {
   ehCondicaoDoSemaforo,
   AVISO_OUTRAS_COMORBIDADES,
 } from '../services/comorbidadeService';
+import { obterIdoso, atualizarIdoso } from '../services/elderlyService';
 import {
-  listarIdososDoFamiliar,
-  atualizarDadosIdoso,
-  ElderlyProfile,
-} from '../services/elderlyService';
+  SEXOS_IDOSO,
+  TIPOS_SANGUINEOS,
+  calcularIdade,
+  formatarData,
+  isoParaDataBr,
+  parseDataBr,
+} from '../services/cadastroIdosoValidacao';
+import { extrairMensagemErro } from '../services/erroHelper';
+import type { IdosoApi } from '../types/api';
 import CodigoPareamentoPainel from '../components/CodigoPareamentoPainel';
 import { useIdoso } from '../context/IdosoContext';
 import { usePapel } from '../context/PapelContext';
-
-const SEXOS = ['Feminino', 'Masculino', 'Outro'];
 
 interface ElderlyFormState {
   nome: string;
   dataNascimento: string;
   sexo: string;
-  celular: string;
+  tipoSanguineo: string;
 }
 
 type ElderlyFormErrors = Partial<Record<keyof ElderlyFormState, string>>;
@@ -52,59 +55,17 @@ const EMPTY_FORM: ElderlyFormState = {
   nome: '',
   dataNascimento: '',
   sexo: '',
-  celular: '',
+  tipoSanguineo: '',
 };
 
-function formatarCelular(texto: string): string {
-  const numeros = texto.replace(/\D/g, '').slice(0, 11);
-  if (numeros.length <= 2) return numeros;
-  if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
-  if (numeros.length <= 10) {
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
-  }
-  return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
-}
-
-function formatarData(texto: string): string {
-  const numeros = texto.replace(/\D/g, '').slice(0, 8);
-  if (numeros.length <= 2) return numeros;
-  if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
-  return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4)}`;
-}
-
-function parseDataBr(data: string): Date | null {
-  const match = /^([0-3]\d)\/([0-1]\d)\/(\d{4})$/.exec(data);
-  if (!match) return null;
-
-  const dia = Number(match[1]);
-  const mes = Number(match[2]);
-  const ano = Number(match[3]);
-  const date = new Date(ano, mes - 1, dia);
-
-  if (
-    date.getFullYear() !== ano ||
-    date.getMonth() !== mes - 1 ||
-    date.getDate() !== dia ||
-    date > new Date()
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-function calcularIdade(dataNascimento: string): number | null {
-  const nascimento = parseDataBr(dataNascimento);
-  if (!nascimento) return null;
-
-  const hoje = new Date();
-  let idade = hoje.getFullYear() - nascimento.getFullYear();
-  const aindaNaoFezAniversario =
-    hoje.getMonth() < nascimento.getMonth() ||
-    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
-
-  if (aindaNaoFezAniversario) idade -= 1;
-  return idade;
+/** Cadastro da API (data ISO) -> formulário (DD/MM/AAAA). */
+function formularioDoIdoso(idoso: IdosoApi): ElderlyFormState {
+  return {
+    nome: idoso.nomeCompleto || '',
+    dataNascimento: isoParaDataBr(idoso.dataNascimento) ?? '',
+    sexo: idoso.genero || '',
+    tipoSanguineo: idoso.tipoSanguineo || '',
+  };
 }
 
 export interface ElderlyProfileScreenProps {
@@ -129,19 +90,16 @@ export default function ElderlyProfileScreen({
   // Cadastro do idoso (HU-008) e identidade de acesso (HU-009)
   const [loadingPerfil, setLoadingPerfil] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [profile, setProfile] = useState<ElderlyProfile | null>(null);
+  const [profile, setProfile] = useState<IdosoApi | null>(null);
+  const [erroPerfil, setErroPerfil] = useState<string | null>(null);
+  const [tentativaPerfil, setTentativaPerfil] = useState<number>(0);
   const [form, setForm] = useState<ElderlyFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<ElderlyFormErrors>({});
-  const [editando, setEditando] = useState<boolean>(true);
+  // Só edita depois que o cadastro veio da API: sem ele não há base para o PUT completo.
+  const [editando, setEditando] = useState<boolean>(false);
   // Código de pareamento (HU-008): gerado pelo identity-service logo depois de cadastrar um idoso novo ou
   // quando o familiar pede. Abrir o perfil não gera código: cada geração invalida o anterior no servidor.
   const gerarCodigoAoAbrir = false; // o código nasce no RegisterElderly
-
-  // Campos complementares da ficha conforme o .fig
-  const [fatorSanguineo, setFatorSanguineo] = useState<string>('O+ Positivo');
-  const [medicoReferencia, setMedicoReferencia] = useState<string>(
-    'Dr. Silva - Cardiologista'
-  );
 
   const papelApp = usePapel();
   const podeEditar = papelApp !== 'IDOSO' && podeEditarComorbidades(accessRole);
@@ -149,47 +107,43 @@ export default function ElderlyProfileScreen({
   const idade = useMemo(() => calcularIdade(form.dataNascimento), [form.dataNascimento]);
   const avisoIdade = idade !== null && idade < 49;
 
+  // Cadastro completo do idoso do contexto: GET /api/v1/idosos/{id}.
   useEffect(() => {
     const idAtivo = idosoId;
+    setProfile(null);
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setEditando(false);
+    setErroPerfil(null);
     if (!idAtivo) {
-      setProfile(null);
-      setForm(EMPTY_FORM);
       setLoadingPerfil(false);
       return;
     }
 
+    let ativo = true;
     async function carregarPerfil(id: string) {
       try {
         setLoadingPerfil(true);
-        const locais = await listarIdososDoFamiliar();
-        const idosoAtual = locais.find((item) => item.idosoId === id);
-
-        if (idosoAtual) {
-          setProfile(idosoAtual);
-          setForm({
-            nome: idosoAtual.nome || '',
-            dataNascimento: idosoAtual.dataNascimento || '',
-            sexo: idosoAtual.sexo || '',
-            celular: idosoAtual.celular || '',
-          });
-          setEditando(false);
-        } else {
-          // Sem perfil: o cadastro é feito só pelo fluxo RegisterElderly (idosoCadastroService).
-          setEditando(false);
-          setProfile(null);
-          setForm(EMPTY_FORM);
-          if (onNavigate) onNavigate('RegisterElderly');
-        }
+        const idoso = await obterIdoso(id);
+        if (!ativo) return;
+        setProfile(idoso);
+        setForm(formularioDoIdoso(idoso));
       } catch (error: any) {
+        if (!ativo) return;
         console.warn('Erro ao carregar perfil do idoso:', error?.message);
-        Alert.alert('Perfil do idoso', error?.message || 'Não foi possível carregar o perfil agora. Tente de novo mais tarde.');
+        setErroPerfil(
+          extrairMensagemErro(error, 'Não foi possível carregar o perfil agora. Tente de novo mais tarde.')
+        );
       } finally {
-        setLoadingPerfil(false);
+        if (ativo) setLoadingPerfil(false);
       }
     }
 
     carregarPerfil(idAtivo);
-  }, [idosoId]);
+    return () => {
+      ativo = false;
+    };
+  }, [idosoId, tentativaPerfil]);
 
   useEffect(() => {
     const idAtivo = idosoId;
@@ -242,38 +196,35 @@ export default function ElderlyProfileScreen({
       novosErros.sexo = 'Selecione o sexo.';
     }
 
-    const celularNumeros = form.celular.replace(/\D/g, '');
-    if (!form.celular.trim()) {
-      novosErros.celular = 'Informe o celular.';
-    } else if (celularNumeros.length < 10 || celularNumeros.length > 11) {
-      novosErros.celular = 'Celular inválido. Use DDD + número.';
-    }
-
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
   };
 
+  const cancelarEdicao = () => {
+    if (profile) setForm(formularioDoIdoso(profile));
+    setErrors({});
+    setEditando(false);
+  };
+
   const salvar = async () => {
+    if (!profile) {
+      Alert.alert('Erro ao salvar', 'O cadastro do idoso não foi carregado. Tente abrir o perfil de novo.');
+      return;
+    }
     if (!validar()) return;
 
     try {
       setSaving(true);
-
-      const payload = {
-        nome: form.nome.trim(),
+      // PUT completo: parte do cadastro que veio da API e troca só os campos editados.
+      const salvo = await atualizarIdoso(profile, {
+        nome: form.nome,
         dataNascimento: form.dataNascimento,
         sexo: form.sexo,
-        celular: form.celular,
-      };
-
-      // Só edita idoso existente (PUT pelo apiClient). Cadastro novo é o fluxo RegisterElderly.
-      if (!profile?.idosoId) {
-        if (onNavigate) onNavigate('RegisterElderly');
-        return;
-      }
-      const salvo = await atualizarDadosIdoso(profile.idosoId, payload);
+        tipoSanguineo: form.tipoSanguineo || null,
+      });
 
       setProfile(salvo);
+      setForm(formularioDoIdoso(salvo));
       setEditando(false);
 
       if (avisoIdade) {
@@ -285,7 +236,11 @@ export default function ElderlyProfileScreen({
         Alert.alert('Cadastro salvo', 'Dados do idoso atualizados com sucesso.');
       }
     } catch (error) {
-      Alert.alert('Erro ao salvar', 'Não foi possível salvar os dados do idoso.');
+      console.warn('Erro ao salvar perfil do idoso:', (error as Error)?.message);
+      Alert.alert(
+        'Erro ao salvar',
+        extrairMensagemErro(error, 'Não foi possível salvar os dados do idoso. Tente de novo.')
+      );
     } finally {
       setSaving(false);
     }
@@ -405,7 +360,7 @@ export default function ElderlyProfileScreen({
           <View style={styles.statsTray}>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>TIPO SANGUÍNEO</Text>
-              <Text style={styles.bloodValue}>O+</Text>
+              <Text style={styles.bloodValue}>{profile?.tipoSanguineo || '—'}</Text>
             </View>
 
             <View style={styles.statBox}>
@@ -512,7 +467,7 @@ export default function ElderlyProfileScreen({
               <Text style={styles.sectionTitle}>Ficha Cadastral do Idoso</Text>
             </View>
 
-            {!editando && podeEditar && (
+            {!editando && podeEditar && profile && (
               <Button
                 title="Editar"
                 iconLeft="edit"
@@ -524,6 +479,22 @@ export default function ElderlyProfileScreen({
             )}
           </View>
 
+          {!profile ? (
+            <View style={styles.perfilIndisponivelCard} testID="perfil-indisponivel">
+              <Icon name="warning" size={22} color={colors.coralDark} />
+              <Text style={styles.perfilIndisponivelTexto}>
+                {erroPerfil || 'O cadastro do idoso não está disponível agora.'}
+              </Text>
+              <Button
+                title="Tentar novamente"
+                iconLeft="refresh"
+                variant="secondary"
+                fullWidth={false}
+                onPress={() => setTentativaPerfil((n) => n + 1)}
+              />
+            </View>
+          ) : (
+            <>
           <Text style={styles.roleHint}>
             Perfil atual: {accessRole === 'OBSERVADOR' ? 'Familiar de Apoio' : accessRole}
           </Text>
@@ -539,32 +510,17 @@ export default function ElderlyProfileScreen({
             error={errors.nome || undefined}
           />
 
-          {/* Linha Dupla: Nascimento e Fator Sanguíneo */}
-          <View style={styles.fieldsRow}>
-            <View style={{ flex: 1 }}>
-              <TextField
-                label="Nascimento"
-                icon="calendar_today"
-                value={form.dataNascimento}
-                onChangeText={(texto) => atualizarCampo('dataNascimento', formatarData(texto))}
-                editable={editando}
-                keyboardType="number-pad"
-                placeholder="DD/MM/AAAA"
-                error={errors.dataNascimento || undefined}
-              />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <TextField
-                label="Fator Sanguíneo"
-                icon="water_drop"
-                value={fatorSanguineo}
-                onChangeText={setFatorSanguineo}
-                editable={editando}
-                rightElement={<Icon name="expand_more" size={18} color={colors.textSecondary} />}
-              />
-            </View>
-          </View>
+          {/* Campo 2: Nascimento (DD/MM/AAAA; vai em ISO para a API) */}
+          <TextField
+            label="Nascimento"
+            icon="calendar_today"
+            value={form.dataNascimento}
+            onChangeText={(texto) => atualizarCampo('dataNascimento', formatarData(texto))}
+            editable={editando}
+            keyboardType="number-pad"
+            placeholder="DD/MM/AAAA"
+            error={errors.dataNascimento || undefined}
+          />
 
           {avisoIdade && (
             <View style={styles.warningBox}>
@@ -574,11 +530,11 @@ export default function ElderlyProfileScreen({
             </View>
           )}
 
-          {/* Campo: Sexo */}
+          {/* Campo: Sexo (mesmas opções do cadastro) */}
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Sexo</Text>
             <View style={styles.sexRow}>
-              {SEXOS.map((item) => (
+              {SEXOS_IDOSO.map((item) => (
                 <ChoiceChip
                   key={item}
                   label={item}
@@ -591,38 +547,35 @@ export default function ElderlyProfileScreen({
             {errors.sexo && <Text style={styles.errorText}>{errors.sexo}</Text>}
           </View>
 
-          {/* Campo: Celular */}
-          <TextField
-            label="Celular"
-            icon="call"
-            value={form.celular}
-            onChangeText={(texto) => atualizarCampo('celular', formatarCelular(texto))}
-            editable={editando}
-            keyboardType="phone-pad"
-            placeholder="(00) 00000-0000"
-            error={errors.celular || undefined}
-          />
-
-          {/* Campo 3: Médico de Referência */}
-          <TextField
-            label="Médico(a) de Referência"
-            icon="medical_services"
-            value={medicoReferencia}
-            onChangeText={setMedicoReferencia}
-            editable={editando}
-            rightElement={
-              <IconButton
-                icon="call"
-                variant="neutral"
-                accessibilityLabel="Ligar para médico de referência"
-                onPress={() => Alert.alert('Ligação', 'Discando para Dr. Silva...')}
-              />
-            }
-          />
+          {/* Campo: Tipo sanguíneo (tipoSanguineo no contrato). Tocar de novo desmarca. */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Tipo sanguíneo</Text>
+            <View style={styles.sexRow}>
+              {(TIPOS_SANGUINEOS.includes(form.tipoSanguineo) || !form.tipoSanguineo
+                ? TIPOS_SANGUINEOS
+                : [...TIPOS_SANGUINEOS, form.tipoSanguineo]
+              ).map((item) => (
+                <ChoiceChip
+                  key={item}
+                  label={item}
+                  selected={form.tipoSanguineo === item}
+                  disabled={!editando}
+                  onPress={() =>
+                    editando && atualizarCampo('tipoSanguineo', form.tipoSanguineo === item ? '' : item)
+                  }
+                />
+              ))}
+            </View>
+            {!editando && !form.tipoSanguineo ? (
+              <Text style={styles.roleHint}>Não informado</Text>
+            ) : null}
+          </View>
+            </>
+          )}
         </View>
 
         {/* SEÇÃO 4: CÓDIGO DE PAREAMENTO (HU-008), gerado pelo identity-service */}
-        {profile?.idosoId && podeEditar ? (
+        {profile?.id && podeEditar ? (
           <View style={styles.sectionBlock}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionIconCircleSky}>
@@ -632,9 +585,9 @@ export default function ElderlyProfileScreen({
             </View>
 
             <CodigoPareamentoPainel
-              key={profile.idosoId}
-              idosoId={profile.idosoId}
-              nomeIdoso={profile.nome || form.nome}
+              key={profile.id}
+              idosoId={profile.id}
+              nomeIdoso={profile.nomeCompleto || form.nome}
               gerarAoAbrir={gerarCodigoAoAbrir}
             />
           </View>
@@ -658,16 +611,26 @@ export default function ElderlyProfileScreen({
 
         {/* BOTÕES DE AÇÃO INFERIORES */}
         <View style={styles.actionButtonsContainer}>
-          {editando && podeEditar && (
-            <Button
-              title={saving ? 'Salvando...' : 'Salvar Cadastro'}
-              iconLeft="check"
-              variant="primary"
-              size="lg"
-              loading={saving}
-              disabled={saving}
-              onPress={salvar}
-            />
+          {editando && podeEditar && profile && (
+            <>
+              <Button
+                title={saving ? 'Salvando...' : 'Salvar Cadastro'}
+                iconLeft="check"
+                variant="primary"
+                size="lg"
+                loading={saving}
+                disabled={saving}
+                onPress={salvar}
+              />
+              <Button
+                title="Cancelar edição"
+                iconLeft="close"
+                variant="ghost"
+                size="lg"
+                disabled={saving}
+                onPress={cancelarEdicao}
+              />
+            </>
           )}
 
           <Button
@@ -704,6 +667,22 @@ export default function ElderlyProfileScreen({
 
 
 const styles = StyleSheet.create({
+  perfilIndisponivelCard: {
+    alignItems: 'center',
+    gap: 12,
+    padding: 20,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    borderColor: colors.peach.border,
+    backgroundColor: colors.peach.background,
+  },
+  perfilIndisponivelTexto: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: colors.coralDark,
+    ...font('body', 600),
+  },
   curatelaNoticeCard: {
     flexDirection: 'row',
     alignItems: 'center',
