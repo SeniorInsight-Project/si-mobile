@@ -26,7 +26,7 @@ export interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onDesfecho, aviso }: LoginScreenProps) {
-  const { pronto, carregando, erro, entrar, entrarComGoogle, criarConta } = useAutenticacaoKeycloak();
+  const { pronto, carregando, erro, entrar, criarConta } = useAutenticacaoKeycloak();
 
   const handleEntrar = async () => {
     onDesfecho(await entrar());
@@ -76,17 +76,6 @@ export default function LoginScreen({ onDesfecho, aviso }: LoginScreenProps) {
               iconRight="arrow_forward"
               loading={carregando || !pronto}
               disabled={!pronto || carregando}
-            />
-
-            <Button
-              title="Entrar com Google"
-              onPress={handleEntrarComGoogle}
-              variant="outline"
-              size="lg"
-              iconLeft="login"
-              disabled={!pronto || carregando}
-              style={styles.googleButton}
-              testID="login-google"
             />
 
             {erro || aviso ? <Text style={styles.errorText}>{erro || aviso}</Text> : null}
