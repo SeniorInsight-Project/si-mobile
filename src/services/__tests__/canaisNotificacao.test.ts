@@ -18,3 +18,17 @@ describe('Canais de notificação no Android (auditoria 2, item 5)', () => {
     assert.ok(corpo.indexOf('configurarCanaisPush') < corpo.indexOf('registrarTokenPush'));
   });
 });
+
+describe('Token de push para a API da Expo (auditoria 2, item 5, achado lateral)', () => {
+  const inicio = push.indexOf('export async function inicializarPushUsuario');
+  const corpo = push.slice(inicio, push.indexOf('export function registrarOuvinteToqueNotificacao'));
+
+  test('usa getExpoPushTokenAsync com projectId, e não o token cru do aparelho', () => {
+    assert.match(corpo, /getExpoPushTokenAsync\(\{ projectId \}\)/);
+    assert.ok(!corpo.includes('getDevicePushTokenAsync'));
+  });
+
+  test('projectId vem de expo.extra.eas.projectId', () => {
+    assert.match(push, /expoConfig\?\.extra\?\.eas\?\.projectId/);
+  });
+});

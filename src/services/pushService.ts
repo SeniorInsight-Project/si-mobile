@@ -195,8 +195,21 @@ export function esquecerIdentificadorAparelhoPush(): void {
   identificadorAparelhoCache = null;
 }
 
+/** projectId do EAS, lido de app.json (expo.extra.eas.projectId). null quando o projeto ainda não foi ligado ao EAS. */
+export function obterProjectIdEas(): string | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('expo-constants');
+    const Constants = mod?.default ?? mod;
+    const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+    return typeof projectId === 'string' && projectId.length > 0 ? projectId : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function inicializarPushUsuario(
-  opcoes: OpcoesPush & { notif?: any; identificadorAparelho?: string } = {}
+  opcoes: OpcoesPush & { notif?: any; identificadorAparelho?: string; projectId?: string } = {}
 ): Promise<boolean> {
   const notif = opcoes.notif ?? Notifications;
   const identificadorAparelho = opcoes.identificadorAparelho ?? obterIdentificadorAparelho();
@@ -213,15 +226,18 @@ export async function inicializarPushUsuario(
   const permitido = await solicitarPermissaoPush(notif);
   if (!permitido) return false;
 
+  // O notification-service envia pela API de push da Expo, que só aceita ExponentPushToken[…].
+  // O token cru do aparelho (FCM/APNs) seria recusado por ela.
+  const projectId = opcoes.projectId ?? obterProjectIdEas();
+  if (!projectId) {
+    console.warn('[pushService] Push remoto desativado: app.json sem expo.extra.eas.projectId (rode eas project:init).');
+    return false;
+  }
+  if (typeof notif.getExpoPushTokenAsync !== 'function') return false;
+
   try {
-    let token: string | null = null;
-    if (typeof notif.getDevicePushTokenAsync === 'function') {
-      const res = await notif.getDevicePushTokenAsync();
-      token = typeof res?.data === 'string' ? res.data : null;
-    } else if (typeof notif.getExpoPushTokenAsync === 'function') {
-      const res = await notif.getExpoPushTokenAsync();
-      token = typeof res?.data === 'string' ? res.data : null;
-    }
+    const res = await notif.getExpoPushTokenAsync({ projectId });
+    const token: string | null = typeof res?.data === 'string' ? res.data : null;
 
     if (!token) return false;
 
