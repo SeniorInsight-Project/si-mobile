@@ -14,7 +14,9 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_USAR_MOCK": "false"
+        "EXPO_PUBLIC_USAR_MOCK": "false",
+        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.15.161:8080",
+        "EXPO_PUBLIC_KEYCLOAK_ISSUER": "https://friday.tail620458.ts.net/realms/seniorinsight"
       }
     },
     "preview": {
@@ -24,7 +26,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_USAR_MOCK": "false"
+        "EXPO_PUBLIC_USAR_MOCK": "false",
+        "EXPO_PUBLIC_API_BASE_URL": "http://192.168.15.161:8080",
+        "EXPO_PUBLIC_KEYCLOAK_ISSUER": "https://friday.tail620458.ts.net/realms/seniorinsight"
       }
     },
     "production": {
