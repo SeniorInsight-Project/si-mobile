@@ -120,6 +120,9 @@ describe('Relógio e Health Connect (HU-023 / HU-025)', () => {
 
   test('sem nenhuma medição = não conectado', () => {
     assert.equal(classificarSincronizacao(null, AGORA).status, 'NAO_CONECTADO');
+    // SDK conectado e nada no servidor ainda: aguardando a primeira medição, não "não conectado".
+    assert.equal(classificarSincronizacao(null, AGORA, true).status, 'AGUARDANDO');
+    assert.equal(classificarSincronizacao(min(10), AGORA, true).status, 'FUNCIONANDO');
   });
 
   test('relógio com hora no futuro (relógio do celular errado) não quebra', () => {

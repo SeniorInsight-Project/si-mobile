@@ -23,7 +23,8 @@ export interface EstadoOpenWearables {
   healthConnectInstalado: boolean;
   permissoesConcedidas: boolean;
   segundoPlanoAtivo: boolean;
-  ultimaSincronizacaoMs: number | null;
+  /** Uma rodada de envio está em andamento agora. */
+  sincronizando: boolean;
   sessaoValida: boolean;
   simulado: boolean;
 }
@@ -132,7 +133,7 @@ export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables | 
       healthConnectInstalado: true,
       permissoesConcedidas: true,
       segundoPlanoAtivo: true,
-      ultimaSincronizacaoMs: Date.now() - 12 * 60_000,
+      sincronizando: false,
       sessaoValida: true,
       simulado: true,
     };
@@ -143,13 +144,14 @@ export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables | 
   const OpenWearablesHealthSDK = await sdk();
   const providers = Platform.OS === 'android' ? OpenWearablesHealthSDK.getAvailableProviders() : [];
   const credentials = OpenWearablesHealthSDK.getStoredCredentials();
+  // getSyncStatus().createdAt é a data da sessão de envio em andamento e volta a null quando ela termina:
+  // não serve como "última medição". Essa hora vem do servidor (coletadoEm de /hoje), lida pela tela.
   const status = OpenWearablesHealthSDK.getSyncStatus();
-  const ultima = status.createdAt ? Date.parse(status.createdAt) : NaN;
   return {
     healthConnectInstalado: Platform.OS !== 'android' || Boolean(providers.find((provider) => provider.id === 'google')?.isAvailable),
     permissoesConcedidas: OpenWearablesHealthSDK.isSessionValid() && credentials.provider === (Platform.OS === 'android' ? 'google' : 'apple'),
     segundoPlanoAtivo: OpenWearablesHealthSDK.isSyncActive(),
-    ultimaSincronizacaoMs: Number.isFinite(ultima) ? ultima : null,
+    sincronizando: status.isSyncing,
     sessaoValida: OpenWearablesHealthSDK.isSessionValid(),
     simulado: false,
   };

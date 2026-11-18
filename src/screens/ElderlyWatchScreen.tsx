@@ -15,6 +15,7 @@ import {
   obterEstadoConexao,
 } from '../services/relogioService';
 import { abrirHealthConnect } from '../services/healthConnectLauncher';
+import { buscarEstadoAtual } from '../services/telemetryService';
 import { AVISO_EXPO_GO_RELOGIO, ehExpoGo } from '../config/expoGo';
 import {
   conectarOpenWearables,
@@ -36,6 +37,8 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
   const [consentimentos, setConsentimentos] = useState<Consentimentos>(CONSENTIMENTO_PADRAO);
   const [aviso, setAviso] = useState('');
   const [estadoReal, setEstadoReal] = useState<EstadoOpenWearables | null>(null);
+  // Hora da última medição gravada no servidor: prova de que os dados do relógio chegaram (HU-025).
+  const [ultimaMedicaoServidorMs, setUltimaMedicaoServidorMs] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(false);
   const { idosoId } = useIdoso();
 
@@ -44,10 +47,12 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     Promise.all([
       obterConsentimentos(idosoId).catch(() => CONSENTIMENTO_PADRAO),
       obterEstadoOpenWearables().catch(() => null),
-    ]).then(([consentimentosCarregados, estado]) => {
+      lerUltimaMedicaoServidor(idosoId),
+    ]).then(([consentimentosCarregados, estado, ultimaMedicao]) => {
       if (!ativo) return;
       setConsentimentos(consentimentosCarregados);
       setEstadoReal(estado);
+      setUltimaMedicaoServidorMs(ultimaMedicao);
     });
     return () => {
       ativo = false;
@@ -58,12 +63,13 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     ? {
         healthConnectInstalado: estadoReal.healthConnectInstalado,
         segundoPlanoAtivo: estadoReal.segundoPlanoAtivo,
-        ultimaMedicaoMs: estadoReal.ultimaSincronizacaoMs,
+        ultimaMedicaoMs: estadoReal.simulado ? Date.now() - 12 * 60_000 : ultimaMedicaoServidorMs,
         simulado: estadoReal.simulado,
       }
     : obterEstadoConexao(Date.now(), false);
   const passos = montarPassos(conexao, consentimentos);
-  const status = classificarSincronizacao(conexao.ultimaMedicaoMs);
+  const sdkConectado = Boolean(estadoReal?.sessaoValida && estadoReal.segundoPlanoAtivo);
+  const status = classificarSincronizacao(conexao.ultimaMedicaoMs, Date.now(), sdkConectado);
   const corStatus =
     status.cor === 'verde'
       ? { fundo: colors.mintBg, icone: colors.successDark, icon: 'check_circle' }
@@ -81,12 +87,16 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
     setCarregando(true);
     try {
       await conectarOpenWearables(idosoId, consentimentos);
-      setEstadoReal(await obterEstadoOpenWearables());
+      const [estado, ultimaMedicao] = await Promise.all([obterEstadoOpenWearables(), lerUltimaMedicaoServidor(idosoId)]);
+      setEstadoReal(estado);
+      setUltimaMedicaoServidorMs(ultimaMedicao);
     } catch (erro) {
       const mensagem = (erro as Error)?.message;
-      const ok = await abrirHealthConnect();
+      // Só leva à Play Store quando falta o Health Connect; outra falha (ex.: token do servidor) fica na tela.
+      const faltaHealthConnect = Boolean(mensagem?.includes('não está instalado'));
+      const ok = faltaHealthConnect && (await abrirHealthConnect());
       setAviso(
-        ok && mensagem?.includes('não está instalado')
+        ok
           ? 'Instale o Health Connect, volte para cá e toque novamente para conectar seu relógio.'
           : mensagem || 'Não foi possível conectar o relógio. Tente novamente.',
       );
@@ -185,6 +195,18 @@ export default function ElderlyWatchScreen({ onNavigate, primeiroUso = false }: 
       <BottomNavBar currentScreen="ElderlyWatch" onNavigate={onNavigate} />
     </ScreenWrapper>
   );
+}
+
+/** coletadoEm de /hoje em ms; null sem medição hoje ou com a API fora (a tela não inventa um horário). */
+async function lerUltimaMedicaoServidor(idosoId: string | null | undefined): Promise<number | null> {
+  if (!idosoId) return null;
+  try {
+    const { coletadoEm } = await buscarEstadoAtual(idosoId);
+    const ms = coletadoEm ? Date.parse(coletadoEm) : NaN;
+    return Number.isFinite(ms) ? ms : null;
+  } catch {
+    return null;
+  }
 }
 
 const styles = StyleSheet.create({
