@@ -543,28 +543,29 @@ export async function gerarConviteMedico(
 }
 
 /**
- * Marca um convite de médico como recusado (HU-017 Cenário 2).
- * Atenção: esta rota NÃO existe no care-v1 (e StatusConvite não tem RECUSADO); o path foi mantido a pedido
- * até o back definir o fluxo, então fora do mock a chamada responde 404 e o erro aparece na tela.
+ * Encerra um convite de médico recusado (HU-017 Cenário 2).
+ * O care-v1 não tem rota de recusa nem o status RECUSADO: o convite que não vai ser aceito é encerrado pela
+ * rota que existe, DELETE /api/v1/convites/{conviteId} (204, fica CANCELADO e o token deixa de valer).
+ * Devolve null fora do mock, porque a rota não tem corpo de resposta.
  */
 export async function recusarConvite(
   idosoId: string,
   conviteId: string,
   motivo = 'O médico recusou o convite',
   { cliente = apiClient }: OpcoesRede = {}
-): Promise<ConvitePendente> {
+): Promise<ConvitePendente | null> {
   if (mockPermitido()) {
     const { mockRecusarConvite } = await import('../mocks/redeProtecao');
     return mockRecusarConvite(idosoId, conviteId, motivo) as unknown as ConvitePendente;
   }
 
-  return cliente.post<ConvitePendente>(`/api/v1/idosos/${idosoId}/convites/${conviteId}/recusar`, { motivo });
+  await cliente.delete(`/api/v1/convites/${encodeURIComponent(conviteId)}`);
+  return null;
 }
 
 /**
- * Descarta a notificação de convite recusado da visualização da família.
- * Atenção: DELETE /api/v1/idosos/{idosoId}/convites/{conviteId} também não existe no care-v1 (mesmo motivo
- * de recusarConvite).
+ * Tira da tela da família um convite recusado: DELETE /api/v1/convites/{conviteId}.
+ * Se o convite já não está pendente (409) ou não existe mais (404), não há o que encerrar e conta como feito.
  */
 export async function descartarConviteRecusado(
   idosoId: string,
@@ -576,6 +577,11 @@ export async function descartarConviteRecusado(
     return mockDescartarConviteRecusado(idosoId, conviteId);
   }
 
-  await cliente.delete(`/api/v1/idosos/${idosoId}/convites/${conviteId}`);
+  try {
+    await cliente.delete(`/api/v1/convites/${encodeURIComponent(conviteId)}`);
+  } catch (erro) {
+    if (erro instanceof ApiError && (erro.status === 404 || erro.status === 409)) return true;
+    throw erro;
+  }
   return true;
 }
