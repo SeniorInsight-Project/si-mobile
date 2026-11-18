@@ -41,7 +41,8 @@
     "web": "expo start --web",
     "test": "node --env-file=.env.test --import ./scripts/resolver-ts.mjs --test src/services/__tests__/*.test.ts",
     "lint:estilo": "node scripts/auditar-estilos.mjs",
-    "contratos:sincronizar": "node scripts/sincronizar-contratos.mjs"
+    "contratos:sincronizar": "node scripts/sincronizar-contratos.mjs",
+    "eas-build-post-install": "bash scripts/publicar-sdk-open-wearables.sh"
   },
   "private": true,
   "devDependencies": {
