@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { mockPermitido } from '../config/ambiente';
 import { ehExpoGo } from '../config/expoGo';
 import { apiClient, type ApiClient } from './apiClient';
@@ -31,16 +32,34 @@ type OpenWearablesModulo = typeof import('open-wearables');
 type OpenWearablesSdk = OpenWearablesModulo['default'];
 let moduloPromise: Promise<OpenWearablesModulo> | null = null;
 
+/** Nome do módulo nativo que o pacote open-wearables registra (requireNativeModule no próprio pacote). */
+export const MODULO_NATIVO_OPEN_WEARABLES = 'OpenWearablesHealthSDK';
+
+const MENSAGEM_SEM_MODULO = 'O módulo nativo do relógio (Open Wearables) não está disponível neste aparelho.';
+
 /**
- * Carrega o SDK nativo. Sem o módulo nativo (ex.: build sem o plugin), o import devolve `default` indefinido:
- * nesse caso lança um erro claro e não guarda a promessa, para uma próxima tentativa carregar de novo.
+ * O módulo nativo do relógio existe neste app? Consulta sem avaliar o pacote open-wearables: avaliar o pacote
+ * sem o módulo chama requireNativeModule, que lança, e o Metro reporta isso como erro fatal (tela vermelha)
+ * antes de a promessa do import() rejeitar. Por isso nenhum import('open-wearables') acontece sem esta checagem.
+ */
+export function sdkNativoDisponivel(): boolean {
+  if (ehExpoGo) return false;
+  try {
+    return requireOptionalNativeModule(MODULO_NATIVO_OPEN_WEARABLES) != null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Carrega o SDK nativo, só depois de confirmar que o módulo nativo existe (Expo Go ou build sem o plugin não
+ * têm). Sem ele lança um erro claro e não guarda a promessa, para uma próxima tentativa carregar de novo.
  */
 async function moduloSdk(): Promise<OpenWearablesModulo> {
+  if (!sdkNativoDisponivel()) throw new Error(MENSAGEM_SEM_MODULO);
   if (!moduloPromise) {
     moduloPromise = import('open-wearables').then((mod) => {
-      if (!mod?.default) {
-        throw new Error('O módulo nativo do relógio (Open Wearables) não está disponível neste aparelho.');
-      }
+      if (!mod?.default) throw new Error(MENSAGEM_SEM_MODULO);
       return mod;
     });
     moduloPromise.catch(() => {
@@ -98,15 +117,15 @@ export async function conectarOpenWearables(
   }
 }
 
-/** No Expo Go não há SDK nativo nem sincronização a parar. */
+/** Sem o módulo nativo (Expo Go ou build sem o plugin) não há sincronização a parar. */
 export async function pararSincronizacaoOpenWearables(): Promise<void> {
-  if (ehExpoGo) return;
+  if (!sdkNativoDisponivel()) return;
   const OpenWearablesHealthSDK = await sdk();
   await OpenWearablesHealthSDK.stopBackgroundSync();
   await OpenWearablesHealthSDK.signOut();
 }
 
-/** null quando o relógio não pode ser consultado neste ambiente (Expo Go). */
+/** null quando o relógio não pode ser consultado neste ambiente (Expo Go ou build sem o módulo nativo). */
 export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables | null> {
   if (mockPermitido()) {
     return {
@@ -119,7 +138,7 @@ export async function obterEstadoOpenWearables(): Promise<EstadoOpenWearables | 
     };
   }
 
-  if (ehExpoGo) return null;
+  if (!sdkNativoDisponivel()) return null;
 
   const OpenWearablesHealthSDK = await sdk();
   const providers = Platform.OS === 'android' ? OpenWearablesHealthSDK.getAvailableProviders() : [];
