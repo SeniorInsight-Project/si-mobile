@@ -13,6 +13,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar from '../components/BottomNavBar';
 import SosActiveModal from '../components/SosActiveModal';
+import { AVISO_SEM_CONTATO, destinoLigacaoEmergencia } from '../services/discagemEmergencia';
 import SosHoldButton from '../components/SosHoldButton';
 import WatchStatusCard from '../components/WatchStatusCard';
 import ElderlyMetricsCards from '../components/ElderlyMetricsCards';
@@ -193,8 +194,9 @@ export default function ElderlyModeScreen({
       },
       onTimeout: ({ primeiroContato: contato }) => {
         if (contato) setPrimeiroContato(contato);
-        const telSanitizado = (contato?.telefone || '11987654321').replace(/\D/g, '');
-        Linking.openURL(`tel:${telSanitizado}`).catch((err) => {
+        // Sem contato de emergência cadastrado, liga para o SAMU (192): nunca um número fictício.
+        const destino = destinoLigacaoEmergencia(contato);
+        Linking.openURL(`tel:${destino.telefone}`).catch((err) => {
           console.warn('[ElderlyModeScreen] Não foi possível abrir a ligação de emergência:', err?.name);
         });
       },
@@ -341,14 +343,14 @@ export default function ElderlyModeScreen({
           setFilaStatus({ status: 'EXPIRADO', tempoRestanteSegundos: 0 });
           if (contato) setPrimeiroContato(contato);
 
-          const destino = contato || primeiroContato;
-          const telSanitizado = (destino?.telefone || '11987654321').replace(/\D/g, '');
-
-          // Cenário 3: 60s sem resposta -> abre discador telefônico
-          Linking.openURL(`tel:${telSanitizado}`).catch(() => {
+          // Cenário 3: 60s sem resposta -> abre o discador com o contato ou, sem contato, com o SAMU (192).
+          const destino = destinoLigacaoEmergencia(contato || primeiroContato);
+          Linking.openURL(`tel:${destino.telefone}`).catch(() => {
             Alert.alert(
               'Tempo de Conexão Esgotado',
-              `Não foi possível enviar via internet após 60s. Por favor, ligue para ${destino?.nome || 'seu contato de emergência'}.`
+              destino.semContato
+                ? `Não foi possível enviar via internet após 60s. ${AVISO_SEM_CONTATO}`
+                : `Não foi possível enviar via internet após 60s. Por favor, ligue para ${destino.nome} (${destino.telefone}).`
             );
           });
         },

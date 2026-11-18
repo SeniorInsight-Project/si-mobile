@@ -16,6 +16,7 @@ import { colors, shadows, rounded, font } from '../theme';
 import { AlarmeEmergencia } from '../services/alarmeSosService';
 import { SosQueueStatusInfo } from '../services/sosQueueService';
 import { ContatoEmergencia } from '../services/contatoEmergenciaService';
+import { AVISO_SEM_CONTATO, destinoLigacaoEmergencia } from '../services/discagemEmergencia';
 
 export interface SosActiveModalProps {
   visible: boolean;
@@ -96,20 +97,12 @@ export default function SosActiveModal({
 
   if (!visible) return null;
 
-  const contatoPadrao = primeiroContato || {
-    nome: 'Carlos Silva',
-    parentesco: 'Filho (Cuidador Principal)',
-    telefone: '(11) 98765-4321',
-  };
+  // Sem contato de emergência cadastrado, o botão liga para o SAMU (192): nunca um contato fictício.
+  const destino = destinoLigacaoEmergencia(primeiroContato);
 
   const handleLigarContato = () => {
-    const rawTel = contatoPadrao.telefone || '11987654321';
-    const telSanitizado = rawTel.replace(/\D/g, '');
-    Linking.openURL(`tel:${telSanitizado}`).catch(() => {
-      Alert.alert(
-        'Discador Indisponível',
-        `Disque manualmente para ${contatoPadrao.nome}: ${contatoPadrao.telefone}`
-      );
+    Linking.openURL(`tel:${destino.telefone}`).catch(() => {
+      Alert.alert('Discador Indisponível', `Disque manualmente para ${destino.nome}: ${destino.telefone}`);
     });
   };
 
@@ -151,7 +144,9 @@ export default function SosActiveModal({
             </Text>
             <Text style={styles.heroSub} testID="sos-subtitulo">
               {isTimeout
-                ? 'Não conseguimos enviar pela internet. Ligue para o seu contato abaixo.'
+                ? destino.semContato
+                  ? 'Não conseguimos enviar pela internet. Ligue para o SAMU (192) pelo botão abaixo.'
+                  : 'Não conseguimos enviar pela internet. Ligue para o seu contato abaixo.'
                 : isOffline
                   ? `Reenviando sozinho (${tempoRestante} s restantes).`
                   : 'Seu pedido foi enviado com a sua localização.'}
@@ -211,15 +206,17 @@ export default function SosActiveModal({
             </View>
           )}
 
-          <View style={styles.infoBox}>
+          <View style={styles.infoBox} testID="sos-aviso-discagem">
             <Icon name="call" size={18} color={colors.primary} />
             <Text style={styles.infoText}>
-              Sem internet? O app tenta por 60 s e depois abre o discador com o seu contato de emergência.
+              {destino.semContato
+                ? `${AVISO_SEM_CONTATO} Sem internet, o app tenta por 60 s e depois abre o discador com o SAMU.`
+                : 'Sem internet? O app tenta por 60 s e depois abre o discador com o seu contato de emergência.'}
             </Text>
           </View>
 
           <Button
-            title={`Ligar para ${contatoPadrao.nome}`}
+            title={destino.rotulo}
             onPress={handleLigarContato}
             variant={isTimeout ? 'sos' : 'primary'}
             size="xl"
