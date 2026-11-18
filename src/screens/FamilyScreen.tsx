@@ -304,8 +304,9 @@ export default function FamilyScreen({
 
           <Text style={styles.summaryTitle}>Rede de Cuidado Familiar</Text>
           <Text style={styles.summarySubtitle}>
-            Pessoas autorizadas para alertas SOS e acompanhamento diário de Dona
-            Maria.
+            {nomeIdoso
+              ? `Pessoas autorizadas para alertas SOS e acompanhamento diário de ${nomeIdoso}.`
+              : 'Pessoas autorizadas para alertas SOS e acompanhamento diário do idoso.'}
           </Text>
 
           {/* Caixa Azul de Plantão Atual (#EBF5FF, rx=20) */}
@@ -319,10 +320,14 @@ export default function FamilyScreen({
             </View>
             <View style={styles.onDutyTexts}>
               <Text style={styles.onDutyTitle}>
-                Plantão Atual: {membroPlantao?.nome || 'Carlos Silva'}
+                {membroPlantao ? `Plantão Atual: ${membroPlantao.nome}` : 'Ninguém de plantão ainda'}
               </Text>
               <Text style={styles.onDutySub}>
-                {membroPlantao?.statusLabel || 'Resposta rápida estimada em 4 min'}
+                {membroPlantao
+                  ? membroPlantao.statusLabel
+                  : carregandoMembros
+                    ? 'Carregando a rede...'
+                    : 'Convide um familiar para receber os alertas SOS.'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -670,9 +675,9 @@ export default function FamilyScreen({
                               try {
                                 const novoVinculado = {
                                   id: `med-${Date.now()}`,
-                                  nome: convite.nomeMedico || 'Dr. Convidado',
-                                  nomeCompleto: convite.nomeMedico || 'Dr. Convidado',
-                                  crm: convite.crm || '123456/SP',
+                                  nome: convite.nomeMedico || convite.emailDestinatario || 'Médico',
+                                  nomeCompleto: convite.nomeMedico || convite.emailDestinatario || 'Médico',
+                                  crm: convite.crm,
                                   grauParentesco: 'Médico',
                                   papelAcesso: 'MEDICO',
                                   tipoMembro: 'MEDICO',
@@ -680,7 +685,6 @@ export default function FamilyScreen({
                                   badgeTexto: 'Médico Vinculado',
                                   badgeTipo: 'especialista',
                                   online: true,
-                                  telefone: '+55 11 98888-7777',
                                   email: convite.emailDestinatario,
                                   acoes: ['call', 'prontuario'],
                                 };

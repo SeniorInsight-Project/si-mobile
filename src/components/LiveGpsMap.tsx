@@ -170,7 +170,7 @@ export default function LiveGpsMap({ onLocationChange }: LiveGpsMapProps) {
         </View>
       </View>
 
-      {/* Sinalizador (Radar + Pino da Dona Maria) sobreposto e centralizado na área visível */}
+      {/* Sinalizador (Radar + Pino do idoso) sobreposto e centralizado na área visível */}
       <View style={styles.radarAndPinOverlay} pointerEvents="none">
         <View
           style={[

@@ -21,6 +21,7 @@ import { listarIdososDoFamiliar, ElderlyProfile } from '../services/elderlyServi
 import { escolherIdosoSelecionado } from '../services/selecaoIdoso';
 import { extrairMensagemErro } from '../services/erroHelper';
 import { useIdoso } from '../context/IdosoContext';
+import { useNomeUsuario } from '../context/UsuarioContext';
 import {
   buscarStatusDispositivo,
   LIMITE_BATERIA_BAIXA,
@@ -75,6 +76,7 @@ export default function HomeScreen({
   plano: planoProp,
 }: HomeScreenProps) {
   const espacoInferior = useEspacoBarraInferior();
+  const nomeUsuario = useNomeUsuario();
   const [resgateAtivo, setResgateAtivo] = useState<boolean>(false);
   const [alarmeIdAtivo, setAlarmeIdAtivo] = useState<string | null>(null);
   const [idosos, setIdosos] = useState<ElderlyProfile[]>([]);
@@ -388,7 +390,6 @@ export default function HomeScreen({
                       </View>
                     )}
                   </View>
-                  <Text style={styles.monitoredBy}>Monitorada por Dr. Ricardo</Text>
                 </View>
               </View>
 
@@ -687,7 +688,7 @@ export default function HomeScreen({
             </View>
           </View>
 
-          {/* Mapa Interativo com Perímetro Seguro, Pino da Dona Maria e Barra de Endereço */}
+          {/* Mapa Interativo com Perímetro Seguro, Pino do idoso e Barra de Endereço */}
           <LiveGpsMap
             latitude={-23.55052}
             longitude={-46.633308}
@@ -831,7 +832,7 @@ export default function HomeScreen({
           onAssumirResgate={handleAssumirResgate}
           onVerContatos={handleVerContatos}
           resgateAtivo={resgateAtivo}
-          responsavelNome="Carlos Silva"
+          responsavelNome={nomeUsuario ?? undefined}
         />
           </>
         )}
@@ -979,11 +980,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     ...font('heading', 700),
-  },
-  monitoredBy: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    ...font('body', 500),
   },
   elderlyBadgesRight: {
     alignItems: 'flex-end',

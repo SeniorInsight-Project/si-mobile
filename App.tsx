@@ -458,7 +458,7 @@ export default function App() {
         return (
           <AcceptInviteScreen
             onNavigate={navegar}
-            inviteToken={inviteToken || 'token-exemplo'}
+            inviteToken={inviteToken ?? undefined}
             isAuthenticated={Boolean(usuarioLogado)}
             currentUser={usuarioLogado}
             onDesfecho={handleDesfechoAutenticacao}

@@ -634,18 +634,6 @@ export default function ElderlyProfileScreen({
             </>
           )}
 
-          <Button
-            title="Histórico Clínico Completo"
-            iconLeft="assignment"
-            variant="outline"
-            size="lg"
-            onPress={() =>
-              Alert.alert(
-                'Histórico Clínico',
-                'Visualização do prontuário histórico consolidado.'
-              )
-            }
-          />
         </View>
           </>
         )}

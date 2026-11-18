@@ -42,7 +42,7 @@ export default function AppHeader({
   onNavigate,
   onPressNotification,
   onPressLogo,
-  hasNotification = true,
+  hasNotification = false,
   onLogout,
 }: AppHeaderProps) {
   const papel = usePapel();
