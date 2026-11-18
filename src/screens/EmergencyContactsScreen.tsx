@@ -404,7 +404,7 @@ export default function EmergencyContactsScreen({
     if (contatos.length >= LIMITE_CONTATOS_EMERGENCIA) {
       Alert.alert(
         'Limite Atingido',
-        `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência (RN-002).`
+        `Você pode cadastrar no máximo ${LIMITE_CONTATOS_EMERGENCIA} contatos de emergência.`
       );
       return;
     }
@@ -595,7 +595,7 @@ export default function EmergencyContactsScreen({
           {comoFuncionaAberto && (
             <View style={styles.accordionBody}>
               <Text style={styles.accordionBodyText}>
-                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 3 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
+                Ao pressionar o <Text style={{ ...font('body', 700), color: colors.coral }}>Botão SOS por 2 segundos</Text>, o sistema notifica os contatos na ordem definida nos cards acima:
               </Text>
               <View style={styles.accordionStepRow}>
                 <View style={styles.accordionStepNumber}>

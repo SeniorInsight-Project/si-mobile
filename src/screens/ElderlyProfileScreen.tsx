@@ -353,8 +353,7 @@ export default function ElderlyProfileScreen({
 
           <Text style={styles.elderlyName}>{form.nome || 'Novo idoso'}</Text>
           <Text style={styles.elderlyPlanSubtitle}>
-            {idade !== null ? `${idade} anos` : 'Idade não informada'} •{' '}
-            <Text style={styles.planBadgeText}>Plano Cuidador Ativo</Text>
+            {idade !== null ? `${idade} anos` : 'Idade não informada'}
           </Text>
 
           {/* BANDEJA CINZA (#F2F4F7, rx=20) COM 3 CARTÕES BRANCOS (#FFFFFF, rx=16) */}
@@ -363,19 +362,6 @@ export default function ElderlyProfileScreen({
               <Text style={styles.statLabel}>TIPO SANGUÍNEO</Text>
               <Text style={styles.bloodValue}>{profile?.tipoSanguineo || '—'}</Text>
             </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>GLICEMIA</Text>
-              <View style={styles.glycemiaRow}>
-                <Text style={styles.glycemiaValue}>104</Text>
-                <Text style={styles.glycemiaUnit}>mg</Text>
-              </View>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>CHECK-UP</Text>
-              <Text style={styles.checkinValue}>Hoje</Text>
-            </View>
           </View>
         </View>
 
@@ -383,7 +369,7 @@ export default function ElderlyProfileScreen({
         <View style={styles.curatelaNoticeCard} testID="aviso-curatela-perfil">
           <Icon name="shield" size={18} color={colors.primary} />
           <Text style={styles.curatelaNoticeText}>
-            Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar autorizações de saúde (RN-001 / Art. 11 LGPD).
+            Somente o idoso pode autorizar o uso dos próprios dados. Familiares sem curatela registrada não podem alterar autorizações de saúde (LGPD, Art. 11).
           </Text>
         </View>
 
@@ -775,10 +761,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     ...font('body', 600),
   },
-  planBadgeText: {
-    color: colors.primaryNavy,
-    ...font('body', 700),
-  },
   statsTray: {
     flexDirection: 'row',
     width: '100%',
@@ -807,26 +789,6 @@ const styles = StyleSheet.create({
   bloodValue: {
     fontSize: 16,
     color: colors.coralDark,
-    ...font('heading', 800),
-  },
-  glycemiaRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 2,
-  },
-  glycemiaValue: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    ...font('heading', 800),
-  },
-  glycemiaUnit: {
-    fontSize: 14,
-    ...font('body', 700),
-    color: colors.textSecondary,
-  },
-  checkinValue: {
-    fontSize: 15,
-    color: colors.successDark,
     ...font('heading', 800),
   },
 

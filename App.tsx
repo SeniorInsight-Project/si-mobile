@@ -70,6 +70,8 @@ import {
 import { pararSincronizacaoOpenWearables } from './src/services/openWearablesService';
 import { ehExpoGo } from './src/config/expoGo';
 import { iniciarEnvioStatusCelular } from './src/services/statusCelularIdosoService';
+import { obterConsentimentos } from './src/services/consentimentoService';
+import { aplicarConsentimentoLocalizacao, pararRastreamentoLocalizacao } from './src/services/locationService';
 
 /** Schema Perfil do contrato identity-v1 (GET /api/v1/identity/me). */
 interface PerfilIdentity {
@@ -229,6 +231,22 @@ export default function App() {
   useEffect(() => {
     if (papel !== 'IDOSO' || !idosoSelecionadoId) return;
     return iniciarEnvioStatusCelular(idosoSelecionadoId);
+  }, [papel, idosoSelecionadoId]);
+
+  // Sessão do idoso com "Compartilhar sempre" ligado (consentimento LOCALIZACAO): o GPS fica ligado enquanto o
+  // app está aberto. Desligado, a posição só é buscada no SOS. Para no logout.
+  useEffect(() => {
+    if (papel !== 'IDOSO' || !idosoSelecionadoId) return;
+    let ativo = true;
+    obterConsentimentos(idosoSelecionadoId)
+      .then((c) => {
+        if (ativo) return aplicarConsentimentoLocalizacao(c.LOCALIZACAO);
+      })
+      .catch((err) => console.warn('[App] Não foi possível ler o consentimento de localização:', err?.message));
+    return () => {
+      ativo = false;
+      pararRastreamentoLocalizacao();
+    };
   }, [papel, idosoSelecionadoId]);
 
   useEffect(() => {

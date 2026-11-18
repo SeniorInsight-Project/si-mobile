@@ -294,7 +294,7 @@ export default function InviteMemberModal({
                 </Text>
               </View>
               <Text style={styles.doctorRedirectSub}>
-                Para que o profissional acesse e visualize relatórios clínicos, utilize o formulário específico com registro CRM (HU-016).
+                Para que o profissional acesse e visualize relatórios clínicos, utilize o formulário específico com registro CRM.
               </Text>
               <Button
                 title="Abrir Formulário do Médico"

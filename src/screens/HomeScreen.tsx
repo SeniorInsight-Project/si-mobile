@@ -35,6 +35,7 @@ import {
   ResultadoPerdaDados,
 } from '../services/deviceStatusService';
 import { buscarEstadoAtual, EstadoAtual } from '../services/telemetryService';
+import { listarRotinas, type RotinaMedicamento } from '../services/medicamentoService';
 import { buscarScoreBemEstar, ScoreBemEstar } from '../services/riskScoreService';
 import { consentimentosDosTiposAtivos } from '../services/mappers/consentimentos';
 import {
@@ -99,6 +100,8 @@ export default function HomeScreen({
   // Última posição conhecida do idoso, vinda do servidor (último SOS com coordenada).
   const [posicaoIdoso, setPosicaoIdoso] = useState<LocalizacaoSos | null>(null);
   const [carregandoPosicao, setCarregandoPosicao] = useState<boolean>(false);
+  // Última dose confirmada hoje (rotinas do servidor); null quando nenhuma foi tomada.
+  const [ultimaDose, setUltimaDose] = useState<RotinaMedicamento | null>(null);
 
   const carregarPlano = useCallback(async () => {
     setErroPlano(null);
@@ -233,6 +236,26 @@ export default function HomeScreen({
     setPosicaoIdoso(null);
     carregarPosicaoIdoso(idosoSelecionadoId);
   }, [idosoSelecionadoId, carregarPosicaoIdoso]);
+
+  useEffect(() => {
+    setUltimaDose(null);
+    if (!idosoSelecionadoId) return;
+    let ativo = true;
+    listarRotinas(idosoSelecionadoId)
+      .then((rotinas) => {
+        if (!ativo) return;
+        const tomadas = rotinas
+          .filter((r) => r.statusHoje === 'TOMADO' && r.horarioIngestaoHoje)
+          .sort((a, b) => (b.horarioIngestaoHoje ?? '').localeCompare(a.horarioIngestaoHoje ?? ''));
+        setUltimaDose(tomadas[0] ?? null);
+      })
+      .catch((erro: any) =>
+        console.warn(`[HomeScreen] Erro ao carregar os remédios do idoso (HTTP ${erro?.status ?? '?'}):`, erro?.message)
+      );
+    return () => {
+      ativo = false;
+    };
+  }, [idosoSelecionadoId]);
 
   const handleAssumirResgate = () => {
     if (!resgateAtivo) {
@@ -693,8 +716,8 @@ export default function HomeScreen({
                   <Text style={styles.subCardTitle}>Último Remédio</Text>
                 </View>
                 <View style={styles.subCardValueRow}>
-                  <Text style={styles.subCardValue}>10:02</Text>
-                  <Text style={styles.remedioStatusTag}>Tomado</Text>
+                  <Text style={styles.subCardValue}>{ultimaDose?.horarioIngestaoHoje ?? '--'}</Text>
+                  {ultimaDose ? <Text style={styles.remedioStatusTag}>Tomado</Text> : null}
                 </View>
               </View>
             </View>

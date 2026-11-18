@@ -15,14 +15,7 @@ import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar
 import SosActiveModal from '../components/SosActiveModal';
 import { AVISO_SEM_CONTATO, destinoLigacaoEmergencia } from '../services/discagemEmergencia';
 import SosHoldButton from '../components/SosHoldButton';
-import WatchStatusCard from '../components/WatchStatusCard';
-import ElderlyMetricsCards from '../components/ElderlyMetricsCards';
 import { usePapel } from '../context/PapelContext';
-import {
-  carregarStatusRelogioIdoso,
-  StatusRelogioIdoso,
-} from '../services/relogioStatusService';
-import { carregarBiometriaIdoso, type BiometriaIdoso } from '../services/elderlyTelemetryService';
 import { obterAparelhoPareado } from '../services/aparelhoPareadoService';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -54,6 +47,32 @@ import {
   ContatoEmergencia,
 } from '../services/contatoEmergenciaService';
 import { useIdoso } from '../context/IdosoContext';
+
+const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+/** "Quarta-feira, 14:05" com a hora do aparelho. */
+export function formatarDiaHora(data: Date): string {
+  const hh = String(data.getHours()).padStart(2, '0');
+  const mm = String(data.getMinutes()).padStart(2, '0');
+  return `${DIAS_SEMANA[data.getDay()]}, ${hh}:${mm}`;
+}
+
+/** Hora atual que se atualiza a cada virada de minuto. */
+function useRelogioMinuto(): Date {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    let intervalo: ReturnType<typeof setInterval> | undefined;
+    const atraso = setTimeout(() => {
+      setAgora(new Date());
+      intervalo = setInterval(() => setAgora(new Date()), 60000);
+    }, 60000 - (Date.now() % 60000));
+    return () => {
+      clearTimeout(atraso);
+      if (intervalo) clearInterval(intervalo);
+    };
+  }, []);
+  return agora;
+}
 
 export interface ElderlyModeScreenProps {
   onNavigate?: (screen: string) => void;
@@ -107,14 +126,12 @@ export default function ElderlyModeScreen({
   const [primeiroContato, setPrimeiroContato] = useState<ContatoEmergencia | null>(null);
   const [contatosEmergencia, setContatosEmergencia] = useState<ContatoEmergencia[]>([]);
   const [disparandoSos, setDisparandoSos] = useState<boolean>(false);
-  const [watchStatus, setWatchStatus] = useState<StatusRelogioIdoso | null>(null);
-  const [biometria, setBiometria] = useState<BiometriaIdoso | null>(null);
+  const agora = useRelogioMinuto();
 
 
   useEffect(() => {
     if (!idAtivo) {
       setRotinas([]);
-      setBiometria(null);
       return;
     }
 
@@ -129,23 +146,6 @@ export default function ElderlyModeScreen({
       })
       .catch((err) => {
         console.warn('[ElderlyModeScreen] Erro ao carregar contatos do cache:', err?.message);
-      });
-
-    // Passos e batimentos de hoje (HU-030): só os tipos autorizados; sem leitura, "Sem dados".
-    carregarBiometriaIdoso(idAtivo)
-      .then(setBiometria)
-      .catch((err) => {
-        setBiometria(null);
-        console.warn('[ElderlyModeScreen] Passos e batimentos indisponíveis:', err?.name);
-      });
-
-    // 0. Carrega status de sincronização do relógio (HU-025)
-    carregarStatusRelogioIdoso(idAtivo)
-      .then(setWatchStatus)
-      .catch((err) => {
-        // Sem API e sem cache: o card fica oculto em vez de mostrar um status inventado.
-        setWatchStatus(null);
-        console.warn('[ElderlyModeScreen] Status do relógio indisponível:', err?.message);
       });
 
     obterRotinasDoCache(idAtivo)
@@ -424,7 +424,7 @@ export default function ElderlyModeScreen({
               <View style={styles.onlineDot} />
             </View>
             <View style={styles.greetingTexts}>
-              <Text style={styles.greetingSub}>Quinta-feira, 10:02</Text>
+              <Text style={styles.greetingSub}>{formatarDiaHora(agora)}</Text>
               <Text style={styles.greetingTitle}>{saudacao}</Text>
             </View>
           </View>
@@ -437,15 +437,6 @@ export default function ElderlyModeScreen({
             style={{ backgroundColor: colors.mint.background }}
           />
         </View>
-
-{/* STATUS DO RELÓGIO (HU-025 / RNF-006) */}
-        <WatchStatusCard
-          status={watchStatus}
-          onPress={() => onNavigate && onNavigate('ElderlyWatch')}
-        />
-
-        {/* PASSOS E BATIMENTOS DE HOJE (HU-030 / RNF-006) */}
-        <ElderlyMetricsCards biometria={biometria} />
 
         {/* CARD 1: HORA DO REMÉDIO (#EBF5FF, rx=32) */}
         {loading ? (
@@ -563,7 +554,9 @@ export default function ElderlyModeScreen({
                   ? `${proximoRemedio.horario} — ${proximoRemedio.medicamentoNome || proximoRemedio.nomeMedicamento || 'Medicamento'}`
                   : todosTomados
                   ? `${totalAtivos} doses registradas com sucesso`
-                  : '14:00 — Vitamina D3 (1 cápsula)'}
+                  : totalAtivos === 0
+                  ? 'Nenhum remédio cadastrado'
+                  : 'Ver todos os remédios de hoje'}
               </Text>
             </View>
           </View>

@@ -57,7 +57,11 @@ export default function AppHeader({
   const sair = onLogout ?? (onNavigate ? () => onNavigate('Logout') : undefined);
 
   const opcoesConta: OpcaoConta[] = [];
-  if (onPressLogo) {
+  if (papel === 'IDOSO' && onNavigate) {
+    // Meus dados e o relógio saíram da barra inferior do idoso: ficam no menu da conta.
+    opcoesConta.push({ id: 'meus-dados', rotulo: 'Meus dados', icone: 'shield_check', onPress: () => onNavigate('ElderlyData') });
+    opcoesConta.push({ id: 'meu-relogio', rotulo: 'Meu relógio', icone: 'watch', onPress: () => onNavigate('ElderlyWatch') });
+  } else if (onPressLogo) {
     opcoesConta.push({ id: 'meus-dados', rotulo: 'Meus dados', icone: 'person', onPress: onPressLogo });
   } else if (papel === 'FAMILIAR' && onNavigate) {
     opcoesConta.push({

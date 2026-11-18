@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Alert, Linking } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AppHeader from '../components/AppHeader';
 import BottomNavBar, { useEspacoBarraInferior } from '../components/BottomNavBar';
@@ -19,6 +19,7 @@ import {
   salvarConsentimentos,
   statusMonitoramento,
 } from '../services/consentimentoService';
+import { aplicarConsentimentoLocalizacao } from '../services/locationService';
 
 export interface ElderlyDataScreenProps {
   onNavigate: (screen: string) => void;
@@ -87,12 +88,28 @@ export default function ElderlyDataScreen({ onNavigate, primeiroUso = false }: E
       setSalvando(false);
       return;
     }
+    // "Compartilhar sempre": liga o GPS agora (pede a permissão do sistema) ou desliga.
+    const gpsLigado = await aplicarConsentimentoLocalizacao(consentimentos.LOCALIZACAO);
     setSalvando(false);
-    if (primeiroUso) {
-      onNavigate('ElderlyWatch');
+    const seguir = () => {
+      if (primeiroUso) {
+        onNavigate('ElderlyWatch');
+        return;
+      }
+      setAviso('Escolhas salvas. Sua família já vê o que está desligado.');
+    };
+    if (consentimentos.LOCALIZACAO && !gpsLigado) {
+      Alert.alert(
+        'Localização bloqueada',
+        'Sua escolha foi salva, mas o celular não liberou a localização. Permita a localização para o Senior Insight nos ajustes do celular.',
+        [
+          { text: 'Abrir ajustes', onPress: () => { Linking.openSettings().catch(() => {}); seguir(); } },
+          { text: 'Continuar', style: 'cancel', onPress: seguir },
+        ]
+      );
       return;
     }
-    setAviso('Escolhas salvas. Sua família já vê o que está desligado.');
+    seguir();
   };
 
   const pausado = statusMonitoramento(consentimentos) === 'PAUSADO';

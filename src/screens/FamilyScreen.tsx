@@ -35,6 +35,7 @@ import {
   MembroRede,
 } from '../services/redeProtecaoService';
 import { mockPermitido } from '../config/ambiente';
+import { listarContatos } from '../services/contatoEmergenciaService';
 import { colors, font, rounded, shadows, sizes, typography } from '../theme';
 import { useIdoso } from '../context/IdosoContext';
 
@@ -101,6 +102,28 @@ export default function FamilyScreen({
 
   useEffect(() => {
     carregarDados();
+  }, [idosoId]);
+
+  // Sequência de chamada do SOS: primeiros nomes dos contatos de emergência cadastrados, na ordem.
+  const [sequenciaSos, setSequenciaSos] = useState<string[]>([]);
+  useEffect(() => {
+    setSequenciaSos([]);
+    if (!idosoId) return;
+    let ativo = true;
+    listarContatos(idosoId)
+      .then((contatos) => {
+        if (!ativo) return;
+        setSequenciaSos(
+          [...contatos]
+            .filter((c) => c.ativo !== false && c.nome?.trim())
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((c) => c.nome.trim().split(/\s+/)[0])
+        );
+      })
+      .catch((err: any) => console.warn('[FamilyScreen] Erro ao carregar contatos de emergência:', err?.message));
+    return () => {
+      ativo = false;
+    };
   }, [idosoId]);
 
   // Contagem e filtros de médicos e familiares (RN-012)
@@ -420,11 +443,11 @@ export default function FamilyScreen({
             </View>
             <View style={styles.adminMainDoctorTexts}>
               <Text style={styles.adminMainDoctorTitle}>
-                Convidar Médico do Idoso (HU-016)
+                Convidar Médico do Idoso
               </Text>
               <Text style={styles.adminMainDoctorSub}>
                 {limiteMedicosAtingido
-                  ? 'Limite de 2 médicos atingido (RN-012)'
+                  ? 'Limite de 2 médicos atingido'
                   : `Cadastrar médico de referência via CRM • ${totalMedicos}/2 médicos`}
               </Text>
             </View>
@@ -535,7 +558,7 @@ export default function FamilyScreen({
                   <View style={styles.doctorHeaderTexts}>
                     <Text style={styles.doctorHeaderTitle}>Corpo Clínico & Médicos</Text>
                     <Text style={styles.doctorHeaderSubtitle}>
-                      Acesso aos relatórios semanais de saúde (RN-012)
+                      Acesso aos relatórios semanais de saúde
                     </Text>
                   </View>
                   <View style={[styles.doctorCountBadge, limiteMedicosAtingido && styles.doctorCountBadgeAlert]}>
@@ -556,7 +579,7 @@ export default function FamilyScreen({
                     />
                     {limiteMedicosAtingido ? (
                       <Text style={styles.limitReasonText}>
-                        Limite de 2 médicos atingido (RN-012)
+                        Limite de 2 médicos atingido
                       </Text>
                     ) : null}
                   </View>
@@ -959,7 +982,9 @@ export default function FamilyScreen({
             Sequência de Chamada SOS
           </Text>
           <Text style={styles.sosSequenceSub}>
-            Em caso de alarme: Carlos → Roberta → Lucas → SAMU 192
+            {sequenciaSos.length > 0
+              ? `Em caso de alarme: ${[...sequenciaSos, 'SAMU 192'].join(' → ')}`
+              : 'Nenhum contato de emergência cadastrado. Em caso de alarme: SAMU 192'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -989,12 +1014,12 @@ export default function FamilyScreen({
           </View>
           {limiteAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 5 familiares atingido (RN-012)
+              Limite de 5 familiares atingido
             </Text>
           ) : null}
           {limiteMedicosAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 2 médicos atingido (RN-012)
+              Limite de 2 médicos atingido
             </Text>
           ) : null}
         </View>
@@ -1009,7 +1034,7 @@ export default function FamilyScreen({
           />
           {limiteAtingido ? (
             <Text style={styles.limitReasonText}>
-              Limite de 5 familiares atingido (RN-012)
+              Limite de 5 familiares atingido
             </Text>
           ) : null}
         </View>

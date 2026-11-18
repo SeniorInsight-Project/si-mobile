@@ -81,7 +81,5 @@ export const ABAS_POR_PAPEL: Record<PapelApp, AbaNavegacao[]> = {
   IDOSO: [
     { id: 'ElderlyMode', label: 'Início', icon: 'crisis_alert' },
     { id: 'Medicines', label: 'Remédios', icon: 'medication' },
-    { id: 'ElderlyData', label: 'Meus Dados', icon: 'shield_check' },
-    { id: 'ElderlyWatch', label: 'Relógio', icon: 'watch' },
   ],
 };
